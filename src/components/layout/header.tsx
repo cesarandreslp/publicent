@@ -125,7 +125,7 @@ export function Header() {
             <div className="flex items-center gap-3">
               <Link href="/mapa-sitio" className="hover:text-gov-blue focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gov-blue rounded">Mapa del Sitio</Link>
               <span className="text-gray-300">|</span>
-              <Link href="/politicas" className="hover:text-gov-blue focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gov-blue rounded">Políticas</Link>
+              <Link href="/privacidad" className="hover:text-gov-blue focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gov-blue rounded">Políticas</Link>
             </div>
           </div>
         </div>

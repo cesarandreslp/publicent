@@ -84,6 +84,12 @@ async function fetchTenantInfo(tenantId: string): Promise<TenantInfo | null> {
     return getDevTenantInfo()
   }
 
+  // Shortcut para deploy single-tenant (Vercel):
+  // Evita consultar meta-DB via TCP — usa DATABASE_URL del env directamente
+  if (process.env.TENANT_SLUG) {
+    return getSingleTenantInfo(tenantId)
+  }
+
   const cached = tenantInfoCache.get(tenantId)
   if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
     return cached.data
@@ -239,6 +245,37 @@ function getDevTenantInfo(): TenantInfo {
       ...MODULOS_DEFAULT,
       sitio_web:         { activo: true },
       ventanilla_unica:  { activo: true, usarFallback: true },
+      gestion_documental:{ activo: true },
+    },
+    logoUrl: null,
+    colorPrimario: null,
+    colorSecundario: null,
+  }
+}
+
+/**
+ * Info del tenant para deploys single-tenant (TENANT_SLUG definido).
+ * Usa DATABASE_URL del env sin consultar la meta-DB.
+ */
+function getSingleTenantInfo(tenantId: string): TenantInfo {
+  return {
+    id: tenantId,
+    slug: process.env.TENANT_SLUG || 'default',
+    nombre: process.env.NEXT_PUBLIC_SITE_NAME || 'Entidad Pública',
+    nombreCorto: 'Entidad',
+    tipoEntidad: 'PERSONERIA',
+    municipio: 'Guadalajara de Buga',
+    departamento: 'Valle del Cauca',
+    dominioPrincipal: 'personeriabuga.vercel.app',
+    dominioPersonalizado: null,
+    databaseUrl: process.env.DATABASE_URL!,
+    plan: 'PROFESIONAL',
+    activo: true,
+    suspendido: false,
+    modulosActivos: {
+      ...MODULOS_DEFAULT,
+      sitio_web:         { activo: true },
+      ventanilla_unica:  { activo: true },
       gestion_documental:{ activo: true },
     },
     logoUrl: null,
