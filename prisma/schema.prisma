@@ -1,0 +1,1442 @@
+// Schema de Prisma para Personería de Guadalajara de Buga
+// Basado en Resolución 1519 de 2020 - MinTIC
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ==========================================
+// AUTENTICACIÓN Y USUARIOS
+// ==========================================
+
+model Usuario {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  password        String
+  nombre          String
+  apellido        String
+  cargo           String?
+  telefono        String?
+  avatar          String?
+  activo          Boolean   @default(true)
+  emailVerificado DateTime?
+
+  rolId String
+  rol   Rol    @relation(fields: [rolId], references: [id])
+
+  // Relaciones
+  contenidosCreados      Contenido[]         @relation("ContenidoCreador")
+  contenidosActualizados Contenido[]         @relation("ContenidoActualizador")
+  noticiasCreadas        Noticia[]           @relation("NoticiaCreador")
+  documentosSubidos      Documento[]
+  pqrsAsignadas          PQRS[]              @relation("PQRSAsignado")
+  pqrsCreadas            PQRS[]              @relation("PQRSCreador")
+  historialPqrs          HistorialPQRS[]
+  sesiones               Sesion[]
+  registrosAuditoria     RegistroAuditoria[]
+
+  // MIPG
+  evidenciasMIPG   MipgEvidencia[]
+  evaluacionesMIPG MipgEvaluacion[]
+
+  // Gestión Documental
+  gdRadicadosCreados    GdRadicado[]       @relation("GdCreador")
+  gdRadicadosTramitados GdRadicado[]       @relation("GdTramitador")
+  gdTransacciones       GdLogTransaccion[]
+
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  gdFirmaQrs           GdFirmaQr[]           @relation("GdFirmante")
+  gdExpedientesCreados GdExpediente[]        @relation("GdExpedienteCreador")
+  gdIndicesFirmados    GdIndiceElectronico[] @relation("GdIndiceFirmante")
+  gaPrestamosFisicos   GaPrestamo[]          @relation("GaPrestamoSolicitante")
+
+  // Fase 1: relaciones nuevas
+  gdRadicadosInformados GdRadicadoInformado[] @relation("GdInformado")
+  gdVoBosSolicitados    GdVoBo[]              @relation("GdVoBoSolicitado")
+  gdVoBosAprobados      GdVoBo[]              @relation("GdVoBoAprobado")
+
+  // Fase 3: API Keys
+  gdApiKeysCreadas      GdApiKey[]            @relation("GdApiKeyCreador")
+
+  @@map("usuarios")
+}
+
+model Rol {
+  id          String  @id @default(cuid())
+  nombre      String  @unique
+  descripcion String?
+  permisos    Json // Array de permisos específicos
+  esProtegido Boolean @default(false) // No se puede eliminar
+
+  usuarios Usuario[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("roles")
+}
+
+model Sesion {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  usuarioId    String
+  usuario      Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  expires      DateTime
+
+  createdAt DateTime @default(now())
+
+  @@map("sesiones")
+}
+
+model TokenRecuperacion {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expires   DateTime
+  createdAt DateTime @default(now())
+
+  @@map("tokens_recuperacion")
+}
+
+// ==========================================
+// ESTRUCTURA DEL SITIO - MENÚ Y SECCIONES
+// Basado en Resolución 1519 de 2020
+// ==========================================
+
+model MenuPrincipal {
+  id            String  @id @default(cuid())
+  nombre        String
+  slug          String  @unique
+  icono         String?
+  orden         Int     @default(0)
+  visible       Boolean @default(true)
+  esObligatorio Boolean @default(false) // Secciones que exige la Res. 1519
+  codigoITA     String? // Código del criterio ITA asociado
+
+  // Relación padre-hijo para submenús
+  padreId  String?
+  padre    MenuPrincipal?  @relation("SubMenus", fields: [padreId], references: [id])
+  subMenus MenuPrincipal[] @relation("SubMenus")
+
+  // Contenido asociado
+  pagina Pagina?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("menu_principal")
+}
+
+model Pagina {
+  id              String          @id @default(cuid())
+  titulo          String
+  slug            String          @unique
+  descripcion     String? // Meta description para SEO
+  contenido       Json? // Contenido estructurado
+  plantilla       PlantillaPagina @default(GENERICA)
+  metaKeywords    String?
+  imagenDestacada String?
+  publicada       Boolean         @default(false)
+
+  // Relación con menú
+  menuId String?        @unique
+  menu   MenuPrincipal? @relation(fields: [menuId], references: [id])
+
+  // Secciones de la página
+  secciones SeccionPagina[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("paginas")
+}
+
+model SeccionPagina {
+  id            String      @id @default(cuid())
+  nombre        String
+  tipo          TipoSeccion
+  contenido     Json // Contenido flexible según el tipo
+  orden         Int         @default(0)
+  visible       Boolean     @default(true)
+  configuracion Json? // Configuración específica de la sección
+
+  paginaId String
+  pagina   Pagina @relation(fields: [paginaId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("secciones_pagina")
+}
+
+// ==========================================
+// TRANSPARENCIA - Resolución 1519 de 2020
+// ==========================================
+
+model CategoriaTransparencia {
+  id            String  @id @default(cuid())
+  numero        Int // 1, 2, 3... según Res. 1519
+  nombre        String
+  slug          String  @unique
+  descripcion   String?
+  icono         String?
+  orden         Int     @default(0)
+  esObligatoria Boolean @default(true)
+  codigoITA     String? // Código ITA asociado
+
+  subcategorias SubcategoriaTransparencia[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("categorias_transparencia")
+}
+
+model SubcategoriaTransparencia {
+  id            String  @id @default(cuid())
+  codigo        String // Ej: "1.1", "1.2"
+  nombre        String
+  slug          String  @unique
+  descripcion   String?
+  orden         Int     @default(0)
+  esObligatoria Boolean @default(true)
+
+  categoriaId String
+  categoria   CategoriaTransparencia @relation(fields: [categoriaId], references: [id], onDelete: Cascade)
+
+  items ItemTransparencia[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("subcategorias_transparencia")
+}
+
+model ItemTransparencia {
+  id                 String                @id @default(cuid())
+  codigo             String // Ej: "1.1.1"
+  titulo             String
+  descripcion        String?
+  contenido          Json? // Contenido HTML o estructurado
+  tipo               TipoItemTransparencia @default(TEXTO)
+  urlExterna         String? // Para enlaces externos (ej: SECOP)
+  archivoUrl         String? // Para documentos
+  fechaPublicacion   DateTime?
+  fechaActualizacion DateTime?
+  esObligatorio      Boolean               @default(true)
+  cumplido           Boolean               @default(false) // Para seguimiento ITA
+  observaciones      String? // Notas internas
+
+  subcategoriaId String
+  subcategoria   SubcategoriaTransparencia @relation(fields: [subcategoriaId], references: [id], onDelete: Cascade)
+
+  documentos DocumentoTransparencia[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("items_transparencia")
+}
+
+model DocumentoTransparencia {
+  id          String    @id @default(cuid())
+  nombre      String
+  descripcion String?
+  archivoUrl  String
+  tipoArchivo String // PDF, DOC, XLS, etc.
+  tamanio     Int? // En bytes
+  vigencia    DateTime?
+  orden       Int       @default(0)
+
+  itemId String
+  item   ItemTransparencia @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("documentos_transparencia")
+}
+
+// ==========================================
+// NOTICIAS Y PUBLICACIONES
+// ==========================================
+
+model Noticia {
+  id               String            @id @default(cuid())
+  titulo           String
+  slug             String            @unique
+  extracto         String? // Resumen corto
+  contenido        Json // Contenido HTML del editor
+  imagenDestacada  String?
+  galeria          Json? // Array de URLs de imágenes
+  videoUrl         String?
+  estado           EstadoPublicacion @default(BORRADOR)
+  destacada        Boolean           @default(false)
+  fechaPublicacion DateTime?
+
+  categoriaId String?
+  categoria   CategoriaNoticias? @relation(fields: [categoriaId], references: [id])
+
+  creadorId String
+  creador   Usuario @relation("NoticiaCreador", fields: [creadorId], references: [id])
+
+  etiquetas EtiquetaNoticia[]
+
+  // SEO
+  metaTitle       String?
+  metaDescription String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("noticias")
+}
+
+model CategoriaNoticias {
+  id          String  @id @default(cuid())
+  nombre      String  @unique
+  slug        String  @unique
+  descripcion String?
+  color       String? // Color para badges
+
+  noticias Noticia[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("categorias_noticias")
+}
+
+model EtiquetaNoticia {
+  id     String @id @default(cuid())
+  nombre String @unique
+  slug   String @unique
+
+  noticias Noticia[]
+
+  createdAt DateTime @default(now())
+
+  @@map("etiquetas_noticias")
+}
+
+// ==========================================
+// CONTENIDO GENERAL Y PÁGINAS DINÁMICAS
+// ==========================================
+
+model Contenido {
+  id               String            @id @default(cuid())
+  titulo           String
+  slug             String            @unique
+  tipo             TipoContenido
+  contenido        Json // Contenido estructurado
+  extracto         String?
+  imagenDestacada  String?
+  estado           EstadoPublicacion @default(BORRADOR)
+  fechaPublicacion DateTime?
+
+  creadorId String
+  creador   Usuario @relation("ContenidoCreador", fields: [creadorId], references: [id])
+
+  actualizadorId String?
+  actualizador   Usuario? @relation("ContenidoActualizador", fields: [actualizadorId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("contenidos")
+}
+
+// ==========================================
+// DOCUMENTOS Y ARCHIVOS
+// ==========================================
+
+model Documento {
+  id          String             @id @default(cuid())
+  nombre      String
+  descripcion String?
+  archivoUrl  String
+  tipoArchivo String
+  tamanio     Int?
+  categoria   CategoriaDocumento
+  carpeta     String? // Para organización interna
+  publico     Boolean            @default(true)
+
+  subidoPorId String
+  subidoPor   Usuario @relation(fields: [subidoPorId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("documentos")
+}
+
+// ==========================================
+// PQRS - Peticiones, Quejas, Reclamos, Sugerencias
+// ==========================================
+
+model PQRS {
+  id          String   @id @default(cuid())
+  radicado    String   @unique // Número único de radicación
+  tipo        TipoPQRS
+  asunto      String
+  descripcion String   @db.Text
+
+  // Datos del solicitante
+  nombreSolicitante String
+  tipoDocumento     String
+  numeroDocumento   String
+  email             String
+  telefono          String?
+  direccion         String?
+  municipio         String?
+
+  // Estado y seguimiento
+  estado           EstadoPQRS    @default(RECIBIDA)
+  prioridad        PrioridadPQRS @default(NORMAL)
+  fechaRadicacion  DateTime      @default(now())
+  fechaVencimiento DateTime?
+  fechaRespuesta   DateTime?
+
+  // Archivos adjuntos
+  archivosAdjuntos Json? // Array de URLs
+
+  // Respuesta
+  respuesta        String? @db.Text
+  archivoRespuesta String?
+
+  // Asignación
+  asignadoId String?
+  asignado   Usuario? @relation("PQRSAsignado", fields: [asignadoId], references: [id])
+
+  // Quien registra (puede ser el ciudadano o un funcionario)
+  registradoPorId String?
+  registradoPor   Usuario? @relation("PQRSCreador", fields: [registradoPorId], references: [id])
+
+  // Historial de cambios
+  historial HistorialPQRS[]
+
+  // Datos adicionales
+  anonimo Boolean   @default(false)
+  canal   CanalPQRS @default(WEB)
+
+  // Integración con Gestión Documental AGN
+  // → cuando es un PQRS nativo se vincula automáticamente al radicado oficial
+  gdRadicadoId String?     @unique
+  gdRadicado   GdRadicado? @relation(fields: [gdRadicadoId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("pqrs")
+}
+
+model HistorialPQRS {
+  id             String      @id @default(cuid())
+  accion         String
+  descripcion    String?
+  estadoAnterior EstadoPQRS?
+  estadoNuevo    EstadoPQRS?
+
+  pqrsId String
+  pqrs   PQRS   @relation(fields: [pqrsId], references: [id], onDelete: Cascade)
+
+  usuarioId String?
+  usuario   Usuario? @relation(fields: [usuarioId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@map("historial_pqrs")
+}
+
+// ==========================================
+// CONFIGURACIÓN DEL SITIO
+// ==========================================
+
+model ConfiguracionSitio {
+  id          String  @id @default(cuid())
+  clave       String  @unique
+  valor       Json
+  descripcion String?
+  grupo       String? // Para agrupar configuraciones
+  esPublico   Boolean @default(false)
+
+  updatedAt DateTime @updatedAt
+
+  @@map("configuracion_sitio")
+}
+
+model Slider {
+  id             String    @id @default(cuid())
+  titulo         String?
+  subtitulo      String?
+  imagenUrl      String
+  imagenMovilUrl String?
+  enlace         String?
+  textoBoton     String?
+  orden          Int       @default(0)
+  activo         Boolean   @default(true)
+  fechaInicio    DateTime?
+  fechaFin       DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("sliders")
+}
+
+model EnlaceRapido {
+  id          String  @id @default(cuid())
+  titulo      String
+  descripcion String?
+  icono       String?
+  enlace      String
+  esExterno   Boolean @default(false)
+  orden       Int     @default(0)
+  activo      Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("enlaces_rapidos")
+}
+
+model BannerPopup {
+  id          String    @id @default(cuid())
+  titulo      String?
+  contenido   String?
+  imagenUrl   String?
+  enlace      String?
+  activo      Boolean   @default(false)
+  fechaInicio DateTime?
+  fechaFin    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("banners_popup")
+}
+
+// ==========================================
+// DIRECTORIO INSTITUCIONAL
+// ==========================================
+
+model Funcionario {
+  id          String  @id @default(cuid())
+  nombre      String
+  cargo       String
+  dependencia String
+  email       String?
+  telefono    String?
+  extension   String?
+  foto        String?
+  orden       Int     @default(0)
+  activo      Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("funcionarios")
+}
+
+model Dependencia {
+  id          String  @id @default(cuid())
+  nombre      String
+  descripcion String?
+  telefono    String?
+  email       String?
+  horario     String?
+  ubicacion   String?
+  orden       Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // ==========================================
+  // RELACIONES EXISTENTES
+  // ==========================================
+
+  @@map("dependencias")
+}
+
+// ==========================================
+// EVENTOS Y CALENDARIO
+// ==========================================
+
+model Evento {
+  id              String            @id @default(cuid())
+  titulo          String
+  slug            String            @unique
+  descripcion     String?           @db.Text
+  contenido       Json?
+  imagenDestacada String?
+  fechaInicio     DateTime
+  fechaFin        DateTime?
+  horaInicio      String?
+  horaFin         String?
+  lugar           String?
+  direccion       String?
+  enlaceVirtual   String?
+  estado          EstadoPublicacion @default(BORRADOR)
+  destacado       Boolean           @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("eventos")
+}
+
+// ==========================================
+// AUDITORÍA Y LOGS
+// ==========================================
+
+model RegistroAuditoria {
+  id           String  @id @default(cuid())
+  accion       String // CREATE, UPDATE, DELETE, LOGIN, etc.
+  entidad      String // Nombre de la tabla afectada
+  entidadId    String? // ID del registro afectado
+  datosAntes   Json?
+  datosDespues Json?
+  ip           String?
+  userAgent    String?
+
+  usuarioId String?
+  usuario   Usuario? @relation(fields: [usuarioId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@map("registros_auditoria")
+}
+
+// ==========================================
+// MIPG Y FURAG (Modelo Integrado de Planeación y Gestión)
+// ==========================================
+
+model MipgDimension {
+  id          String  @id @default(cuid())
+  codigo      String  @unique // Ej: "D1", "D2"
+  nombre      String
+  descripcion String? @db.Text
+  orden       Int     @default(0)
+
+  politicas MipgPolitica[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("mipg_dimensiones")
+}
+
+model MipgPolitica {
+  id          String  @id @default(cuid())
+  codigo      String  @unique // Ej: "P1.1", "P2.3"
+  nombre      String
+  descripcion String? @db.Text
+  orden       Int     @default(0)
+
+  dimensionId String
+  dimension   MipgDimension @relation(fields: [dimensionId], references: [id], onDelete: Cascade)
+
+  indicadores  MipgIndicador[]
+  evaluaciones MipgEvaluacion[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("mipg_politicas")
+}
+
+model MipgIndicador {
+  id           String           @id @default(cuid())
+  codigo       String // Ej: "I1.1.1"
+  nombre       String
+  descripcion  String?          @db.Text
+  formula      String?
+  metaAnual    Float?
+  tipoMedicion TipoMedicionMIPG @default(PORCENTAJE)
+
+  politicaId String
+  politica   MipgPolitica @relation(fields: [politicaId], references: [id], onDelete: Cascade)
+
+  evidencias MipgEvidencia[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("mipg_indicadores")
+}
+
+model MipgEvidencia {
+  id            String          @id @default(cuid())
+  nombre        String
+  descripcion   String?         @db.Text
+  archivoUrl    String?
+  enlaceExterno String?
+  anioVigencia  Int // Ej: 2026
+  mesVigencia   Int? // 1-12
+  estado        EstadoEvidencia @default(PENDIENTE)
+
+  indicadorId String
+  indicador   MipgIndicador @relation(fields: [indicadorId], references: [id], onDelete: Cascade)
+
+  subidoPorId String
+  subidoPor   Usuario @relation(fields: [subidoPorId], references: [id])
+
+  // Puente → Gestión Documental: evidencia apuntando a un documento radicado oficialmente
+  gdDocumentoId String?      @unique
+  gdDocumento   GdDocumento? @relation(fields: [gdDocumentoId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("mipg_evidencias")
+}
+
+model MipgEvaluacion {
+  id            String  @id @default(cuid())
+  anioVigencia  Int // Ej: 2026
+  puntaje       Float // 0-100
+  observaciones String? @db.Text
+
+  politicaId String
+  politica   MipgPolitica @relation(fields: [politicaId], references: [id], onDelete: Cascade)
+
+  evaluadorId String
+  evaluador   Usuario @relation(fields: [evaluadorId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([politicaId, anioVigencia])
+  @@map("mipg_evaluaciones")
+}
+
+// ==========================================
+// GESTIÓN DOCUMENTAL AGN-COMPATIBLE (Fase 5)
+// Basado en estándar Orfeo NG / AGN
+// ==========================================
+
+// --- TRD: Tablas de Retención Documental ---
+
+model GdTrdDependencia {
+  id          String  @id @default(cuid())
+  codigo      String  @unique // Ej: "PERS-01"
+  nombre      String
+  descripcion String?
+  activa      Boolean @default(true)
+
+  // Estructura jerárquica
+  padreId String?
+  padre   GdTrdDependencia?  @relation("SubDependencias", fields: [padreId], references: [id])
+  hijas   GdTrdDependencia[] @relation("SubDependencias")
+
+  series      GdTrdSerie[]
+  radicados   GdRadicado[]
+  expedientes GdExpediente[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("gd_trd_dependencias")
+}
+
+model GdTrdSerie {
+  id            String           @id @default(cuid())
+  codigo        String // Ej: "1", "2"
+  nombre        String
+  dependenciaId String
+  dependencia   GdTrdDependencia @relation(fields: [dependenciaId], references: [id], onDelete: Cascade)
+  subseries     GdTrdSubserie[]
+  expedientes   GdExpediente[]
+
+  @@unique([codigo, dependenciaId])
+  @@map("gd_trd_series")
+}
+
+model GdTrdSubserie {
+  id                 String             @id @default(cuid())
+  codigo             String // Ej: "1.1", "1.2"
+  nombre             String
+  tiempoGestion      Int                @default(2) // Años en Archivo de Gestión
+  tiempoCentral      Int                @default(3) // Años en Archivo Central
+  soporteFisico      Boolean            @default(false)
+  soporteElectronico Boolean            @default(true)
+  disposicion        GdDisposicionFinal @default(CONSERVACION_TOTAL)
+  procedimiento      String?            @db.Text
+
+  serieId     String
+  serie       GdTrdSerie            @relation(fields: [serieId], references: [id], onDelete: Cascade)
+  tiposDoc    GdTrdTipoDocumental[]
+  radicados   GdRadicado[]
+  expedientes GdExpediente[]
+
+  @@unique([codigo, serieId])
+  @@map("gd_trd_subseries")
+}
+
+model GdTrdTipoDocumental {
+  id          String        @id @default(cuid())
+  nombre      String
+  diasTramite Int           @default(15) // Días hábiles para respuesta
+  activo      Boolean       @default(true)
+  subserieId  String
+  subserie    GdTrdSubserie @relation(fields: [subserieId], references: [id], onDelete: Cascade)
+  radicados   GdRadicado[]
+
+  @@map("gd_trd_tipos_documentales")
+}
+
+// --- Motor de Radicación ---
+
+model GdConsecutivo {
+  id        String         @id @default(cuid())
+  anio      Int
+  tipo      GdTipoRadicado
+  codigoDep String // Código dependencia receptora
+  ultimo    Int            @default(0)
+
+  @@unique([anio, tipo, codigoDep])
+  @@map("gd_consecutivos")
+}
+
+model GdFestivoColombia {
+  id     String   @id @default(cuid())
+  fecha  DateTime @unique
+  nombre String
+  anio   Int
+  ley    String?
+
+  createdAt DateTime @default(now())
+
+  @@index([anio])
+  @@map("gd_festivos_colombia")
+}
+
+model GdRadicado {
+  id               String           @id @default(cuid())
+  numero           String           @unique // "2026-PERS-ENT-00123"
+  tipo             GdTipoRadicado
+  medioRecepcion   GdMedioRecepcion @default(WEB)
+  asunto           String
+  folios           Int              @default(1)
+  prioridad        GdPrioridad      @default(NORMAL)
+  fechaVencimiento DateTime?
+  radicadoOrigen   String? // Número radicado externo de origen
+  observacion      String?          @db.Text
+  estado           GdEstadoRadicado @default(EN_TRAMITE)
+  isRadicado       Boolean          @default(true) // false = consecutivo interno
+
+  // TRD asignada
+  dependenciaId    String
+  dependencia      GdTrdDependencia     @relation(fields: [dependenciaId], references: [id])
+  subserieId       String?
+  subserie         GdTrdSubserie?       @relation(fields: [subserieId], references: [id])
+  tipoDocumentalId String?
+  tipoDocumental   GdTrdTipoDocumental? @relation(fields: [tipoDocumentalId], references: [id])
+
+  // Usuarios responsables
+  tramitadorId String
+  tramitador   Usuario @relation("GdTramitador", fields: [tramitadorId], references: [id])
+  creadorId    String
+  creador      Usuario @relation("GdCreador", fields: [creadorId], references: [id])
+
+  // ─── Fase 1: Radicados padre/hijo (RadiRadicadosAsociados Orfeo) ───
+  padreId       String?
+  padre         GdRadicado?  @relation("HijosRadicado", fields: [padreId], references: [id])
+  hijos         GdRadicado[] @relation("HijosRadicado")
+
+  // Relacionados
+  remitentes    GdRemitente[]
+  documentos    GdDocumento[]
+  transacciones GdLogTransaccion[]
+  informados    GdRadicadoInformado[]
+  vobos         GdVoBo[]
+
+  // ─── Puentes de Integración ───
+  // → Ventanilla Única / PQRS nativo
+  pqrs PQRS?
+
+  // Expedientes a los que pertenece
+  expedientes GdExpediente[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // ─── Índices de performance (soporta 300k+ radicados/año) ───────────────
+  @@index([estado, createdAt(sort: Desc)])      // Bandeja por estado
+  @@index([tipo, estado])                        // Filtros combinados tipo+estado
+  @@index([tramitadorId, estado])               // Bandeja del funcionario
+  @@index([dependenciaId, estado])              // Bandeja de dependencia
+  @@index([prioridad, estado, createdAt(sort: Desc)]) // Urgentes primero
+  @@index([fechaVencimiento, estado])           // Detección de vencidos
+  @@index([createdAt(sort: Desc)])              // Orden cronológico general
+  @@map("gd_radicados")
+}
+
+model GdRemitente {
+  id          String        @id @default(cuid())
+  tipoPersona GdTipoPersona @default(CIUDADANO)
+  nombre      String
+  documento   String?
+  email       String?
+  telefono    String?
+  direccion   String?
+  municipio   String?
+
+  radicadoId String
+  radicado   GdRadicado @relation(fields: [radicadoId], references: [id], onDelete: Cascade)
+
+  @@map("gd_remitentes")
+}
+
+model GdDocumento {
+  id          String  @id @default(cuid())
+  nombre      String
+  archivoUrl  String
+  esPrincipal Boolean @default(false)
+  folios      Int     @default(1)
+  subidoPorId String?
+
+  radicadoId String
+  radicado   GdRadicado @relation(fields: [radicadoId], references: [id], onDelete: Cascade)
+
+  // ─── Puente → MIPG ───
+  // Una evidencia MIPG puede referenciar un documento radicado oficialmente
+  evidenciaMipg MipgEvidencia?
+
+  // ─── Firma Electrónica ───
+  firmaQr GdFirmaQr?
+
+  createdAt DateTime @default(now())
+
+  @@map("gd_documentos")
+}
+
+model GdExpediente {
+  id            String             @id @default(cuid())
+  codigo        String             @unique // [Dep]-[Serie]-[Subserie]-[Año]-[Consecutivo]
+  nombre        String
+  descripcion   String?            @db.Text
+  fechaApertura DateTime           @default(now())
+  fechaCierre   DateTime?
+  estado        GdEstadoExpediente @default(ABIERTO)
+
+  dependenciaId String
+  dependencia   GdTrdDependencia @relation(fields: [dependenciaId], references: [id])
+  serieId       String?
+  serie         GdTrdSerie?      @relation(fields: [serieId], references: [id])
+  subserieId    String?
+  subserie      GdTrdSubserie?   @relation(fields: [subserieId], references: [id])
+
+  radicados GdRadicado[] // Relación NxM implicita
+  indices   GdIndiceElectronico[]
+
+  creadorId String
+  creador   Usuario @relation("GdExpedienteCreador", fields: [creadorId], references: [id])
+
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  gaCarpeta GaCarpeta?
+
+  @@map("gd_expedientes")
+}
+
+model GdIndiceElectronico {
+  id           String @id @default(cuid())
+  hashCierre   String // Hash resultante del manifiesto XML del índice
+  documentoUrl String // URL al PDF final certificado
+
+  expedienteId String
+  expediente   GdExpediente @relation(fields: [expedienteId], references: [id], onDelete: Cascade)
+
+  firmanteId String
+  firmante   Usuario @relation("GdIndiceFirmante", fields: [firmanteId], references: [id])
+
+  fechaCreacion DateTime @default(now())
+
+  @@map("gd_indices_electronicos")
+}
+
+// ==========================================
+// GESTIÓN DE ARCHIVO FÍSICO Y PRÉSTAMOS
+// ==========================================
+
+model GaEdificio {
+  id        String   @id @default(cuid())
+  nombre    String
+  direccion String?
+  pisos     GaPiso[]
+
+  @@map("ga_edificios")
+}
+
+model GaPiso {
+  id         String     @id @default(cuid())
+  nombre     String
+  edificioId String
+  edificio   GaEdificio @relation(fields: [edificioId], references: [id], onDelete: Cascade)
+  bodegas    GaBodega[]
+
+  @@map("ga_pisos")
+}
+
+model GaBodega {
+  id       String      @id @default(cuid())
+  nombre   String
+  pisoId   String
+  piso     GaPiso      @relation(fields: [pisoId], references: [id], onDelete: Cascade)
+  estantes GaEstante[]
+
+  @@map("ga_bodegas")
+}
+
+model GaEstante {
+  id         String        @id @default(cuid())
+  codigo     String
+  bodegaId   String
+  bodega     GaBodega      @relation(fields: [bodegaId], references: [id], onDelete: Cascade)
+  entrepanos GaEntrepano[]
+
+  @@map("ga_estantes")
+}
+
+model GaEntrepano {
+  id        String    @id @default(cuid())
+  codigo    String
+  estanteId String
+  estante   GaEstante @relation(fields: [estanteId], references: [id], onDelete: Cascade)
+  cajas     GaCaja[]
+
+  @@map("ga_entrepanos")
+}
+
+model GaCaja {
+  id          String      @id @default(cuid())
+  codigo      String
+  entrepanoId String
+  entrepano   GaEntrepano @relation(fields: [entrepanoId], references: [id], onDelete: Cascade)
+  carpetas    GaCarpeta[]
+
+  @@map("ga_cajas")
+}
+
+model GaCarpeta {
+  id     String @id @default(cuid())
+  codigo String
+  titulo String
+  cajaId String
+  caja   GaCaja @relation(fields: [cajaId], references: [id], onDelete: Cascade)
+
+  expedienteId String?       @unique
+  expediente   GdExpediente? @relation(fields: [expedienteId], references: [id], onDelete: SetNull)
+
+  prestamos GaPrestamo[]
+
+  @@map("ga_carpetas")
+}
+
+model GaPrestamo {
+  id              String           @id @default(cuid())
+  carpetaId       String
+  carpeta         GaCarpeta        @relation(fields: [carpetaId], references: [id], onDelete: Cascade)
+  solicitanteId   String
+  solicitante     Usuario          @relation("GaPrestamoSolicitante", fields: [solicitanteId], references: [id])
+  fechaSolicitud  DateTime         @default(now())
+  fechaDevolucion DateTime?
+  estado          GaEstadoPrestamo @default(SOLICITADO)
+  observaciones   String?          @db.Text
+
+  @@map("ga_prestamos")
+}
+
+model GdPlantilla {
+  id          String  @id @default(cuid())
+  nombre      String
+  descripcion String?
+  contenido   String  @db.Text
+  activa      Boolean @default(true)
+
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@map("gd_plantillas")
+}
+
+model GdFirmaQr {
+  id              String  @id @default(cuid())
+  hashFirma       String  @unique // SHA-256 del contenido firmado
+  urlVerificacion String // URL incrustada en el QR para el portal
+  ipFirmante      String?
+
+  documentoId String      @unique
+  documento   GdDocumento @relation(fields: [documentoId], references: [id], onDelete: Cascade)
+
+  firmanteId String
+  firmante   Usuario @relation("GdFirmante", fields: [firmanteId], references: [id])
+
+  fechaFirma DateTime @default(now())
+
+  @@map("gd_firmas_qr")
+}
+
+model GdLogTransaccion {
+  id             String              @id @default(cuid())
+  accion         GdAccionTransaccion
+  descripcion    String?             @db.Text
+  estadoAnterior GdEstadoRadicado?
+  estadoNuevo    GdEstadoRadicado?
+
+  usuarioId String
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+
+  radicadoId String
+  radicado   GdRadicado @relation(fields: [radicadoId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([radicadoId, createdAt(sort: Desc)])
+  @@map("gd_log_transacciones")
+}
+
+// ─── Fase 1: Usuarios Informados (CC — RadiInformados Orfeo) ─────────────────
+model GdRadicadoInformado {
+  id         String     @id @default(cuid())
+  radicadoId String
+  radicado   GdRadicado @relation(fields: [radicadoId], references: [id], onDelete: Cascade)
+  usuarioId  String
+  usuario    Usuario    @relation("GdInformado", fields: [usuarioId], references: [id])
+  leido      Boolean    @default(false)
+  leidoEn   DateTime?
+  createdAt  DateTime   @default(now())
+
+  @@unique([radicadoId, usuarioId])
+  @@index([usuarioId, leido])
+  @@map("gd_radicados_informados")
+}
+
+// ─── Fase 1: VoBo Multi-nivel ────────────────────────────────────────────────
+model GdVoBo {
+  id          String         @id @default(cuid())
+  radicadoId  String
+  radicado    GdRadicado     @relation(fields: [radicadoId], references: [id], onDelete: Cascade)
+  nivel       Int            // 1=Coordinador, 2=Director, 3=Personero
+  estado      GdEstadoVoBo   @default(PENDIENTE)
+  usuarioId   String
+  usuario     Usuario        @relation("GdVoBoSolicitado", fields: [usuarioId], references: [id])
+  aprobadorId String?
+  aprobador   Usuario?       @relation("GdVoBoAprobado", fields: [aprobadorId], references: [id])
+  comentario  String?        @db.Text
+  fechaAccion DateTime?
+  createdAt   DateTime       @default(now())
+
+  @@index([radicadoId, nivel])
+  @@index([usuarioId, estado])
+  @@map("gd_vobos")
+}
+
+// ==========================================
+// ENUMS
+// ==========================================
+
+enum GaEstadoPrestamo {
+  SOLICITADO
+  APROBADO
+  ENTREGADO
+  DEVUELTO
+  RECHAZADO
+}
+
+enum GdEstadoExpediente {
+  ABIERTO
+  CERRADO
+  TRANSFERIDO               // Legacy — equivale a TRANSFERIDO_CENTRAL
+  TRANSFERIDO_CENTRAL       // En Archivo Central
+  TRANSFERIDO_HISTORICO     // En Archivo Histórico
+  ELIMINADO                 // Disposición final: eliminación
+}
+
+enum PlantillaPagina {
+  GENERICA
+  TRANSPARENCIA
+  CONTACTO
+  DIRECTORIO
+  SERVICIOS
+  NOTICIAS
+  GALERIA
+}
+
+enum TipoSeccion {
+  TEXTO
+  HTML
+  GALERIA
+  ACORDEON
+  TABS
+  TARJETAS
+  LISTA_DOCUMENTOS
+  FORMULARIO
+  IFRAME
+  VIDEO
+  MAPA
+  TIMELINE
+}
+
+enum TipoContenido {
+  PAGINA
+  SERVICIO
+  TRAMITE
+  NORMATIVA
+  ACUERDO
+  RESOLUCION
+  CIRCULAR
+}
+
+enum EstadoPublicacion {
+  BORRADOR
+  EN_REVISION
+  PUBLICADO
+  ARCHIVADO
+}
+
+enum TipoItemTransparencia {
+  TEXTO
+  DOCUMENTO
+  ENLACE_EXTERNO
+  LISTADO
+  TABLA
+  MIXTO
+}
+
+enum CategoriaDocumento {
+  NORMATIVIDAD
+  PLANEACION
+  PRESUPUESTO
+  CONTRATACION
+  INFORMES
+  RESOLUCIONES
+  ACUERDOS
+  CIRCULARES
+  MANUALES
+  FORMATOS
+  OTRO
+}
+
+enum TipoPQRS {
+  PETICION
+  QUEJA
+  RECLAMO
+  SUGERENCIA
+  DENUNCIA
+  FELICITACION
+  CONSULTA
+}
+
+enum EstadoPQRS {
+  RECIBIDA
+  EN_TRAMITE
+  EN_REVISION
+  RESPONDIDA
+  CERRADA
+  ANULADA
+}
+
+enum PrioridadPQRS {
+  BAJA
+  NORMAL
+  ALTA
+  URGENTE
+}
+
+enum CanalPQRS {
+  WEB
+  PRESENCIAL
+  TELEFONO
+  EMAIL
+  CORRESPONDENCIA
+}
+
+enum TipoMedicionMIPG {
+  PORCENTAJE
+  CANTIDAD
+  NUMERICO
+  BOOLEANO
+}
+
+enum EstadoEvidencia {
+  PENDIENTE
+  APROBADA
+  RECHAZADA
+}
+
+// ─── Enums Gestión Documental (Fase 5) ───
+
+enum GdTipoRadicado {
+  ENTRADA
+  SALIDA
+  INTERNO
+  PQRS
+  RESOLUCION
+  COMUNICADO
+}
+
+enum GdMedioRecepcion {
+  PRESENCIAL
+  CORREO
+  WEB
+  OFICIO
+  EMAIL_ELECTRONICO
+  FAX
+  OTRO
+}
+
+enum GdPrioridad {
+  BAJA
+  NORMAL
+  ALTA
+  URGENTE
+}
+
+enum GdEstadoRadicado {
+  RADICADO
+  EN_TRAMITE
+  PENDIENTE_VOBO    // En espera de Visto Bueno
+  PENDIENTE_FIRMA
+  RESPONDIDO
+  RESUELTO
+  ARCHIVADO
+  ANULADO
+  DEVUELTO
+}
+
+enum GdEstadoVoBo {
+  PENDIENTE
+  APROBADO
+  RECHAZADO
+}
+
+enum GdTipoPersona {
+  CIUDADANO
+  EMPRESA
+  FUNCIONARIO
+  ENTIDAD_PUBLICA
+  ANONIMO
+}
+
+enum GdAccionTransaccion {
+  RADICACION
+  REASIGNACION
+  CARGA_DOCUMENTO
+  RESPUESTA
+  DEVOLUCION
+  VOBO_SOLICITUD    // Se solicita VoBo
+  VOBO_APROBACION   // VoBo aprobado
+  VOBO_RECHAZO      // VoBo rechazado
+  ARCHIVO
+  ANULACION
+  NOTIFICACION
+  INFORMADO         // Usuario agregado como informado/CC
+  VINCULO_PADRE     // Radicado vinculado con padre
+}
+
+enum GdDisposicionFinal {
+  CONSERVACION_TOTAL
+  ELIMINACION
+  SELECCION
+  MICROFILMACION
+}
+
+// ==========================================
+// FASE 3: PLATAFORMA NACIONAL
+// ==========================================
+
+// ─── 3.1 Plan Config (cuotas locales por tenant) ─────────────────────────────
+model GdPlanConfig {
+  id                 String      @id @default(cuid())
+  nivel              GdPlanNivel @default(BASICO)
+  limiteRadicados    Int         @default(50000)   // Radicados/año
+  limiteSedes        Int         @default(1)
+  apiPublica         Boolean     @default(false)
+  slaHoras           Int         @default(72)       // SLA respuesta en horas
+  radicadosActuales  Int         @default(0)        // Conteo acumulado año actual
+  anioActual         Int         @default(2026)
+  activo             Boolean     @default(true)
+  fechaVencimiento   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("gd_plan_config")
+}
+
+enum GdPlanNivel {
+  BASICO        // 50k rad/año, 1 sede, sin API pública
+  PROFESIONAL   // 200k rad/año, 3 sedes, API lectura
+  ENTERPRISE    // ilimitado, N sedes, API completa, SLA
+}
+
+// ─── 3.3 API Keys (autenticación API pública REST) ────────────────────────────
+model GdApiKey {
+  id          String    @id @default(cuid())
+  nombre      String                        // "App Ventanilla Medellín"
+  keyHash     String    @unique             // bcrypt hash del API key
+  keyPrefix   String                        // primeros 8 chars para identificar
+  permisos    Json      @default("[]")      // ["radicados:read","radicados:write"]
+  activo      Boolean   @default(true)
+  ultimoUso   DateTime?
+  usosTotal   Int       @default(0)
+
+  creadorId   String
+  creador     Usuario   @relation("GdApiKeyCreador", fields: [creadorId], references: [id])
+
+  logs        GdApiLog[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([keyHash])
+  @@index([activo])
+  @@map("gd_api_keys")
+}
+
+// ─── 3.3 API Logs (registro de uso API pública) ──────────────────────────────
+model GdApiLog {
+  id        String   @id @default(cuid())
+  metodo    String   // GET, POST
+  ruta      String   // /api/v1/public/radicados
+  status    Int      // 200, 401, 429
+  ip        String?
+  duracionMs Int     @default(0)
+
+  apiKeyId  String
+  apiKey    GdApiKey @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([apiKeyId, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+  @@map("gd_api_logs")
+}
+
+// ─── 3.4 SIGEP Cache (caché local directorio funcionarios) ────────────────────
+model GdSigepCache {
+  id           String   @id @default(cuid())
+  cedula       String   @unique
+  nombre       String
+  cargo        String?
+  entidad      String?
+  dependencia  String?
+  email        String?
+  telefono     String?
+  datosJson    Json?    // Respuesta completa de SIGEP
+  expiraEn     DateTime // TTL: cuándo revalidar
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([expiraEn])
+  @@index([nombre])
+  @@map("gd_sigep_cache")
+}

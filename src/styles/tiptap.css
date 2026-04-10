@@ -1,0 +1,83 @@
+.ProseMirror {
+    > * + * {
+        margin-top: 0.75em;
+    }
+
+    outline: none;
+    min-height: 200px;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+    color: #adb5bd;
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+}
+
+/* Tablas */
+.ProseMirror table {
+    border-collapse: collapse;
+    table-layout: fixed;
+    width: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+
+.ProseMirror table td,
+.ProseMirror table th {
+    min-width: 1em;
+    border: 2px solid #ced4da;
+    padding: 3px 5px;
+    vertical-align: top;
+    box-sizing: border-box;
+    position: relative;
+}
+
+.ProseMirror table th {
+    font-weight: bold;
+    text-align: left;
+    background-color: #f1f3f5;
+}
+
+.ProseMirror table .column-resize-handle {
+    position: absolute;
+    right: -2px;
+    top: 0;
+    bottom: -2px;
+    width: 4px;
+    background-color: #adf;
+    pointer-events: none;
+}
+
+/* Imágenes flotantes */
+.ProseMirror img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+}
+
+.ProseMirror img.ProseMirror-selectednode {
+    outline: 3px solid #68CEF8;
+}
+
+/* Citas */
+.ProseMirror blockquote {
+    padding-left: 1rem;
+    border-left: 3px solid #004884; /* gov-blue */
+    color: #495057;
+    margin-left: 0;
+    font-style: italic;
+}
+
+/* Enlaces */
+.ProseMirror a {
+    color: #004884;
+}
+
+/* Divisores */
+.ProseMirror hr {
+    border: none;
+    border-top: 2px solid #e9ecef;
+    margin: 2rem 0;
+}

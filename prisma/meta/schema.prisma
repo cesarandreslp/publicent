@@ -1,0 +1,131 @@
+// Schema de Prisma para la BASE DE DATOS MAESTRA (Meta-DB)
+// Registra todos los tenants (entidades públicas) de la plataforma
+// Configurar META_DATABASE_URL en .env
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../src/generated/meta-client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ==========================================
+// TENANTS - Entidades públicas suscritas
+// ==========================================
+
+model Tenant {
+  id                   String   @id @default(cuid())
+  
+  // Identificadores
+  slug                 String   @unique  // ej: "personeria-buga"
+  codigo               String   @unique  // ej: "76111-001"  (código DIVIPOLA + consecutivo)
+  
+  // Información de la entidad
+  nombre               String             // "Personería Municipal de Guadalajara de Buga"
+  nombreCorto          String             // "Personería de Buga"
+  tipoEntidad          TipoEntidad
+  nit                  String?  @unique
+  municipio            String
+  departamento         String
+  codigoDivipola       String?
+  
+  // Dominios
+  dominioPrincipal     String   @unique  // "personeria-buga.tuplatforma.com" (subdominio gestionado)
+  dominioPersonalizado String?  @unique  // "personeriabuga.gov.co" (dominio propio)
+  
+  // Base de datos del tenant (aislamiento total)
+  databaseUrl          String             // Connection string de su BD en Neon
+  databaseName         String             // Nombre de la BD en Neon
+  
+  // Estado y plan
+  plan                 PlanTenant   @default(BASICO)
+  activo               Boolean      @default(true)
+  suspendido           Boolean      @default(false)
+  motivoSuspension     String?
+  
+  // Fechas del contrato
+  fechaActivacion      DateTime?
+  fechaVencimiento     DateTime?
+  
+  // Configuración de módulos habilitados por plan
+  modulosActivos       Json         // { pqrsd: true, gestionDocumental: true, ventanillaUnica: false }
+  
+  // Contacto técnico / administrativo
+  emailContacto        String
+  telefonoContacto     String?
+  nombreContacto       String?
+  
+  // Metadatos
+  logoUrl              String?
+  colorPrimario        String?
+  colorSecundario      String?
+  
+  // Auditoría
+  creadoPor            String?      // ID del superadmin
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  
+  // Historial de eventos del tenant
+  eventos              EventoTenant[]
+  
+  @@map("tenants")
+}
+
+// ==========================================
+// SUPERADMINS - Administradores de la plataforma
+// ==========================================
+
+model SuperAdmin {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  nombre    String
+  activo    Boolean  @default(true)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("superadmins")
+}
+
+// ==========================================
+// EVENTOS DE TENANT - Auditoría de la plataforma
+// ==========================================
+
+model EventoTenant {
+  id          String   @id @default(cuid())
+  tipo        String   // ACTIVACION, SUSPENSION, CAMBIO_PLAN, DOMINIO_AGREGADO, etc.
+  descripcion String?
+  datos       Json?
+  
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  creadoPor   String?  // ID del superadmin
+  createdAt   DateTime @default(now())
+  
+  @@map("eventos_tenant")
+}
+
+// ==========================================
+// ENUMS
+// ==========================================
+
+enum TipoEntidad {
+  PERSONERIA
+  CONTRALORIA
+  ALCALDIA
+  CONCEJO
+  GOBERNACION
+  ASAMBLEA
+  OTRO
+}
+
+enum PlanTenant {
+  BASICO        // Solo sitio web institucional (Res. 1519)
+  ESTANDAR      // + PQRSD avanzado + reportes
+  PROFESIONAL   // + Gestor documental + Ventanilla única
+  ENTERPRISE    // Todos los módulos + soporte prioritario
+}
