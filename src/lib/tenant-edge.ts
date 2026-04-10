@@ -51,6 +51,13 @@ export async function getTenantByDomainEdge(
     return getDevTenant()
   }
 
+  // Fallback: si TENANT_SLUG está definido, buscar por slug en vez de dominio
+  // Útil para deploys single-tenant en Vercel donde el dominio varía
+  const forcedSlug = process.env.TENANT_SLUG
+  if (forcedSlug) {
+    return getTenantBySlug(forcedSlug)
+  }
+
   // Revisar caché
   const cached = tenantCache.get(cleanDomain)
   if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
@@ -118,5 +125,38 @@ function getDevTenant(): TenantEdgeInfo {
       ventanillaUnica: true,
       reportes: true,
     },
+  }
+}
+
+/**
+ * Busca tenant por slug (usado cuando TENANT_SLUG está definido).
+ * Con caché para evitar consultas repetidas.
+ */
+async function getTenantBySlug(slug: string): Promise<TenantEdgeInfo | null> {
+  const cacheKey = `slug:${slug}`
+  const cached = tenantCache.get(cacheKey)
+  if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
+    return cached.data
+  }
+
+  try {
+    const sql = getSql()
+    const rows = await sql`
+      SELECT
+        id, slug, nombre,
+        dominio_principal   AS "dominioPrincipal",
+        dominio_personalizado AS "dominioPersonalizado",
+        activo, suspendido,
+        modulos_activos     AS "modulosActivos"
+      FROM tenants
+      WHERE slug = ${slug} AND activo = true AND suspendido = false
+      LIMIT 1
+    `
+    const tenant = (rows[0] as TenantEdgeInfo) ?? null
+    tenantCache.set(cacheKey, { data: tenant, ts: Date.now() })
+    return tenant
+  } catch (error) {
+    console.error('[tenant-edge] Error buscando por slug:', error)
+    return null
   }
 }
