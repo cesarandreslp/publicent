@@ -1,5 +1,5 @@
-// @ts-ignore -- BubbleMenu export varies between TipTap versions
-import { BubbleMenu, Editor } from '@tiptap/react'
+import { BubbleMenu } from '@tiptap/extension-bubble-menu'
+import { type Editor } from '@tiptap/react'
 import {
   Bold,
   Italic,
