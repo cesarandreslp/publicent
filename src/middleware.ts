@@ -92,11 +92,12 @@ export default auth(async function middleware(req: NextRequest & { auth: { user?
   }
 
   // ──────────────────────────────────────────────────────────────────────────
-  // 3. Inyectar tenant en headers para el resto del pipeline (server/API)
+  // 3. Inyectar tenant y ruta en headers para el resto del pipeline
   // ──────────────────────────────────────────────────────────────────────────
   const requestHeaders = new Headers(req.headers)
   requestHeaders.set("x-tenant-id",   tenant.id)
   requestHeaders.set("x-tenant-slug", tenant.slug)
+  requestHeaders.set("x-next-url",    pathname) // Para que layout.tsx detecte admin/auth
 
   return NextResponse.next({ request: { headers: requestHeaders } })
 })

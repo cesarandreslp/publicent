@@ -50,7 +50,18 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const headersList = await headers();
-  const isSuperAdmin = headersList.get("x-layout") === "superadmin";
+  const layoutHint = headersList.get("x-layout");
+  const isSuperAdmin = layoutHint === "superadmin";
+
+  // Detectar rutas internas donde NO se muestran widgets públicos
+  // El middleware ya pone x-layout=superadmin para /superadmin
+  // Para /admin y /login lo detectamos aquí via x-next-url o referer
+  const nextUrl = headersList.get("x-next-url") || headersList.get("x-invoke-path") || "";
+  const isAdminRoute = nextUrl.startsWith("/admin");
+  const isAuthRoute = nextUrl.startsWith("/login") || nextUrl.startsWith("/recuperar") || nextUrl.startsWith("/restablecer");
+
+  // Solo mostrar widgets públicos en el sitio público (no admin, no login, no superadmin)
+  const isPublicSite = !isSuperAdmin && !isAdminRoute && !isAuthRoute;
 
   // Panel de superadmin: shell mínimo sin componentes del tenant
   if (isSuperAdmin) {
@@ -67,50 +78,58 @@ export default async function RootLayout({
     <html lang="es">
       <body className={`${workSans.variable} font-sans antialiased`}>
         <AuthProvider>
-          {/* Skip links - PRIMERO para accesibilidad WCAG 2.1 */}
-          <div className="skip-links">
-            <a 
-              href="#contenido-principal" 
-              className="skip-link"
-            >
-              Ir al contenido principal
-            </a>
-            <a 
-              href="#navegacion-principal" 
-              className="skip-link"
-            >
-              Ir a la navegación
-            </a>
-            <a 
-              href="#footer" 
-              className="skip-link"
-            >
-              Ir al pie de página
-            </a>
-          </div>
+          {isPublicSite && (
+            <>
+              {/* Skip links - PRIMERO para accesibilidad WCAG 2.1 */}
+              <div className="skip-links">
+                <a 
+                  href="#contenido-principal" 
+                  className="skip-link"
+                >
+                  Ir al contenido principal
+                </a>
+                <a 
+                  href="#navegacion-principal" 
+                  className="skip-link"
+                >
+                  Ir a la navegación
+                </a>
+                <a 
+                  href="#footer" 
+                  className="skip-link"
+                >
+                  Ir al pie de página
+                </a>
+              </div>
 
-          {/* Barra GOV.CO obligatoria */}
-          <GovBar />
-          
-          {/* Header con navegación */}
-          <Header />
+              {/* Barra GOV.CO obligatoria */}
+              <GovBar />
+              
+              {/* Header con navegación */}
+              <Header />
+            </>
+          )}
           
           {/* Contenido principal */}
           <main id="contenido-principal" className="min-h-screen" role="main">
             {children}
           </main>
           
-          {/* Footer */}
-          <Footer />
-          
-          {/* Herramientas de accesibilidad */}
-          <AccessibilityToolbar />
-          
-          {/* Botón de WhatsApp - Configuración desde CMS */}
-          <WhatsAppButton />
+          {isPublicSite && (
+            <>
+              {/* Footer */}
+              <Footer />
+              
+              {/* Herramientas de accesibilidad */}
+              <AccessibilityToolbar />
+              
+              {/* Botón de WhatsApp - Configuración desde CMS */}
+              <WhatsAppButton />
 
-          {/* Modal de advertencia de cookies - Obligatorio */}
-          <CookieConsent />
+              {/* Modal de advertencia de cookies - Obligatorio */}
+              <CookieConsent />
+            </>
+          )}
         </AuthProvider>
       </body>
     </html>
