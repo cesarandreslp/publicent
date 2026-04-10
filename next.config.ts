@@ -63,7 +63,7 @@ const nextConfig: NextConfig = {
   // ──────────────────────────────────────────────────────────────────────────
   // Servidor: expose el host header al middleware y server components
   // ──────────────────────────────────────────────────────────────────────────
-  serverExternalPackages: ["pg", "@prisma/adapter-pg"],
+  serverExternalPackages: ["pg", "@prisma/adapter-pg", "ssh2", "ssh2-sftp-client"],
 };
 
 export default nextConfig;
