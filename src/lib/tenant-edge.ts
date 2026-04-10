@@ -59,6 +59,16 @@ export async function getTenantByDomainEdge(
 
   try {
     const sql = getSql()
+
+    // Para dominios de Vercel (deployment hashes), buscar también por nombre de proyecto
+    // Ej: "personeriabuga-15jg1qnal-cesar-lozanos-projects.vercel.app" → buscar "personeriabuga"
+    let extraCondition = ''
+    let vercelProjectName = ''
+    if (cleanDomain.endsWith('.vercel.app')) {
+      // Extraer nombre base del proyecto (antes del primer guión-hash o -projects)
+      vercelProjectName = cleanDomain.split('-')[0].split('.')[0]
+    }
+
     const rows = await sql`
       SELECT
         id, slug, nombre,
@@ -68,7 +78,12 @@ export async function getTenantByDomainEdge(
         modulos_activos     AS "modulosActivos"
       FROM tenants
       WHERE
-        (dominio_principal = ${cleanDomain} OR dominio_personalizado = ${cleanDomain})
+        (
+          dominio_principal = ${cleanDomain}
+          OR dominio_personalizado = ${cleanDomain}
+          OR (${cleanDomain} LIKE dominio_principal || '-%')
+          OR (dominio_principal LIKE ${vercelProjectName + '%'} AND ${vercelProjectName} != '')
+        )
         AND activo = true
         AND suspendido = false
       LIMIT 1
