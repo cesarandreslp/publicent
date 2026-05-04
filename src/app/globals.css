@@ -1,4 +1,8 @@
 @import "tailwindcss";
+
+/* Escaneo explícito de fuentes para Tailwind v4 en producción (Vercel) */
+@source "../**/*.{js,ts,jsx,tsx,mdx}";
+
 @plugin "@tailwindcss/typography";
 
 /* ==========================================
