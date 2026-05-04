@@ -5,8 +5,8 @@ import { checkApiRoles } from "@/lib/authorization"
 
 export async function GET(req: NextRequest) {
   try {
-    const auth = await checkApiRoles(["SUPER_ADMIN", "ADMIN", "EDITOR"])
-    if (auth) return auth
+    const authResult = await checkApiRoles(["SUPER_ADMIN", "ADMIN", "EDITOR"])
+    if (authResult.error) return authResult.error
 
     const { searchParams } = new URL(req.url)
     const anioVigencia = searchParams.get("anioVigencia")
