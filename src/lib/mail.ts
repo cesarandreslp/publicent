@@ -162,3 +162,15 @@ export async function sendWelcomeEmail(email: string, nombreRaw: string) {
     return { success: false, error: "Error al enviar el email" }
   }
 }
+
+export async function sendMail(opts: { to: string | string[]; subject: string; html: string; from?: string }) {
+  const resend = getResend()
+  const { data, error } = await resend.emails.send({
+    from: opts.from ?? `Personería Municipal <${emailFrom}>`,
+    to:   opts.to,
+    subject: opts.subject,
+    html:    opts.html,
+  })
+  if (error) throw new Error(error.message)
+  return data
+}

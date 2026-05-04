@@ -57,11 +57,11 @@ export async function POST(req: NextRequest) {
 
     // ── 2. Para cada tenant, obtener estadísticas de su DB ───────────────────
     // Importamos dinámicamente el cliente de tenant para no crear N conexiones globales
-    const { getPrismaTenant } = await import("@/lib/prisma-tenant")
+    const { getOrCreateTenantClientById } = await import("@/lib/tenant")
 
     const resumenesPromesas = tenants.map(async (tenant): Promise<TenantResumen> => {
       try {
-        const db = await getPrismaTenant(tenant.id)
+        const db = await getOrCreateTenantClientById(tenant.id)
 
         // Radicados del período
         const [totalRadicados, vencidos, enRiesgo, porTipoRaw, tiempos] = await Promise.all([
