@@ -1,5 +1,5 @@
 ﻿import { getTenantPrisma } from "@/lib/prisma";
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 /**
  * Tipos de reportes disponibles
@@ -108,7 +108,7 @@ export async function generarReporte(opciones: OpcionesReporte): Promise<Resulta
   }
 
   // Excel por defecto
-  const buffer = generarExcel(datos, columnas, nombreBase);
+  const buffer = await generarExcel(datos, columnas, nombreBase);
   return {
     buffer,
     nombreArchivo,
@@ -138,23 +138,38 @@ function generarCSV(datos: Record<string, unknown>[], columnas: string[]): strin
 }
 
 /**
- * Genera Excel a partir de datos
+ * Genera Excel a partir de datos usando ExcelJS (reemplaza xlsx v0.18.5 — CVE-2023-30533)
  */
-function generarExcel(datos: Record<string, unknown>[], columnas: string[], nombreHoja: string): Buffer {
-  const ws = XLSX.utils.json_to_sheet(datos, { header: columnas });
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, nombreHoja.substring(0, 31));
-  
-  // Ajustar anchos de columna
-  const colWidths = columnas.map(col => ({
-    wch: Math.max(
-      col.length,
-      ...datos.map(row => String(row[col] || '').length).slice(0, 100)
-    ) + 2
-  }));
-  ws['!cols'] = colWidths;
+async function generarExcel(datos: Record<string, unknown>[], columnas: string[], nombreHoja: string): Promise<Buffer> {
+  const wb = new ExcelJS.Workbook()
+  wb.creator = 'PublicEnt'
+  wb.created = new Date()
 
-  return Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
+  const ws = wb.addWorksheet(nombreHoja.substring(0, 31))
+
+  // Definir columnas con ancho calculado
+  ws.columns = columnas.map(col => ({
+    header: col,
+    key: col,
+    width: Math.max(
+      col.length,
+      ...datos.slice(0, 100).map(row => String(row[col] ?? '').length)
+    ) + 2,
+  }))
+
+  // Estilo de cabecera
+  ws.getRow(1).font = { bold: true }
+  ws.getRow(1).fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFE8F0FE' },
+  }
+
+  // Agregar filas de datos
+  datos.forEach(row => ws.addRow(row))
+
+  const arrayBuffer = await wb.xlsx.writeBuffer()
+  return Buffer.from(arrayBuffer)
 }
 
 /**

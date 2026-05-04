@@ -9,6 +9,8 @@ import type { NextRequest } from "next/server"
 import { getSASession } from "@/lib/superadmin-auth"
 import { prismaMeta } from "@/lib/prisma-meta"
 import { superadminTenantSchema, validateBody } from "@/lib/validations"
+import { invalidateTenantCache } from "@/lib/tenant"
+import { encryptSecretos } from "@/lib/encryption"
 
 // ─── GET /api/superadmin/tenants ──────────────────────────────────────────────
 
@@ -101,6 +103,8 @@ export async function POST(req: NextRequest) {
       fechaActivacion,
       fechaVencimiento,
       modulosActivos,
+      groqApiKey,
+      shipuApiKey,
     } = body
 
     // Validaciones mínimas
@@ -136,9 +140,16 @@ export async function POST(req: NextRequest) {
         fechaActivacion: fechaActivacion ? new Date(fechaActivacion) : null,
         fechaVencimiento: fechaVencimiento ? new Date(fechaVencimiento) : null,
         modulosActivos: modulosActivos ?? { pqrsd: false, gestionDocumental: false, ventanillaUnica: false },
+        // Cifrar API keys del tenant antes de guardar
+        secretosEncriptados: (groqApiKey || shipuApiKey)
+          ? encryptSecretos({ groqApiKey: groqApiKey ?? undefined, shipuApiKey: shipuApiKey ?? undefined })
+          : undefined,
         creadoPor: session.id,
       },
     })
+
+    // Invalidar caché para que el nuevo tenant se resuelva correctamente
+    invalidateTenantCache()
 
     return NextResponse.json({ tenant }, { status: 201 })
   } catch (err: unknown) {

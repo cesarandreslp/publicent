@@ -27,6 +27,8 @@ interface TenantFormData {
   colorSecundario?: string
   fechaActivacion?: string
   fechaVencimiento?: string
+  groqApiKey?: string
+  shipuApiKey?: string
   modulosActivos?: {
     pqrsd?: boolean
     gestionDocumental?: boolean
@@ -135,6 +137,8 @@ export default function TenantForm({ initial = {} }: { initial?: TenantFormData 
     fechaVencimiento:  initial.fechaVencimiento
       ? new Date(initial.fechaVencimiento).toISOString().split("T")[0]
       : "",
+    groqApiKey:      "",
+    shipuApiKey:     "",
     modulosActivos: initial.modulosActivos ?? {
       pqrsd: true,
       gestionDocumental: false,
@@ -333,6 +337,45 @@ export default function TenantForm({ initial = {} }: { initial?: TenantFormData 
               className="flex-1 px-4 py-2.5 bg-[#0a0f1e] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50" />
           </div>
         </div>
+      </>)}
+
+      {section("Configuración IA", <>
+        <div className="sm:col-span-2">
+          <p className="text-xs text-slate-500 mb-4 leading-relaxed">
+            Cada entidad gestiona su propio consumo de IA. El tenant debe proveer sus propias API keys.
+            Si Groq falla o no está configurado, el sistema usa Shipu (z.ai) automáticamente como respaldo.
+          </p>
+        </div>
+        <div className="sm:col-span-2">
+          <Field
+            label="API Key de Groq"
+            name="groqApiKey"
+            type="password"
+            value={f.groqApiKey!}
+            onChange={set("groqApiKey")}
+            placeholder="gsk_..."
+            hint="Clasificación PQRSD con LLaMA 3.3 70B. Obtener en console.groq.com."
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <Field
+            label="API Key de Shipu (z.ai) — Respaldo"
+            name="shipuApiKey"
+            type="password"
+            value={f.shipuApiKey!}
+            onChange={set("shipuApiKey")}
+            placeholder="sk-..."
+            hint="Proveedor de respaldo (modelo z1-32b). Se activa automáticamente si Groq no responde."
+          />
+        </div>
+        {isEdit && (
+          <div className="sm:col-span-2">
+            <p className="text-xs text-amber-400/80 bg-amber-400/5 border border-amber-400/20 rounded-lg px-4 py-2.5">
+              ⚠ En modo edición, deja los campos en blanco para conservar las API keys actuales.
+              Ingresa una nueva clave solo si deseas reemplazarla.
+            </p>
+          </div>
+        )}
       </>)}
 
       {/* Error */}

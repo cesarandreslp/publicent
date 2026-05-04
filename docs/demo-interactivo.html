@@ -1,0 +1,2151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Demo Interactivo — Personería Municipal de Guadalajara de Buga</title>
+  <link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* ════════════════════════════════════════════════════════════════════
+       CSS VARIABLES — Tomadas de globals.css del proyecto real
+       ════════════════════════════════════════════════════════════════════ */
+    :root {
+      --gov-blue: #3366cc;
+      --gov-blue-dark: #264d99;
+      --gov-blue-light: #5c85d6;
+      --gov-blue-50: #eef2ff;
+      --gold: #D4AF37;
+      --sidebar-bg: #0f172a;
+      --sidebar-hover: #1e293b;
+      --sidebar-text: #94a3b8;
+      --sidebar-active-text: #ffffff;
+      --card-bg: #ffffff;
+      --card-border: #e2e8f0;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --text-muted: #94a3b8;
+      --bg-page: #f8fafc;
+      --bg-admin: #f1f5f9;
+      --success: #22c55e;
+      --success-bg: #f0fdf4;
+      --warning: #f59e0b;
+      --warning-bg: #fffbeb;
+      --error: #ef4444;
+      --error-bg: #fef2f2;
+      --info: #3b82f6;
+      --info-bg: #eff6ff;
+      --purple: #8b5cf6;
+      --radius: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.05);
+      --shadow: 0 1px 3px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06);
+      --shadow-md: 0 4px 6px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.06);
+      --shadow-lg: 0 10px 15px rgba(0,0,0,.1), 0 4px 6px rgba(0,0,0,.05);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Work Sans', Arial, Helvetica, sans-serif;
+      background: var(--bg-page);
+      color: var(--text-primary);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+    a { color: var(--gov-blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    button { font-family: inherit; cursor: pointer; }
+    img { max-width: 100%; }
+
+    /* ════════════════════════════════════════════════════════════════════
+       DEMO SHELL — Selector de pantalla
+       ════════════════════════════════════════════════════════════════════ */
+    .demo-bar {
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+      color: white;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 13px;
+      position: sticky;
+      top: 0;
+      z-index: 9999;
+      box-shadow: 0 4px 20px rgba(0,0,0,.3);
+    }
+    .demo-bar-title {
+      font-weight: 700;
+      font-size: 14px;
+      margin-right: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .demo-bar-title span { color: var(--gold); }
+    .demo-btn {
+      padding: 7px 16px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: transparent;
+      color: #cbd5e1;
+      font-size: 12px;
+      font-weight: 500;
+      transition: all .2s;
+      white-space: nowrap;
+    }
+    .demo-btn:hover { background: rgba(255,255,255,0.1); color: white; }
+    .demo-btn.active {
+      background: var(--gov-blue);
+      border-color: var(--gov-blue);
+      color: white;
+      font-weight: 600;
+    }
+    .demo-screen { display: none; }
+    .demo-screen.active { display: block; }
+
+    /* ════════════════════════════════════════════════════════════════════
+       GOV BAR — Barra superior GOV.CO
+       ════════════════════════════════════════════════════════════════════ */
+    .gov-bar {
+      background: var(--gov-blue);
+      color: white;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      font-size: 13px;
+    }
+    .gov-bar-logo {
+      font-weight: 800;
+      letter-spacing: 2px;
+      margin-right: 16px;
+    }
+    .gov-bar-text { font-weight: 300; opacity: 0.9; }
+    .gov-bar-right { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+    .gov-bar-right a { color: white; font-size: 12px; opacity: 0.85; }
+    .gov-bar-right a:hover { opacity: 1; text-decoration: none; }
+
+    /* ════════════════════════════════════════════════════════════════════
+       HEADER — Navegación principal (Res. 1519)
+       ════════════════════════════════════════════════════════════════════ */
+    .site-header {
+      background: white;
+      border-bottom: 1px solid var(--card-border);
+      box-shadow: var(--shadow-sm);
+    }
+    .header-top {
+      display: flex;
+      align-items: center;
+      padding: 16px 24px;
+      gap: 16px;
+    }
+    .header-logo {
+      width: 48px; height: 48px;
+      background: var(--gov-blue);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 800;
+      font-size: 18px;
+    }
+    .header-entity h1 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.2;
+    }
+    .header-entity p {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .header-actions {
+      margin-left: auto;
+      display: flex;
+      gap: 10px;
+    }
+    .nav-main {
+      display: flex;
+      gap: 0;
+      padding: 0 24px;
+      border-top: 1px solid #f1f5f9;
+    }
+    .nav-item {
+      padding: 12px 18px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: all .2s;
+      position: relative;
+    }
+    .nav-item:hover { color: var(--gov-blue); background: var(--gov-blue-50); }
+    .nav-item.active-nav { color: var(--gov-blue); border-bottom-color: var(--gov-blue); font-weight: 600; }
+    .nav-badge {
+      font-size: 9px;
+      padding: 1px 5px;
+      border-radius: 6px;
+      background: var(--error);
+      color: white;
+      font-weight: 700;
+      margin-left: 4px;
+      vertical-align: super;
+    }
+
+    /* ════════════════════════════════════════════════════════════════════
+       BUTTONS (match button.tsx variants)
+       ════════════════════════════════════════════════════════════════════ */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 10px 20px;
+      border-radius: var(--radius);
+      border: none;
+      transition: all .15s;
+      line-height: 1;
+    }
+    .btn-gov { background: var(--gov-blue); color: white; }
+    .btn-gov:hover { background: var(--gov-blue-dark); }
+    .btn-outline { background: transparent; border: 1px solid var(--card-border); color: var(--text-primary); }
+    .btn-outline:hover { background: var(--bg-page); }
+    .btn-sm { padding: 7px 14px; font-size: 13px; }
+    .btn-destructive { background: var(--error); color: white; }
+    .btn-ghost { background: transparent; color: var(--text-secondary); }
+    .btn-ghost:hover { background: var(--bg-page); color: var(--text-primary); }
+
+    /* ════════════════════════════════════════════════════════════════════
+       HERO SLIDER
+       ════════════════════════════════════════════════════════════════════ */
+    .hero {
+      background: linear-gradient(135deg, #003366 0%, #001a33 50%, #000d1a 100%);
+      min-height: 480px;
+      display: flex;
+      align-items: center;
+      padding: 60px 48px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      right: -100px;
+      top: -100px;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(51,102,204,0.15), transparent 70%);
+      border-radius: 50%;
+    }
+    .hero-content { position: relative; z-index: 1; max-width: 600px; }
+    .hero-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--gold);
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 20px;
+    }
+    .hero-label::before { content: ''; width: 40px; height: 2px; background: var(--gold); }
+    .hero h2 {
+      font-size: 42px;
+      font-weight: 800;
+      color: white;
+      line-height: 1.15;
+      margin-bottom: 16px;
+    }
+    .hero p { color: rgba(255,255,255,0.7); font-size: 16px; margin-bottom: 32px; max-width: 480px; }
+    .hero-counters {
+      display: flex;
+      gap: 32px;
+      margin-top: 40px;
+    }
+    .hero-counter { text-align: center; }
+    .hero-counter-val { font-size: 32px; font-weight: 800; color: white; }
+    .hero-counter-label { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+    .hero-dots {
+      display: flex;
+      gap: 8px;
+      margin-top: 32px;
+    }
+    .hero-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.3);
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .hero-dot.active { background: var(--gold); width: 28px; border-radius: 5px; }
+
+    /* ════════════════════════════════════════════════════════════════════
+       QUICK LINKS
+       ════════════════════════════════════════════════════════════════════ */
+    .quick-links {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 16px;
+      padding: 32px 48px;
+      background: white;
+      margin-top: -40px;
+      position: relative;
+      z-index: 2;
+      max-width: 1100px;
+      margin-left: auto;
+      margin-right: auto;
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-lg);
+    }
+    .quick-link {
+      text-align: center;
+      padding: 20px 12px;
+      border-radius: var(--radius-lg);
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .quick-link:hover { background: var(--gov-blue-50); transform: translateY(-3px); }
+    .quick-link-icon {
+      width: 48px; height: 48px;
+      border-radius: 14px;
+      margin: 0 auto 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+    }
+    .quick-link-text { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+
+    /* ════════════════════════════════════════════════════════════════════
+       SECTION COMMON
+       ════════════════════════════════════════════════════════════════════ */
+    .section { padding: 64px 48px; }
+    .section-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--gov-blue);
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+    }
+    .section-label::before { content:''; width: 32px; height: 2px; background: var(--gov-blue); }
+    .section-title {
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+    .section-desc { color: var(--text-secondary); font-size: 15px; margin-bottom: 32px; }
+
+    /* ════════════════════════════════════════════════════════════════════
+       TRANSPARENCIA HOME — dark glassmorphism
+       ════════════════════════════════════════════════════════════════════ */
+    .transp-section {
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      padding: 64px 48px;
+      color: white;
+    }
+    .transp-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+    }
+    .transp-card {
+      background: rgba(255,255,255,0.06);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      transition: all .2s;
+      cursor: pointer;
+    }
+    .transp-card:hover {
+      background: rgba(255,255,255,0.1);
+      transform: translateY(-2px);
+    }
+    .transp-card h4 { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+    .transp-card p { font-size: 12px; color: rgba(255,255,255,0.6); }
+    .transp-card-icon {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      margin-bottom: 14px;
+      background: rgba(255,255,255,0.08);
+    }
+
+    /* ════════════════════════════════════════════════════════════════════
+       NOTICIAS HOME
+       ════════════════════════════════════════════════════════════════════ */
+    .news-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+    .news-card {
+      background: white;
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      border: 1px solid var(--card-border);
+      transition: all .2s;
+      cursor: pointer;
+    }
+    .news-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-3px); }
+    .news-card-img {
+      height: 180px;
+      background: linear-gradient(135deg, var(--gov-blue), var(--gov-blue-dark));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 40px;
+    }
+    .news-card-body { padding: 20px; }
+    .news-card-cat {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--gov-blue);
+      margin-bottom: 8px;
+    }
+    .news-card-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; color: var(--text-primary); }
+    .news-card-date { font-size: 12px; color: var(--text-muted); }
+
+    /* ════════════════════════════════════════════════════════════════════
+       PQRS HOME — split layout
+       ════════════════════════════════════════════════════════════════════ */
+    .pqrs-split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      align-items: start;
+    }
+    .pqrs-form-card {
+      background: white;
+      border-radius: var(--radius-xl);
+      padding: 32px;
+      border: 1px solid var(--card-border);
+      box-shadow: var(--shadow);
+    }
+    .form-group { margin-bottom: 16px; }
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      font-size: 14px;
+      font-family: inherit;
+      transition: border-color .15s;
+      background: white;
+      color: var(--text-primary);
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      outline: none;
+      border-color: var(--gov-blue);
+      box-shadow: 0 0 0 3px rgba(51,102,204,0.1);
+    }
+    .form-textarea { min-height: 100px; resize: vertical; }
+    .pqrs-consult {
+      background: var(--gov-blue-50);
+      border-radius: var(--radius-xl);
+      padding: 32px;
+      border: 2px dashed rgba(51,102,204,0.3);
+    }
+
+    /* ════════════════════════════════════════════════════════════════════
+       CONTACT SECTION
+       ════════════════════════════════════════════════════════════════════ */
+    .contact-grid {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 32px;
+    }
+    .contact-card {
+      display: flex;
+      align-items: start;
+      gap: 14px;
+      padding: 16px;
+      border-radius: var(--radius-xl);
+      border: 1px solid #f1f5f9;
+      background: #fafbfc;
+      transition: all .2s;
+    }
+    .contact-card:hover { border-color: rgba(51,102,204,0.2); box-shadow: var(--shadow-sm); }
+    .contact-icon {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .map-placeholder {
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      border: 1px solid var(--card-border);
+      box-shadow: var(--shadow-lg);
+      height: 380px;
+      background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    /* ════════════════════════════════════════════════════════════════════
+       FOOTER
+       ════════════════════════════════════════════════════════════════════ */
+    .site-footer {
+      background: #111827;
+      color: #9ca3af;
+      padding: 48px 48px 24px;
+    }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 32px;
+      margin-bottom: 32px;
+    }
+    .footer-col h4 { color: white; font-size: 14px; font-weight: 600; margin-bottom: 14px; }
+    .footer-col a {
+      display: block;
+      color: #9ca3af;
+      font-size: 13px;
+      padding: 3px 0;
+      transition: color .15s;
+    }
+    .footer-col a:hover { color: white; text-decoration: none; }
+    .footer-bottom {
+      border-top: 1px solid #374151;
+      padding-top: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+    }
+
+    /* ════════════════════════════════════════════════════════════════════
+       LOGIN PAGE
+       ════════════════════════════════════════════════════════════════════ */
+    .login-page {
+      min-height: calc(100vh - 48px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
+      padding: 40px;
+    }
+    .login-card {
+      background: white;
+      border-radius: var(--radius-xl);
+      padding: 40px;
+      width: 420px;
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--card-border);
+    }
+    .login-logo {
+      width: 64px; height: 64px;
+      background: var(--gov-blue);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      color: white;
+      font-size: 24px;
+      font-weight: 800;
+    }
+
+    /* ════════════════════════════════════════════════════════════════════
+       ADMIN LAYOUT
+       ════════════════════════════════════════════════════════════════════ */
+    .admin-layout {
+      display: flex;
+      min-height: calc(100vh - 48px);
+    }
+    .admin-sidebar {
+      width: 260px;
+      background: var(--sidebar-bg);
+      color: var(--sidebar-text);
+      padding: 0;
+      flex-shrink: 0;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+    .sidebar-header {
+      padding: 20px 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .sidebar-entity { font-size: 14px; font-weight: 700; color: white; }
+    .sidebar-sub { font-size: 11px; color: var(--sidebar-text); margin-top: 2px; }
+    .sidebar-group { padding: 8px 0; }
+    .sidebar-group-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #475569;
+      padding: 8px 18px 4px;
+    }
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 18px;
+      font-size: 13px;
+      color: var(--sidebar-text);
+      cursor: pointer;
+      transition: all .15s;
+      border-left: 3px solid transparent;
+      position: relative;
+    }
+    .sidebar-item:hover { background: var(--sidebar-hover); color: #e2e8f0; }
+    .sidebar-item.active-item {
+      background: rgba(51,102,204,0.1);
+      color: white;
+      border-left-color: var(--gov-blue);
+    }
+    .sidebar-item .item-icon {
+      width: 20px; height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 15px;
+    }
+    .sidebar-badge {
+      margin-left: auto;
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: rgba(51,102,204,0.2);
+      color: var(--gov-blue-light);
+      font-weight: 600;
+    }
+    .sidebar-user {
+      margin-top: auto;
+      padding: 16px 18px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .sidebar-avatar {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      background: var(--gov-blue);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .sidebar-user-info .u-name { font-size: 13px; font-weight: 600; color: white; }
+    .sidebar-user-info .u-role { font-size: 11px; color: var(--sidebar-text); }
+
+    /* ════════════════════════════════════════════════════════════════════
+       ADMIN MAIN CONTENT
+       ════════════════════════════════════════════════════════════════════ */
+    .admin-main {
+      flex: 1;
+      background: var(--bg-admin);
+      overflow-y: auto;
+    }
+    .admin-topbar {
+      background: white;
+      border-bottom: 1px solid var(--card-border);
+      padding: 16px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .admin-topbar h2 { font-size: 18px; font-weight: 700; color: var(--text-primary); }
+    .admin-topbar .breadcrumb { font-size: 12px; color: var(--text-muted); }
+    .admin-content { padding: 28px; }
+
+    /* ─── DASHBOARD CARDS ─── */
+    .dash-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .dash-card {
+      background: white;
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      border: 1px solid var(--card-border);
+      transition: all .2s;
+    }
+    .dash-card:hover { box-shadow: var(--shadow-md); }
+    .dash-card-top { display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px; }
+    .dash-card-icon {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+    .dash-card-change { font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 8px; }
+    .dash-card-val { font-size: 28px; font-weight: 800; color: var(--text-primary); }
+    .dash-card-label { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+
+    /* ─── DATA TABLE ─── */
+    .data-table-wrapper {
+      background: white;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--card-border);
+      overflow: hidden;
+    }
+    .data-table-header {
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--card-border);
+    }
+    .data-table-header h3 { font-size: 15px; font-weight: 700; }
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .data-table th {
+      text-align: left;
+      padding: 12px 18px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--card-border);
+      background: #fafbfc;
+    }
+    .data-table td {
+      padding: 14px 18px;
+      border-bottom: 1px solid #f1f5f9;
+      color: var(--text-primary);
+    }
+    .data-table tr:hover td { background: #fafbfc; }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .status-recibida { background: var(--info-bg); color: #1d4ed8; }
+    .status-tramite { background: var(--warning-bg); color: #92400e; }
+    .status-respondida { background: var(--success-bg); color: #166534; }
+    .status-cerrada { background: #f3f4f6; color: #374151; }
+
+    /* ─── PQRS DETAIL ─── */
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+    }
+    .detail-card {
+      background: white;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--card-border);
+      overflow: hidden;
+    }
+    .detail-card-header {
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--card-border);
+      font-size: 15px;
+      font-weight: 700;
+    }
+    .detail-card-body { padding: 24px; }
+    .detail-field { margin-bottom: 14px; }
+    .detail-field label { display: block; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
+    .detail-field span { font-size: 14px; color: var(--text-primary); }
+    .timeline { padding-left: 20px; border-left: 2px solid var(--card-border); }
+    .timeline-item { padding: 0 0 20px 16px; position: relative; }
+    .timeline-item::before {
+      content: '';
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--gov-blue);
+      position: absolute;
+      left: -26px;
+      top: 3px;
+    }
+    .timeline-item .ti-date { font-size: 11px; color: var(--text-muted); }
+    .timeline-item .ti-text { font-size: 13px; color: var(--text-primary); font-weight: 500; }
+
+    /* ════════════════════════════════════════════════════════════════════
+       GESTOR DOCUMENTAL
+       ════════════════════════════════════════════════════════════════════ */
+    .gd-tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 20px;
+      background: white;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--card-border);
+      overflow: hidden;
+    }
+    .gd-tab {
+      padding: 12px 20px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all .15s;
+    }
+    .gd-tab:hover { color: var(--gov-blue); background: var(--gov-blue-50); }
+    .gd-tab.active-gd { color: var(--gov-blue); border-bottom-color: var(--gov-blue); font-weight: 600; }
+
+    /* ════════════════════════════════════════════════════════════════════
+       SUPERADMIN
+       ════════════════════════════════════════════════════════════════════ */
+    .sa-sidebar {
+      background: linear-gradient(180deg, #1e1b4b, #312e81);
+      color: rgba(255,255,255,0.7);
+    }
+    .sa-sidebar .sidebar-item.active-item {
+      background: rgba(139,92,246,0.15);
+      border-left-color: var(--purple);
+      color: white;
+    }
+    .sa-badge { background: rgba(139,92,246,0.2); color: #c4b5fd; }
+    .tenant-card {
+      background: white;
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      border: 1px solid var(--card-border);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      transition: all .2s;
+      cursor: pointer;
+    }
+    .tenant-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+    .tenant-logo {
+      width: 48px; height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 18px;
+      color: white;
+    }
+    .tenant-info h4 { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+    .tenant-info p { font-size: 12px; color: var(--text-secondary); }
+    .plan-badge {
+      margin-left: auto;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .plan-pro { background: #dbeafe; color: #1e40af; }
+    .plan-ent { background: #faf5ff; color: #7e22ce; }
+    .plan-bas { background: #f0fdf4; color: #166534; }
+
+    /* ════════════════════════════════════════════════════════════════════
+       MODAL / TOAST
+       ════════════════════════════════════════════════════════════════════ */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      backdrop-filter: blur(4px);
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: white;
+      border-radius: var(--radius-xl);
+      max-width: 480px;
+      width: 90%;
+      box-shadow: 0 20px 60px rgba(0,0,0,.2);
+      overflow: hidden;
+    }
+    .modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .modal-header h3 { font-size: 16px; font-weight: 700; }
+    .modal-body { padding: 24px; }
+    .modal-footer { padding: 16px 24px; border-top: 1px solid var(--card-border); display: flex; gap: 10px; justify-content: flex-end; }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--sidebar-bg);
+      color: white;
+      padding: 14px 24px;
+      border-radius: var(--radius-lg);
+      font-size: 14px;
+      font-weight: 500;
+      box-shadow: 0 8px 32px rgba(0,0,0,.2);
+      z-index: 10001;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all .3s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.success { border-left: 4px solid var(--success); }
+    .toast.error { border-left: 4px solid var(--error); }
+
+    /* ════════════════════════════════════════════════════════════════════
+       RESPONSIVE
+       ════════════════════════════════════════════════════════════════════ */
+    @media (max-width: 900px) {
+      .pqrs-split { grid-template-columns: 1fr; }
+      .contact-grid { grid-template-columns: 1fr; }
+      .detail-grid { grid-template-columns: 1fr; }
+      .admin-sidebar { display: none; }
+      .hero h2 { font-size: 28px; }
+      .section { padding: 40px 20px; }
+      .quick-links { grid-template-columns: repeat(3, 1fr); padding: 24px; margin-top: -20px; }
+      .demo-bar { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     DEMO NAVIGATION BAR
+     ════════════════════════════════════════════════════════════════════════ -->
+<div class="demo-bar" id="demoBar">
+  <div class="demo-bar-title">
+    <span>DEMO</span> Personería Municipal — Sistema Multi-Tenant
+  </div>
+  <button class="demo-btn active" data-screen="portal">Portal Público</button>
+  <button class="demo-btn" data-screen="login">Login</button>
+  <button class="demo-btn" data-screen="admin-dash">Admin Dashboard</button>
+  <button class="demo-btn" data-screen="admin-pqrs">Admin PQRS</button>
+  <button class="demo-btn" data-screen="admin-pqrs-detail">PQRS Detalle</button>
+  <button class="demo-btn" data-screen="admin-gd">Gestor Documental</button>
+  <button class="demo-btn" data-screen="superadmin">SuperAdmin</button>
+  <button class="demo-btn" data-screen="pqrs-ciudadano">PQRS Ciudadano</button>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     SCREEN 1: PORTAL PÚBLICO
+     ════════════════════════════════════════════════════════════════════════ -->
+<div class="demo-screen active" id="screen-portal">
+  <!-- GOV.CO Bar -->
+  <div class="gov-bar">
+    <span class="gov-bar-logo">GOV.CO</span>
+    <span class="gov-bar-text">Portal Único del Estado Colombiano</span>
+    <div class="gov-bar-right">
+      <a href="#">Accesibilidad</a>
+      <a href="#">Mapa del sitio</a>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <div class="site-header">
+    <div class="header-top">
+      <div class="header-logo">PM</div>
+      <div class="header-entity">
+        <h1>Personería Municipal</h1>
+        <p>Guadalajara de Buga, Valle del Cauca</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-outline btn-sm" onclick="showScreen('login')">Ingresar</button>
+      </div>
+    </div>
+    <div class="nav-main">
+      <div class="nav-item active-nav">Inicio</div>
+      <div class="nav-item">La Entidad</div>
+      <div class="nav-item">Transparencia <span class="nav-badge">Req</span></div>
+      <div class="nav-item">Atención al Ciudadano <span class="nav-badge">Req</span></div>
+      <div class="nav-item">Participa <span class="nav-badge">Req</span></div>
+      <div class="nav-item">Servicios</div>
+      <div class="nav-item">Noticias</div>
+    </div>
+  </div>
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-content">
+      <div class="hero-label">Personería Municipal</div>
+      <h2>Defendemos sus derechos con transparencia y compromiso</h2>
+      <p>La Personería Municipal de Guadalajara de Buga trabaja por la defensa de los derechos humanos y el control del poder público.</p>
+      <div style="display:flex;gap:12px;">
+        <button class="btn btn-gov" onclick="showScreen('pqrs-ciudadano')">Radicar PQRS</button>
+        <button class="btn" style="background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.2);">Conocer más</button>
+      </div>
+      <div class="hero-counters">
+        <div class="hero-counter"><div class="hero-counter-val">1,247</div><div class="hero-counter-label">PQRS atendidas</div></div>
+        <div class="hero-counter"><div class="hero-counter-val">98%</div><div class="hero-counter-label">Satisfacción</div></div>
+        <div class="hero-counter"><div class="hero-counter-val">15</div><div class="hero-counter-label">Años de servicio</div></div>
+      </div>
+      <div class="hero-dots">
+        <div class="hero-dot active"></div>
+        <div class="hero-dot"></div>
+        <div class="hero-dot"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Links -->
+  <div class="quick-links">
+    <div class="quick-link" onclick="showScreen('pqrs-ciudadano')">
+      <div class="quick-link-icon" style="background:#dbeafe;color:#2563eb;">📋</div>
+      <div class="quick-link-text">PQRS</div>
+    </div>
+    <div class="quick-link">
+      <div class="quick-link-icon" style="background:#f0fdf4;color:#16a34a;">📄</div>
+      <div class="quick-link-text">Transparencia</div>
+    </div>
+    <div class="quick-link">
+      <div class="quick-link-icon" style="background:#faf5ff;color:#9333ea;">⚖️</div>
+      <div class="quick-link-text">Normatividad</div>
+    </div>
+    <div class="quick-link">
+      <div class="quick-link-icon" style="background:#fef3c7;color:#d97706;">📰</div>
+      <div class="quick-link-text">Noticias</div>
+    </div>
+    <div class="quick-link">
+      <div class="quick-link-icon" style="background:#fce7f3;color:#db2777;">📞</div>
+      <div class="quick-link-text">Contacto</div>
+    </div>
+  </div>
+
+  <!-- Transparencia Section -->
+  <div class="transp-section">
+    <div style="max-width:1100px;margin:0 auto;">
+      <div class="section-label" style="color:var(--gold);">
+        <span style="background:var(--gold);" class="section-label"></span>
+        Transparencia y acceso a la información
+      </div>
+      <h2 style="font-size:32px;font-weight:800;color:white;margin-bottom:8px;">Resolución 1519 de 2020</h2>
+      <p style="color:rgba(255,255,255,0.6);margin-bottom:24px;">Acceda a toda la información pública de la entidad</p>
+      <div class="transp-grid">
+        <div class="transp-card">
+          <div class="transp-card-icon">📋</div>
+          <h4>Normatividad</h4>
+          <p>Leyes, decretos, resoluciones y acuerdos</p>
+        </div>
+        <div class="transp-card">
+          <div class="transp-card-icon">💰</div>
+          <h4>Presupuesto</h4>
+          <p>Información financiera y presupuestal</p>
+        </div>
+        <div class="transp-card">
+          <div class="transp-card-icon">📊</div>
+          <h4>Planeación</h4>
+          <p>Planes, programas y proyectos</p>
+        </div>
+        <div class="transp-card">
+          <div class="transp-card-icon">🔍</div>
+          <h4>Control</h4>
+          <p>Informes de gestión y auditoría</p>
+        </div>
+        <div class="transp-card">
+          <div class="transp-card-icon">📝</div>
+          <h4>Contratación</h4>
+          <p>Procesos contractuales y contratación</p>
+        </div>
+        <div class="transp-card">
+          <div class="transp-card-icon">🗂️</div>
+          <h4>Instrumentos de Gestión</h4>
+          <p>TRD, PGD, registro de activos</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Noticias -->
+  <div class="section" style="max-width:1200px;margin:0 auto;">
+    <div class="section-label">Actualidad</div>
+    <div class="section-title">Últimas Noticias</div>
+    <div class="section-desc">Entérese de las últimas actividades de la Personería Municipal</div>
+    <div class="news-grid">
+      <div class="news-card">
+        <div class="news-card-img">📰</div>
+        <div class="news-card-body">
+          <div class="news-card-cat">Derechos Humanos</div>
+          <div class="news-card-title">Jornada de atención descentralizada en zona rural</div>
+          <div class="news-card-date">12 de Abril, 2026</div>
+        </div>
+      </div>
+      <div class="news-card">
+        <div class="news-card-img" style="background:linear-gradient(135deg,#059669,#047857);">🤝</div>
+        <div class="news-card-body">
+          <div class="news-card-cat">Institucional</div>
+          <div class="news-card-title">Convenio con Defensoría del Pueblo para capacitación</div>
+          <div class="news-card-date">10 de Abril, 2026</div>
+        </div>
+      </div>
+      <div class="news-card">
+        <div class="news-card-img" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);">⚖️</div>
+        <div class="news-card-body">
+          <div class="news-card-cat">Disciplinario</div>
+          <div class="news-card-title">Informe de gestión disciplinaria primer trimestre 2026</div>
+          <div class="news-card-date">5 de Abril, 2026</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contacto -->
+  <div class="section" style="background:white;">
+    <div style="max-width:1200px;margin:0 auto;">
+      <div style="text-align:center;margin-bottom:32px;">
+        <div class="section-label" style="justify-content:center;">Encuéntrenos</div>
+        <div class="section-title">Dónde Estamos</div>
+      </div>
+      <div class="contact-grid">
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div class="contact-card">
+            <div class="contact-icon" style="background:#dbeafe;color:#2563eb;">📍</div>
+            <div>
+              <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;">Dirección</div>
+              <div style="font-size:14px;font-weight:700;">Cra 14 #6-30, Centro</div>
+              <div style="font-size:12px;color:var(--text-muted);">Guadalajara de Buga, Valle del Cauca</div>
+            </div>
+          </div>
+          <div class="contact-card">
+            <div class="contact-icon" style="background:#f0fdf4;color:#16a34a;">📞</div>
+            <div>
+              <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;">Teléfono</div>
+              <div style="font-size:14px;font-weight:700;">+57 (2) 228-0000</div>
+              <div style="font-size:12px;color:var(--text-muted);">Línea de atención ciudadana</div>
+            </div>
+          </div>
+          <div class="contact-card">
+            <div class="contact-icon" style="background:#faf5ff;color:#9333ea;">✉️</div>
+            <div>
+              <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;">Correo</div>
+              <div style="font-size:14px;font-weight:700;">info@personeriabuga.gov.co</div>
+              <div style="font-size:12px;color:var(--text-muted);">Respuesta en 1 día hábil</div>
+            </div>
+          </div>
+          <div class="contact-card">
+            <div class="contact-icon" style="background:#fef3c7;color:#d97706;">🕐</div>
+            <div>
+              <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;">Horarios</div>
+              <div style="font-size:14px;font-weight:700;">Lunes a Viernes</div>
+              <div style="font-size:12px;color:var(--text-muted);">8:00 am – 5:00 pm (jornada continua)</div>
+            </div>
+          </div>
+        </div>
+        <div class="map-placeholder">
+          🗺️ Google Maps — Personería Municipal de Guadalajara de Buga
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="site-footer">
+    <div class="footer-grid" style="max-width:1200px;margin:0 auto;">
+      <div class="footer-col">
+        <h4>La Entidad</h4>
+        <a href="#">Misión y Visión</a>
+        <a href="#">Funciones</a>
+        <a href="#">Organigrama</a>
+        <a href="#">Directorio</a>
+      </div>
+      <div class="footer-col">
+        <h4>Transparencia</h4>
+        <a href="#">Normatividad</a>
+        <a href="#">Presupuesto</a>
+        <a href="#">Planeación</a>
+        <a href="#">Contratación</a>
+      </div>
+      <div class="footer-col">
+        <h4>Atención al Ciudadano</h4>
+        <a href="#">PQRS</a>
+        <a href="#">Trámites y Servicios</a>
+        <a href="#">Canales de Atención</a>
+        <a href="#">Política de Datos</a>
+      </div>
+      <div class="footer-col">
+        <h4>Participa</h4>
+        <a href="#">Rendición de Cuentas</a>
+        <a href="#">Consulta Ciudadana</a>
+        <a href="#">Control Social</a>
+      </div>
+      <div class="footer-col">
+        <h4>Contacto</h4>
+        <a href="#">Cra 14 #6-30, Centro</a>
+        <a href="#">+57 (2) 228-0000</a>
+        <a href="#">info@personeriabuga.gov.co</a>
+      </div>
+    </div>
+    <div class="footer-bottom" style="max-width:1200px;margin:0 auto;">
+      <span>© 2025 Personería Municipal de Guadalajara de Buga. Todos los derechos reservados.</span>
+      <span style="font-weight:700;letter-spacing:2px;">GOV.CO</span>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     SCREEN 2: LOGIN
+     ════════════════════════════════════════════════════════════════════════ -->
+<div class="demo-screen" id="screen-login">
+  <div class="gov-bar">
+    <span class="gov-bar-logo">GOV.CO</span>
+    <span class="gov-bar-text">Portal Único del Estado Colombiano</span>
+  </div>
+  <div class="login-page">
+    <div class="login-card">
+      <div class="login-logo">PM</div>
+      <h2 style="text-align:center;font-size:20px;font-weight:700;margin-bottom:4px;">Iniciar Sesión</h2>
+      <p style="text-align:center;font-size:13px;color:var(--text-secondary);margin-bottom:28px;">Panel de Administración</p>
+      <div class="form-group">
+        <label class="form-label">Correo electrónico</label>
+        <input class="form-input" type="email" placeholder="admin@personeriabuga.gov.co" value="admin@personeriabuga.gov.co">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Contraseña</label>
+        <input class="form-input" type="password" placeholder="••••••••" value="12345678">
+      </div>
+      <button class="btn btn-gov" style="width:100%;margin-top:8px;" onclick="showScreen('admin-dash');showToast('Sesión iniciada correctamente','success')">
+        Ingresar
+      </button>
+      <div style="text-align:center;margin-top:16px;">
+        <a href="#" style="font-size:13px;" onclick="showToast('Email de recuperación enviado','success');return false;">¿Olvidaste tu contraseña?</a>
+      </div>
+      <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--card-border);text-align:center;">
+        <button class="btn btn-ghost btn-sm" onclick="showScreen('portal')">← Volver al Portal</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     SCREEN 3: ADMIN DASHBOARD
+     ════════════════════════════════════════════════════════════════════════ -->
+<div class="demo-screen" id="screen-admin-dash">
+  <div class="admin-layout">
+    <!-- Sidebar -->
+    <div class="admin-sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-entity">Personería Municipal</div>
+        <div class="sidebar-sub">Guadalajara de Buga</div>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-item active-item" onclick="showScreen('admin-dash')">
+          <span class="item-icon">🏠</span> Dashboard
+        </div>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Contenido</div>
+        <div class="sidebar-item"><span class="item-icon">📰</span> Noticias</div>
+        <div class="sidebar-item"><span class="item-icon">📄</span> Páginas y secciones</div>
+        <div class="sidebar-item"><span class="item-icon">🖼️</span> Slider</div>
+        <div class="sidebar-item"><span class="item-icon">📎</span> Documentos</div>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Gestión</div>
+        <div class="sidebar-item" onclick="showScreen('admin-pqrs')"><span class="item-icon">💬</span> PQRSD</div>
+        <div class="sidebar-item" onclick="showScreen('admin-gd')"><span class="item-icon">📁</span> Gestor Documental <span class="sidebar-badge">AGN</span></div>
+        <div class="sidebar-item"><span class="item-icon">🛡️</span> Transparencia</div>
+        <div class="sidebar-item"><span class="item-icon">☰</span> Menú</div>
+        <div class="sidebar-item"><span class="item-icon">📊</span> Planeación y MIPG</div>
+        <div class="sidebar-item"><span class="item-icon">📂</span> Bóveda Evidencias</div>
+        <div class="sidebar-item"><span class="item-icon">⏱️</span> Evaluar FURAG</div>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Sistema</div>
+        <div class="sidebar-item"><span class="item-icon">👥</span> Usuarios</div>
+        <div class="sidebar-item"><span class="item-icon">📈</span> Estadísticas</div>
+        <div class="sidebar-item"><span class="item-icon">⚙️</span> Configuración</div>
+        <div class="sidebar-item"><span class="item-icon">📋</span> Auditoría</div>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Módulos activos</div>
+        <div class="sidebar-item"><span class="item-icon">📥</span> Ventanilla Única <span class="sidebar-badge">Activo</span></div>
+        <div class="sidebar-item"><span class="item-icon">📂</span> Gestión Documental <span class="sidebar-badge">Activo</span></div>
+      </div>
+      <div class="sidebar-user">
+        <div class="sidebar-avatar">CA</div>
+        <div class="sidebar-user-info">
+          <div class="u-name">César Admin</div>
+          <div class="u-role">SUPER_ADMIN</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main -->
+    <div class="admin-main">
+      <div class="admin-topbar">
+        <div>
+          <div class="breadcrumb">Admin / Dashboard</div>
+          <h2>Dashboard</h2>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-outline btn-sm">Exportar</button>
+          <button class="btn btn-ghost btn-sm" onclick="showScreen('portal')">Ver Portal</button>
+        </div>
+      </div>
+      <div class="admin-content">
+        <div class="dash-grid">
+          <div class="dash-card">
+            <div class="dash-card-top">
+              <div class="dash-card-icon" style="background:#dbeafe;color:#2563eb;">💬</div>
+              <span class="dash-card-change" style="background:var(--success-bg);color:#166534;">+12%</span>
+            </div>
+            <div class="dash-card-val">247</div>
+            <div class="dash-card-label">PQRS este mes</div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-card-top">
+              <div class="dash-card-icon" style="background:#f0fdf4;color:#16a34a;">✅</div>
+              <span class="dash-card-change" style="background:var(--success-bg);color:#166534;">+8%</span>
+            </div>
+            <div class="dash-card-val">189</div>
+            <div class="dash-card-label">PQRS resueltas</div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-card-top">
+              <div class="dash-card-icon" style="background:#fef3c7;color:#d97706;">📁</div>
+              <span class="dash-card-change" style="background:var(--warning-bg);color:#92400e;">+5</span>
+            </div>
+            <div class="dash-card-val">1,842</div>
+            <div class="dash-card-label">Radicados totales</div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-card-top">
+              <div class="dash-card-icon" style="background:#fce7f3;color:#db2777;">👤</div>
+              <span class="dash-card-change" style="background:var(--info-bg);color:#1d4ed8;">+2</span>
+            </div>
+            <div class="dash-card-val">18</div>
+            <div class="dash-card-label">Usuarios activos</div>
+          </div>
+        </div>
+
+        <!-- Últimas PQRS -->
+        <div class="data-table-wrapper" style="margin-bottom:20px;">
+          <div class="data-table-header">
+            <h3>Últimas PQRS Recibidas</h3>
+            <button class="btn btn-gov btn-sm" onclick="showScreen('admin-pqrs')">Ver todas →</button>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr><th>Radicado</th><th>Tipo</th><th>Asunto</th><th>Estado</th><th>Fecha</th></tr>
+            </thead>
+            <tbody>
+              <tr onclick="showScreen('admin-pqrs-detail')" style="cursor:pointer;">
+                <td style="font-weight:600;color:var(--gov-blue);">PQRS-20260412-0247</td>
+                <td>Petición</td>
+                <td>Solicitud certificado de residencia</td>
+                <td><span class="status-badge status-recibida">● Recibida</span></td>
+                <td>12/04/2026</td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;color:var(--gov-blue);">PQRS-20260411-0246</td>
+                <td>Queja</td>
+                <td>Inconformidad con servicio de acueducto</td>
+                <td><span class="status-badge status-tramite">● En trámite</span></td>
+                <td>11/04/2026</td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;color:var(--gov-blue);">PQRS-20260410-0245</td>
+                <td>Denuncia</td>
+                <td>Presunto maltrato animal en barrio El Albergue</td>
+                <td><span class="status-badge status-respondida">● Respondida</span></td>
+                <td>10/04/2026</td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;color:var(--gov-blue);">PQRS-20260408-0244</td>
+                <td>Reclamo</td>
+                <td>Demora en respuesta a derecho de petición</td>
+                <td><span class="status-badge status-cerrada">● Cerrada</span></td>
+                <td>08/04/2026</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     SCREEN 4: ADMIN PQRS LIST
+     ════════════════════════════════════════════════════════════════════════ -->
+<div class="demo-screen" id="screen-admin-pqrs">
+  <div class="admin-layout">
+    <div class="admin-sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-entity">Personería Municipal</div>
+        <div class="sidebar-sub">Guadalajara de Buga</div>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-item" onclick="showScreen('admin-dash')"><span class="item-icon">🏠</span> Dashboard</div>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Gestión</div>
+        <div class="sidebar-item active-item"><span class="item-icon">💬</span> PQRSD</div>
+        <div class="sidebar-item" onclick="showScreen('admin-gd')"><span class="item-icon">📁</span> Gestor Documental <span class="sidebar-badge">AGN</span></div>
+      </div>
+      <div class="sidebar-user">
+        <div class="sidebar-avatar">CA</div>
+        <div class="sidebar-user-info"><div class="u-name">César Admin</div><div class="u-role">SUPER_ADMIN</div></div>
+      </div>
+    </div>
+    <div class="admin-main">
+      <div class="admin-topbar">
+        <div>
+          <div class="breadcrumb">Admin / Gestión / PQRSD</div>
+          <h2>Gestión de PQRSD</h2>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <input class="form-input" style="width:260px;" placeholder="Buscar por radicado, asunto...">
+          <button class="btn btn-gov btn-sm">Exportar Excel</button>
+        </div>
+      </div>
+      <div class="admin-content">
+        <!-- Filters -->
+        <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+          <select class="form-select" style="width:160px;"><option>Todos los tipos</option><option>Petición</option><option>Queja</option><option>Reclamo</option><option>Sugerencia</option><option>Denuncia</option></select>
+          <select class="form-select" style="width:160px;"><option>Todos los estados</option><option>Recibida</option><option>En trámite</option><option>Respondida</option><option>Cerrada</option></select>
+          <input class="form-input" type="date" style="width:160px;">
+          <button class="btn btn-outline btn-sm">Limpiar filtros</button>
+        </div>
+
+        <div class="data-table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr><th>Radicado</th><th>Tipo</th><th>Ciudadano</th><th>Asunto</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr>
+            </thead>
+            <tbody>
+              <tr onclick="showScreen('admin-pqrs-detail')" style="cursor:pointer;">
+                <td style="font-weight:600;color:var(--gov-blue);">PQRS-20260412-0247</td>
+                <td>Petición</td>
+                <td>María García López</td>
+                <td>Solicitud certificado de residencia</td>
+                <td><span class="status-badge status-recibida">● Recibida</span></td>
+                <td>12/04/2026</td>
+                <td><button class="btn btn-ghost btn-sm">Ver</button></td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;color:var(--gov-blue);">PQRS-20260411-0246</td>
+                <td>Queja</td>
+                <td>Juan Pérez Martínez</td>
+                <td>Inconformidad con servicio de acueducto</td>
+                <td><span class="status-badge status-tramite">● En trámite</span></td>
+                <td>11/04/2026</td>
+                <td><button class="btn btn-ghost btn-sm">Ver</button></td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;color:var(--gov-blue);">PQRS-20260410-0245</td>
+                <td>Denuncia</td>
+                <td>Ana Rodríguez</td>
+                <td>Presunto maltrato animal en barrio El Albergue</td>
+                <td><span class="status-badge status-respondida">● Respondida</span></td>
+                <td>10/04/2026</td>
+                <td><button class="btn btn-ghost btn-sm">Ver</button></td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;color:var(--gov-blue);">PQRS-20260408-0244</td>
+                <td>Reclamo</td>
+                <td>Carlos Mejía</td>
+                <td>Demora en respuesta a derecho de petición</td>
+                <td><span class="status-badge status-cerrada">● Cerrada</span></td>
+                <td>08/04/2026</td>
+                <td><button class="btn btn-ghost btn-sm">Ver</button></td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;color:var(--gov-blue);">PQRS-20260405-0243</td>
+                <td>Sugerencia</td>
+                <td>Laura Sánchez</td>
+                <td>Mejorar señalización en oficina de atención</td>
+                <td><span class="status-badge status-respondida">● Respondida</span></td>
+                <td>05/04/2026</td>
+                <td><button class="btn btn-ghost btn-sm">Ver</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;font-size:13px;color:var(--text-secondary);">
+          <span>Mostrando 1-5 de 247 registros</span>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-outline btn-sm" disabled>← Anterior</button>
+            <button class="btn btn-gov btn-sm">1</button>
+            <button class="btn btn-outline btn-sm">2</button>
+            <button class="btn btn-outline btn-sm">3</button>
+            <button class="btn btn-outline btn-sm">Siguiente →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     SCREEN 5: PQRS DETAIL
+     ════════════════════════════════════════════════════════════════════════ -->
+<div class="demo-screen" id="screen-admin-pqrs-detail">
+  <div class="admin-layout">
+    <div class="admin-sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-entity">Personería Municipal</div>
+        <div class="sidebar-sub">Guadalajara de Buga</div>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-item" onclick="showScreen('admin-dash')"><span class="item-icon">🏠</span> Dashboard</div>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Gestión</div>
+        <div class="sidebar-item active-item" onclick="showScreen('admin-pqrs')"><span class="item-icon">💬</span> PQRSD</div>
+        <div class="sidebar-item" onclick="showScreen('admin-gd')"><span class="item-icon">📁</span> Gestor Documental</div>
+      </div>
+      <div class="sidebar-user">
+        <div class="sidebar-avatar">CA</div>
+        <div class="sidebar-user-info"><div class="u-name">César Admin</div><div class="u-role">SUPER_ADMIN</div></div>
+      </div>
+    </div>
+    <div class="admin-main">
+      <div class="admin-topbar">
+        <div>
+          <div class="breadcrumb">Admin / PQRSD / <span style="color:var(--gov-blue);">PQRS-20260412-0247</span></div>
+          <h2>Detalle de PQRS</h2>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-outline btn-sm" onclick="showScreen('admin-pqrs')">← Volver</button>
+          <button class="btn btn-gov btn-sm" onclick="showModal()">Responder</button>
+        </div>
+      </div>
+      <div class="admin-content">
+        <div class="detail-grid">
+          <div>
+            <!-- Información -->
+            <div class="detail-card" style="margin-bottom:20px;">
+              <div class="detail-card-header">Información de la PQRS</div>
+              <div class="detail-card-body">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                  <div class="detail-field">
+                    <label>Radicado</label>
+                    <span style="font-weight:700;color:var(--gov-blue);">PQRS-20260412-0247</span>
+                  </div>
+                  <div class="detail-field">
+                    <label>Tipo</label>
+                    <span>Petición</span>
+                  </div>
+                  <div class="detail-field">
+                    <label>Estado</label>
+                    <span><span class="status-badge status-recibida">● Recibida</span></span>
+                  </div>
+                  <div class="detail-field">
+                    <label>Fecha de radicación</label>
+                    <span>12 de Abril de 2026, 10:34 AM</span>
+                  </div>
+                  <div class="detail-field">
+                    <label>Ciudadano</label>
+                    <span>María García López</span>
+                  </div>
+                  <div class="detail-field">
+                    <label>Cédula</label>
+                    <span>31.234.567</span>
+                  </div>
+                  <div class="detail-field">
+                    <label>Email</label>
+                    <span>maria.garcia@email.com</span>
+                  </div>
+                  <div class="detail-field">
+                    <label>Teléfono</label>
+                    <span>+57 315 123 4567</span>
+                  </div>
+                </div>
+                <div class="detail-field" style="margin-top:10px;">
+                  <label>Asunto</label>
+                  <span>Solicitud certificado de residencia</span>
+                </div>
+                <div class="detail-field">
+                  <label>Descripción</label>
+                  <span style="display:block;line-height:1.7;">Cordial saludo, por medio de la presente solicito muy respetuosamente se me expida un certificado de residencia para trámites ante la Registraduría Nacional. Llevo viviendo en el barrio San José hace más de 10 años y necesito acreditar mi domicilio. Agradezco su pronta gestión.</span>
+                </div>
+                <div class="detail-field">
+                  <label>Archivos adjuntos</label>
+                  <div style="display:flex;gap:8px;margin-top:4px;">
+                    <div style="padding:8px 14px;background:#f8fafc;border:1px solid var(--card-border);border-radius:8px;font-size:12px;display:flex;align-items:center;gap:6px;">📄 cedula_frente.pdf <span style="color:var(--text-muted);">(245 KB)</span></div>
+                    <div style="padding:8px 14px;background:#f8fafc;border:1px solid var(--card-border);border-radius:8px;font-size:12px;display:flex;align-items:center;gap:6px;">📄 recibo_servicio.pdf <span style="color:var(--text-muted);">(189 KB)</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Timeline -->
+          <div>
+            <div class="detail-card" style="margin-bottom:20px;">
+              <div class="detail-card-header">Historial</div>
+              <div class="detail-card-body">
+                <div class="timeline">
+                  <div class="timeline-item">
+                    <div class="ti-date">12/04/2026 — 10:34 AM</div>
+                    <div class="ti-text">PQRS radicada por el ciudadano</div>
+                  </div>
+                  <div class="timeline-item">
+                    <div class="ti-date">12/04/2026 — 10:34 AM</div>
+                    <div class="ti-text">Notificación enviada al ciudadano</div>
+                  </div>
+                  <div class="timeline-item" style="opacity:0.5;">
+                    <div class="ti-date">Pendiente</div>
+                    <div class="ti-text">Asignación a funcionario</div>
+                  </div>
+                  <div class="timeline-item" style="opacity:0.5;">
+                    <div class="ti-date">Pendiente</div>
+                    <div class="ti-text">Respuesta al ciudadano</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="detail-card">
+              <div class="detail-card-header">Acciones Rápidas</div>
+              <div class="detail-card-body" style="display:flex;flex-direction:column;gap:8px;">
+                <button class="btn btn-gov" style="width:100%;" onclick="showToast('Estado cambiado a EN TRÁMITE','success')">Pasar a En Trámite</button>
+                <button class="btn btn-outline" style="width:100%;" onclick="showModal()">Responder</button>
+                <button class="btn btn-ghost" style="width:100%;">Imprimir</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     SCREEN 6: GESTOR DOCUMENTAL AGN
+     ════════════════════════════════════════════════════════════════════════ -->
+<div class="demo-screen" id="screen-admin-gd">
+  <div class="admin-layout">
+    <div class="admin-sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-entity">Personería Municipal</div>
+        <div class="sidebar-sub">Guadalajara de Buga</div>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-item" onclick="showScreen('admin-dash')"><span class="item-icon">🏠</span> Dashboard</div>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Gestión</div>
+        <div class="sidebar-item" onclick="showScreen('admin-pqrs')"><span class="item-icon">💬</span> PQRSD</div>
+        <div class="sidebar-item active-item"><span class="item-icon">📁</span> Gestor Documental <span class="sidebar-badge">AGN</span></div>
+      </div>
+      <div class="sidebar-user">
+        <div class="sidebar-avatar">CA</div>
+        <div class="sidebar-user-info"><div class="u-name">César Admin</div><div class="u-role">SUPER_ADMIN</div></div>
+      </div>
+    </div>
+    <div class="admin-main">
+      <div class="admin-topbar">
+        <div>
+          <div class="breadcrumb">Admin / Gestión / Gestor Documental</div>
+          <h2>Gestor Documental AGN</h2>
+        </div>
+        <button class="btn btn-gov btn-sm" onclick="showModal2()">+ Nuevo Radicado</button>
+      </div>
+      <div class="admin-content">
+        <!-- GD Tabs -->
+        <div class="gd-tabs">
+          <div class="gd-tab active-gd">Radicados</div>
+          <div class="gd-tab">TRD</div>
+          <div class="gd-tab">Expedientes</div>
+          <div class="gd-tab">VoBo Pendientes</div>
+          <div class="gd-tab">Firmas QR</div>
+        </div>
+
+        <!-- Stats -->
+        <div class="dash-grid" style="grid-template-columns:repeat(4,1fr);">
+          <div class="dash-card">
+            <div class="dash-card-icon" style="background:#dbeafe;color:#2563eb;width:36px;height:36px;font-size:16px;border-radius:10px;margin-bottom:8px;">📥</div>
+            <div class="dash-card-val" style="font-size:22px;">342</div>
+            <div class="dash-card-label">Entrada</div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-card-icon" style="background:#f0fdf4;color:#16a34a;width:36px;height:36px;font-size:16px;border-radius:10px;margin-bottom:8px;">📤</div>
+            <div class="dash-card-val" style="font-size:22px;">218</div>
+            <div class="dash-card-label">Salida</div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-card-icon" style="background:#faf5ff;color:#9333ea;width:36px;height:36px;font-size:16px;border-radius:10px;margin-bottom:8px;">📋</div>
+            <div class="dash-card-val" style="font-size:22px;">89</div>
+            <div class="dash-card-label">Interno</div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-card-icon" style="background:#fef3c7;color:#d97706;width:36px;height:36px;font-size:16px;border-radius:10px;margin-bottom:8px;">⏳</div>
+            <div class="dash-card-val" style="font-size:22px;">12</div>
+            <div class="dash-card-label">VoBo Pendiente</div>
+          </div>
+        </div>
+
+        <div class="data-table-wrapper">
+          <div class="data-table-header">
+            <h3>Radicados Recientes</h3>
+            <div style="display:flex;gap:8px;">
+              <select class="form-select" style="width:140px;font-size:12px;padding:6px 10px;"><option>Todos los tipos</option><option>Entrada</option><option>Salida</option><option>Interno</option></select>
+              <input class="form-input" style="width:200px;font-size:12px;padding:6px 10px;" placeholder="Buscar radicado...">
+            </div>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr><th>Radicado</th><th>Tipo</th><th>Dependencia</th><th>Serie/Subserie</th><th>Asunto</th><th>Estado</th><th>VoBo</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="font-weight:600;color:var(--gov-blue);">2026-SG-00342</td>
+                <td><span style="padding:3px 8px;border-radius:6px;background:#dbeafe;color:#1d4ed8;font-size:11px;font-weight:600;">Entrada</span></td>
+                <td>Secretaría General</td>
+                <td>Actas / Actas de Comité</td>
+                <td>Acta reunión comité disciplinario</td>
+                <td><span class="status-badge status-tramite">● En gestión</span></td>
+                <td><span style="color:var(--warning);">⏳ 1/2</span></td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;color:var(--gov-blue);">2026-SG-00341</td>
+                <td><span style="padding:3px 8px;border-radius:6px;background:#f0fdf4;color:#166534;font-size:11px;font-weight:600;">Salida</span></td>
+                <td>Secretaría General</td>
+                <td>Oficios / Respuesta</td>
+                <td>Respuesta derecho de petición 2026-0089</td>
+                <td><span class="status-badge status-respondida">● Firmado</span></td>
+                <td><span style="color:var(--success);">✅ 2/2</span></td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;color:var(--gov-blue);">2026-DH-00087</td>
+                <td><span style="padding:3px 8px;border-radius:6px;background:#faf5ff;color:#7e22ce;font-size:11px;font-weight:600;">Interno</span></td>
+                <td>Derechos Humanos</td>
+                <td>Informes / Informe de Gestión</td>
+                <td>Informe trimestral DDHH Q1 2026</td>
+                <td><span class="status-badge status-recibida">● Radicado</span></td>
+                <td><span style="color:var(--text-muted);">— N/A</span></td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;color:var(--gov-blue);">2026-SG-00340</td>
+                <td><span style="padding:3px 8px;border-radius:6px;background:#dbeafe;color:#1d4ed8;font-size:11px;font-weight:600;">Entrada</span></td>
+                <td>Secretaría General</td>
+                <td>Derechos de Petición</td>
+                <td>Solicitud información presupuestal</td>
+                <td><span class="status-badge status-respondida">● Archivado</span></td>
+                <td><span style="color:var(--success);">✅ 1/1</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     SCREEN 7: SUPERADMIN
+     ════════════════════════════════════════════════════════════════════════ -->
+<div class="demo-screen" id="screen-superadmin">
+  <div class="admin-layout">
+    <div class="admin-sidebar sa-sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-entity" style="color:#c4b5fd;">SuperAdmin</div>
+        <div class="sidebar-sub">Panel de Gestión Multi-Tenant</div>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-item active-item"><span class="item-icon">🏠</span> Dashboard</div>
+        <div class="sidebar-item"><span class="item-icon">🏢</span> Tenants</div>
+        <div class="sidebar-item"><span class="item-icon">📊</span> Métricas</div>
+        <div class="sidebar-item"><span class="item-icon">⚙️</span> Configuración</div>
+      </div>
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" style="background:var(--purple);">SA</div>
+        <div class="sidebar-user-info"><div class="u-name">SuperAdmin</div><div class="u-role">superadmin@sistema.com</div></div>
+      </div>
+    </div>
+    <div class="admin-main">
+      <div class="admin-topbar">
+        <div>
+          <div class="breadcrumb">SuperAdmin / Dashboard</div>
+          <h2>Panel Multi-Tenant</h2>
+        </div>
+        <button class="btn btn-sm" style="background:var(--purple);color:white;">+ Nuevo Tenant</button>
+      </div>
+      <div class="admin-content">
+        <div class="dash-grid">
+          <div class="dash-card">
+            <div class="dash-card-top">
+              <div class="dash-card-icon" style="background:#faf5ff;color:#9333ea;">🏢</div>
+            </div>
+            <div class="dash-card-val">5</div>
+            <div class="dash-card-label">Tenants activos</div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-card-top">
+              <div class="dash-card-icon" style="background:#dbeafe;color:#2563eb;">👥</div>
+            </div>
+            <div class="dash-card-val">87</div>
+            <div class="dash-card-label">Usuarios totales</div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-card-top">
+              <div class="dash-card-icon" style="background:#f0fdf4;color:#16a34a;">💬</div>
+            </div>
+            <div class="dash-card-val">1,842</div>
+            <div class="dash-card-label">PQRS globales</div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-card-top">
+              <div class="dash-card-icon" style="background:#fef3c7;color:#d97706;">💾</div>
+            </div>
+            <div class="dash-card-val">24 GB</div>
+            <div class="dash-card-label">Almacenamiento</div>
+          </div>
+        </div>
+
+        <div class="data-table-wrapper" style="margin-bottom:20px;">
+          <div class="data-table-header">
+            <h3>Tenants Registrados</h3>
+          </div>
+          <div style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+            <div class="tenant-card">
+              <div class="tenant-logo" style="background:var(--gov-blue);">PM</div>
+              <div class="tenant-info">
+                <h4>Personería Municipal de Guadalajara de Buga</h4>
+                <p>personeriabuga.gov.co — 18 usuarios — Valle del Cauca</p>
+              </div>
+              <span class="plan-badge plan-pro">PROFESIONAL</span>
+            </div>
+            <div class="tenant-card">
+              <div class="tenant-logo" style="background:#059669;">PC</div>
+              <div class="tenant-info">
+                <h4>Personería Municipal de Cartago</h4>
+                <p>personeriacartago.gov.co — 12 usuarios — Valle del Cauca</p>
+              </div>
+              <span class="plan-badge plan-bas">ESTÁNDAR</span>
+            </div>
+            <div class="tenant-card">
+              <div class="tenant-logo" style="background:#d97706;">PT</div>
+              <div class="tenant-info">
+                <h4>Personería Municipal de Tuluá</h4>
+                <p>personeriatulua.gov.co — 22 usuarios — Valle del Cauca</p>
+              </div>
+              <span class="plan-badge plan-ent">ENTERPRISE</span>
+            </div>
+            <div class="tenant-card">
+              <div class="tenant-logo" style="background:#7c3aed;">PP</div>
+              <div class="tenant-info">
+                <h4>Personería Municipal de Palmira</h4>
+                <p>personeriapalmira.gov.co — 15 usuarios — Valle del Cauca</p>
+              </div>
+              <span class="plan-badge plan-pro">PROFESIONAL</span>
+            </div>
+            <div class="tenant-card">
+              <div class="tenant-logo" style="background:#dc2626;">PJ</div>
+              <div class="tenant-info">
+                <h4>Personería Municipal de Jamundí</h4>
+                <p>personeriajamundi.gov.co — 8 usuarios — Valle del Cauca</p>
+              </div>
+              <span class="plan-badge plan-bas">BÁSICO</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     SCREEN 8: PQRS CIUDADANO (Formulario público)
+     ════════════════════════════════════════════════════════════════════════ -->
+<div class="demo-screen" id="screen-pqrs-ciudadano">
+  <div class="gov-bar">
+    <span class="gov-bar-logo">GOV.CO</span>
+    <span class="gov-bar-text">Portal Único del Estado Colombiano</span>
+  </div>
+  <div class="site-header">
+    <div class="header-top">
+      <div class="header-logo">PM</div>
+      <div class="header-entity">
+        <h1>Personería Municipal</h1>
+        <p>Guadalajara de Buga, Valle del Cauca</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-outline btn-sm" onclick="showScreen('portal')">← Volver al inicio</button>
+      </div>
+    </div>
+    <div class="nav-main">
+      <div class="nav-item" onclick="showScreen('portal')">Inicio</div>
+      <div class="nav-item">La Entidad</div>
+      <div class="nav-item">Transparencia</div>
+      <div class="nav-item active-nav">Atención al Ciudadano</div>
+      <div class="nav-item">Participa</div>
+    </div>
+  </div>
+
+  <div class="section" style="max-width:1100px;margin:0 auto;">
+    <div class="section-label">Atención al Ciudadano</div>
+    <div class="section-title">Radicar PQRS</div>
+    <div class="section-desc">Complete el formulario para radicar su Petición, Queja, Reclamo, Sugerencia o Denuncia. Recibirá un número de radicado para consultar el estado de su solicitud.</div>
+
+    <div class="pqrs-split">
+      <div class="pqrs-form-card">
+        <h3 style="font-size:16px;font-weight:700;margin-bottom:20px;">Formulario de Radicación</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="form-group">
+            <label class="form-label">Tipo de solicitud *</label>
+            <select class="form-select">
+              <option>Seleccione...</option>
+              <option selected>Petición</option>
+              <option>Queja</option>
+              <option>Reclamo</option>
+              <option>Sugerencia</option>
+              <option>Denuncia</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tipo de documento *</label>
+            <select class="form-select">
+              <option>Cédula de Ciudadanía</option>
+              <option>Tarjeta de Identidad</option>
+              <option>Cédula de Extranjería</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="form-group">
+            <label class="form-label">Número de documento *</label>
+            <input class="form-input" value="31.234.567">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nombre completo *</label>
+            <input class="form-input" value="María García López">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="form-group">
+            <label class="form-label">Correo electrónico *</label>
+            <input class="form-input" type="email" value="maria.garcia@email.com">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Teléfono</label>
+            <input class="form-input" value="+57 315 123 4567">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Asunto *</label>
+          <input class="form-input" value="Solicitud certificado de residencia">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Descripción *</label>
+          <textarea class="form-textarea">Cordial saludo, por medio de la presente solicito muy respetuosamente se me expida un certificado de residencia para trámites ante la Registraduría Nacional.</textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Archivos adjuntos</label>
+          <div style="border:2px dashed var(--card-border);border-radius:var(--radius-lg);padding:24px;text-align:center;color:var(--text-muted);font-size:13px;cursor:pointer;">
+            📎 Arrastra archivos aquí o haz clic para seleccionar<br>
+            <span style="font-size:11px;">Máximo 10MB · PDF, JPG, PNG, DOCX</span>
+          </div>
+        </div>
+        <div style="padding:16px;background:#f8fafc;border-radius:var(--radius);margin-bottom:16px;display:flex;align-items:center;gap:12px;border:1px solid var(--card-border);">
+          <div style="width:24px;height:24px;border:2px solid var(--card-border);border-radius:4px;display:flex;align-items:center;justify-content:center;cursor:pointer;background:var(--gov-blue);color:white;font-size:14px;" onclick="this.classList.toggle('checked')">✓</div>
+          <span style="font-size:12px;color:var(--text-secondary);">Verificación Turnstile (CAPTCHA)</span>
+          <span style="margin-left:auto;font-size:11px;color:var(--success);font-weight:600;">✅ Verificado</span>
+        </div>
+        <button class="btn btn-gov" style="width:100%;" onclick="showPqrsSuccess()">
+          Radicar PQRS
+        </button>
+      </div>
+
+      <div>
+        <div class="pqrs-consult">
+          <h3 style="font-size:16px;font-weight:700;color:var(--gov-blue);margin-bottom:16px;">Consultar Estado</h3>
+          <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">Ingrese su número de radicado para consultar el estado de su PQRS.</p>
+          <div class="form-group">
+            <input class="form-input" placeholder="Ej: PQRS-20260412-0247" value="">
+          </div>
+          <button class="btn btn-gov" style="width:100%;">Consultar</button>
+        </div>
+        <div style="margin-top:20px;padding:20px;background:white;border-radius:var(--radius-xl);border:1px solid var(--card-border);">
+          <h4 style="font-size:14px;font-weight:700;margin-bottom:12px;">Tiempos de Respuesta</h4>
+          <div style="font-size:13px;color:var(--text-secondary);line-height:2;">
+            <div>📋 <strong>Petición:</strong> 15 días hábiles</div>
+            <div>😤 <strong>Queja:</strong> 15 días hábiles</div>
+            <div>⚠️ <strong>Reclamo:</strong> 15 días hábiles</div>
+            <div>💡 <strong>Sugerencia:</strong> 15 días hábiles</div>
+            <div>🔍 <strong>Denuncia:</strong> Según competencia</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     MODALS & TOASTS
+     ════════════════════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modalOverlay" onclick="hideModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Responder PQRS</h3>
+      <button class="btn btn-ghost btn-sm" onclick="hideModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Respuesta al ciudadano</label>
+        <textarea class="form-textarea" style="min-height:120px;" placeholder="Escriba la respuesta al ciudadano..."></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Adjuntar respuesta (PDF)</label>
+        <div style="border:2px dashed var(--card-border);border-radius:var(--radius);padding:16px;text-align:center;color:var(--text-muted);font-size:12px;">
+          📎 Seleccionar archivo
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="hideModal()">Cancelar</button>
+      <button class="btn btn-gov" onclick="hideModal();showToast('Respuesta enviada al ciudadano','success')">Enviar Respuesta</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay2" onclick="hideModal2()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Nuevo Radicado</h3>
+      <button class="btn btn-ghost btn-sm" onclick="hideModal2()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label class="form-label">Tipo</label>
+          <select class="form-select"><option>Entrada</option><option>Salida</option><option>Interno</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Dependencia</label>
+          <select class="form-select"><option>Secretaría General</option><option>Derechos Humanos</option><option>Disciplinario</option></select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label class="form-label">Serie</label>
+          <select class="form-select"><option>Actas</option><option>Oficios</option><option>Informes</option><option>Derechos de Petición</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Subserie</label>
+          <select class="form-select"><option>Actas de Comité</option><option>Actas de Reunión</option></select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Asunto</label>
+        <input class="form-input" placeholder="Descripción del documento...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Remitente</label>
+        <input class="form-input" placeholder="Nombre del remitente">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Documento</label>
+        <div style="border:2px dashed var(--card-border);border-radius:var(--radius);padding:16px;text-align:center;color:var(--text-muted);font-size:12px;">
+          📎 Seleccionar archivo
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="hideModal2()">Cancelar</button>
+      <button class="btn btn-gov" onclick="hideModal2();showToast('Radicado 2026-SG-00343 creado exitosamente','success')">Crear Radicado</button>
+    </div>
+  </div>
+</div>
+
+<!-- PQRS Success Modal -->
+<div class="modal-overlay" id="pqrsSuccessModal" onclick="hidePqrsSuccess()">
+  <div class="modal" onclick="event.stopPropagation()" style="text-align:center;">
+    <div class="modal-body" style="padding:40px;">
+      <div style="width:64px;height:64px;background:var(--success-bg);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:28px;">✅</div>
+      <h3 style="font-size:20px;font-weight:700;margin-bottom:8px;">PQRS Radicada Exitosamente</h3>
+      <p style="color:var(--text-secondary);font-size:14px;margin-bottom:20px;">Su solicitud ha sido registrada en nuestro sistema.</p>
+      <div style="background:var(--gov-blue-50);border:2px solid var(--gov-blue);border-radius:var(--radius-lg);padding:20px;margin-bottom:24px;">
+        <div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px;">Número de Radicado</div>
+        <div style="font-size:24px;font-weight:800;color:var(--gov-blue);">PQRS-20260413-0248</div>
+      </div>
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:20px;">Conserve este número para consultar el estado de su solicitud. Se le ha enviado una confirmación al correo <strong>maria.garcia@email.com</strong>.</p>
+      <button class="btn btn-gov" onclick="hidePqrsSuccess();showScreen('portal')">Volver al inicio</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     JAVASCRIPT
+     ════════════════════════════════════════════════════════════════════════ -->
+<script>
+  // Screen navigation
+  function showScreen(id) {
+    document.querySelectorAll('.demo-screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+    const screen = document.getElementById('screen-' + id);
+    if (screen) screen.classList.add('active');
+    const btn = document.querySelector(`[data-screen="${id}"]`);
+    if (btn) btn.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // Demo bar buttons
+  document.querySelectorAll('.demo-btn').forEach(btn => {
+    btn.addEventListener('click', () => showScreen(btn.dataset.screen));
+  });
+
+  // Modals
+  function showModal() { document.getElementById('modalOverlay').classList.add('show'); }
+  function hideModal() { document.getElementById('modalOverlay').classList.remove('show'); }
+  function showModal2() { document.getElementById('modalOverlay2').classList.add('show'); }
+  function hideModal2() { document.getElementById('modalOverlay2').classList.remove('show'); }
+  function showPqrsSuccess() { document.getElementById('pqrsSuccessModal').classList.add('show'); }
+  function hidePqrsSuccess() { document.getElementById('pqrsSuccessModal').classList.remove('show'); }
+
+  // Toast
+  function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = (type === 'success' ? '✅ ' : '❌ ') + msg;
+    t.className = 'toast show ' + (type || 'success');
+    setTimeout(() => { t.className = 'toast'; }, 3000);
+  }
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      hideModal();
+      hideModal2();
+      hidePqrsSuccess();
+    }
+  });
+</script>
+</body>
+</html>

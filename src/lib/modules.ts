@@ -86,7 +86,16 @@ export const MODULOS_DEFAULT: ModulosConfig = {
   ventanilla_unica:   { activo: false },
   gestion_documental: {
     activo: false,
-    storage: { provider: 'local', prefix: 'documentos/', publicBaseUrl: '' },
+    storage: {
+      provider:      'r2',
+      bucket:        process.env.R2_BUCKET_NAME        ?? '',
+      endpoint:      process.env.R2_ENDPOINT           ?? '',
+      accessKeyId:   process.env.R2_ACCESS_KEY_ID      ?? '',
+      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY ?? '',
+      region:        'auto',
+      prefix:        'documentos/',
+      publicBaseUrl: process.env.R2_PUBLIC_URL          ?? '',
+    },
   },
 }
 

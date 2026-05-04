@@ -6,9 +6,11 @@
 
 import { jwtVerify } from "jose"
 
-const SA_SECRET = new TextEncoder().encode(
-  process.env.SUPERADMIN_JWT_SECRET ?? process.env.AUTH_SECRET ?? "fallback-secret-change-me"
-)
+const rawSecret = process.env.SUPERADMIN_JWT_SECRET ?? process.env.AUTH_SECRET
+if (!rawSecret) {
+  throw new Error("[superadmin-auth-edge] SUPERADMIN_JWT_SECRET o AUTH_SECRET debe estar definido. No se permite un secreto por defecto.")
+}
+const SA_SECRET = new TextEncoder().encode(rawSecret)
 
 export const SA_COOKIE_NAME = "sa_token"
 

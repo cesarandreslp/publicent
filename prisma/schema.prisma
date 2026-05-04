@@ -6,7 +6,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider    = "postgresql"
+  url         = env("DATABASE_URL")           // pooled (pgbouncer) — runtime
+  directUrl   = env("DATABASE_URL_UNPOOLED")  // sin pooler — migraciones
 }
 
 // ==========================================
@@ -62,6 +64,10 @@ model Usuario {
 
   // Fase 3: API Keys
   gdApiKeysCreadas      GdApiKey[]            @relation("GdApiKeyCreador")
+
+  // Ventanilla Única
+  vuRespuestas          VuRespuesta[]         @relation("VuRespuestasFuncionario")
+  vuChatMensajes        VuChatMensaje[]       @relation("VuChatMensajes")
 
   @@map("usuarios")
 }
@@ -431,6 +437,13 @@ model PQRS {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // ── Ventanilla Única (solo activo si el módulo VU está habilitado) ──
+  colorSemaforo    VuColorSemaforo? // calculado en runtime, persiste para búsquedas
+  vuAsignacion     VuAsignacionIA?
+  vuRespuestas     VuRespuesta[]
+  vuChat           VuChatMensaje[]
+  vuDemografia     VuDemografia?
 
   @@map("pqrs")
 }
@@ -1439,4 +1452,137 @@ model GdSigepCache {
   @@index([expiraEn])
   @@index([nombre])
   @@map("gd_sigep_cache")
+}
+
+// ==========================================
+// MÓDULO VENTANILLA ÚNICA (VU)
+// Activo solo si el tenant tiene ventanilla_unica.activo = true
+// ==========================================
+
+/// Semáforo de vencimientos legales (CPACA / Ley 1437)
+enum VuColorSemaforo {
+  VERDE      // > 40% del tiempo disponible
+  AMARILLO   // 20–40% del tiempo disponible
+  ROJO       // < 20% del tiempo disponible
+  NEGRO      // Vencido
+}
+
+/// 6 tipos de respuesta formal definidos en la normativa colombiana
+enum VuTipoRespuesta {
+  COMPETENTE    // Respuesta de fondo por la entidad competente
+  REMISION      // Remisión a entidad competente (Art. 21 Ley 1437)
+  INSISTENCIA   // Insistencia del ciudadano ante negativa de información
+  TRASLADO      // Traslado por falta de competencia
+  DESISTIMIENTO // Desistimiento tácito o expreso del ciudadano
+  IMPROCEDENTE  // Solicitud manifiestamente improcedente
+}
+
+/// Datos demográficos para reporte FURAG POL06
+enum VuGenero {
+  MASCULINO
+  FEMENINO
+  NO_BINARIO
+  PREFIERE_NO_DECIR
+}
+
+enum VuZona {
+  URBANA
+  RURAL
+  NO_INFORMA
+}
+
+enum VuCondicionVulnerabilidad {
+  NINGUNA
+  DISCAPACIDAD
+  LGBTIQ
+  VICTIMA_CONFLICTO
+  INDIGENA
+  AFRODESCENDIENTE
+  ADULTO_MAYOR
+  PRIMERA_INFANCIA
+}
+
+/// Asignación automática realizada por el motor de IA (Groq / LLaMA 3.3 70B)
+model VuAsignacionIA {
+  id              String   @id @default(cuid())
+  modelo          String   // ej: "llama-3.3-70b-versatile"
+  tokensPrompt    Int      @default(0)
+  tokensRespuesta Int      @default(0)
+  razon           String   @db.Text  // Explicación del modelo
+  confianza       Float    @default(0) // 0.0 – 1.0
+  dependenciaSugerida String?
+  funcionarioSugerido String?
+  prioridadSugerida   PrioridadPQRS?
+  tipoDetectado       TipoPQRS?
+  diasTerminoLegal    Int?    // Días hábiles calculados por el modelo
+
+  pqrsId String @unique
+  pqrs   PQRS   @relation(fields: [pqrsId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@map("vu_asignaciones_ia")
+}
+
+/// Respuesta oficial emitida por el funcionario con su tipo formal
+model VuRespuesta {
+  id              String           @id @default(cuid())
+  tipo            VuTipoRespuesta
+  contenido       String           @db.Text
+  archivoUrl      String?          // PDF de respuesta en R2
+  entidadDestino  String?          // Para REMISION y TRASLADO
+  radicadoDestino String?          // Número radicado en entidad destino
+  firmadoPor      String?          // Nombre del funcionario firmante
+  firmaQrUrl      String?          // URL del QR de firma digital
+
+  pqrsId String
+  pqrs   PQRS   @relation(fields: [pqrsId], references: [id], onDelete: Cascade)
+
+  funcionarioId String?
+  funcionario   Usuario? @relation("VuRespuestasFuncionario", fields: [funcionarioId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([pqrsId])
+  @@map("vu_respuestas")
+}
+
+/// Chat bidireccional ciudadano ↔ funcionario
+model VuChatMensaje {
+  id        String   @id @default(cuid())
+  contenido String   @db.Text
+  archivoUrl String? // Adjunto opcional en R2
+  esInterno Boolean  @default(false) // true = nota interna (solo funcionarios)
+
+  // Remitente: si usuarioId es null, es el ciudadano
+  usuarioId String?
+  usuario   Usuario? @relation("VuChatMensajes", fields: [usuarioId], references: [id])
+
+  pqrsId String
+  pqrs   PQRS   @relation(fields: [pqrsId], references: [id], onDelete: Cascade)
+
+  leido     Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([pqrsId, createdAt(sort: Asc)])
+  @@map("vu_chat_mensajes")
+}
+
+/// Datos demográficos del ciudadano (recopilados voluntariamente al radicar)
+/// Alimentan directamente la Política 06 del MIPG (Atención al Ciudadano / PQRSD)
+model VuDemografia {
+  id                   String                    @id @default(cuid())
+  genero               VuGenero                  @default(PREFIERE_NO_DECIR)
+  rangoEtario          String?                   // "18-25", "26-40", "41-60", "60+"
+  zona                 VuZona                    @default(NO_INFORMA)
+  condicion            VuCondicionVulnerabilidad @default(NINGUNA)
+  municipioResidencia  String?
+  departamento         String?
+
+  pqrsId String @unique
+  pqrs   PQRS   @relation(fields: [pqrsId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@map("vu_demografia")
 }

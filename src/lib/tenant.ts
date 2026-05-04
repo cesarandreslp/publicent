@@ -78,6 +78,20 @@ function getOrCreateTenantClient(tenantId: string, databaseUrl: string): PrismaC
 const tenantInfoCache = new Map<string, { data: TenantInfo; ts: number }>()
 const CACHE_TTL_MS = 5 * 60_000 // 5 minutos
 
+/**
+ * Invalida el caché de un tenant específico o de todos los tenants.
+ * Llamar después de crear, actualizar o eliminar un tenant desde SuperAdmin.
+ */
+export function invalidateTenantCache(tenantId?: string): void {
+  if (tenantId) {
+    tenantInfoCache.delete(tenantId)
+    clientPool.delete(tenantId)
+  } else {
+    tenantInfoCache.clear()
+    // No desconectar clientes existentes — solo limpiar el cache de info
+  }
+}
+
 async function fetchTenantInfo(tenantId: string): Promise<TenantInfo | null> {
   // Devolver tenant de dev automáticamente
   if (tenantId === 'dev-tenant') {
@@ -85,8 +99,10 @@ async function fetchTenantInfo(tenantId: string): Promise<TenantInfo | null> {
   }
 
   // Shortcut para deploy single-tenant (Vercel):
-  // Evita consultar meta-DB via TCP — usa DATABASE_URL del env directamente
-  if (process.env.TENANT_SLUG) {
+  // Si TENANT_SLUG está definido pero el tenantId NO coincide con el slug forzado,
+  // se consulta la meta-DB normalmente para no forzar datos del tenant equivocado.
+  // Solo usa el shortcut si el tenantId es genérico (viene del middleware single-tenant).
+  if (process.env.TENANT_SLUG && tenantId === 'dev-tenant') {
     return getSingleTenantInfo(tenantId)
   }
 

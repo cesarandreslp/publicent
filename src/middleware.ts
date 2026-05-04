@@ -70,8 +70,9 @@ export default auth(async function middleware(req: NextRequest & { auth: { user?
     )
   }
 
-  const isAdminRoute = pathname.startsWith("/admin")
-  const isAuthRoute  =
+  const isAdminRoute    = pathname.startsWith("/admin")
+  const isApiAdminRoute = pathname.startsWith("/api/admin")
+  const isAuthRoute     =
     pathname.startsWith("/login") ||
     pathname.startsWith("/recuperar-contrasena") ||
     pathname.startsWith("/restablecer-contrasena")
@@ -79,8 +80,19 @@ export default auth(async function middleware(req: NextRequest & { auth: { user?
   const isLoggedIn = !!req.auth?.user
 
   // ──────────────────────────────────────────────────────────────────────────
-  // 2. Protección de rutas administrativas
+  // 2. Protección de rutas administrativas (UI + API)
   // ──────────────────────────────────────────────────────────────────────────
+
+  // API admin: devolver 401 JSON (defensa en profundidad — los handlers tienen
+  // checkApiRoles() pero el middleware actúa como primera línea de protección)
+  if (isApiAdminRoute && !isLoggedIn) {
+    return new NextResponse(
+      JSON.stringify({ error: "No autorizado" }),
+      { status: 401, headers: { "Content-Type": "application/json" } }
+    )
+  }
+
+  // UI admin: redirigir al login
   if (isAdminRoute && !isLoggedIn) {
     const loginUrl = new URL("/login", req.url)
     loginUrl.searchParams.set("callbackUrl", pathname)

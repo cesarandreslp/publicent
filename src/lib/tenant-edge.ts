@@ -69,11 +69,15 @@ export async function getTenantByDomainEdge(
 
     // Para dominios de Vercel (deployment hashes), buscar también por nombre de proyecto
     // Ej: "personeriabuga-15jg1qnal-cesar-lozanos-projects.vercel.app" → buscar "personeriabuga"
-    let extraCondition = ''
-    let vercelProjectName = ''
+    // Se extrae el slug completo del proyecto (hasta el primer hash de deploy o ".vercel.app")
+    let vercelSlug = ''
     if (cleanDomain.endsWith('.vercel.app')) {
-      // Extraer nombre base del proyecto (antes del primer guión-hash o -projects)
-      vercelProjectName = cleanDomain.split('-')[0].split('.')[0]
+      // personeriabuga-abc123def-user-projects.vercel.app → "personeriabuga"
+      // Se busca el slug antes del hash de deployment (patrón: slug-<hash>-<owner>.vercel.app)
+      const withoutSuffix = cleanDomain.replace('.vercel.app', '')
+      // Los hashes de Vercel son alfanuméricos de ~9+ chars después del slug
+      const slugMatch = withoutSuffix.match(/^([a-z0-9][a-z0-9-]*?)(?:-[a-z0-9]{7,}-.+)?$/)
+      vercelSlug = slugMatch?.[1] ?? ''
     }
 
     const rows = await sql`
@@ -88,11 +92,16 @@ export async function getTenantByDomainEdge(
         (
           dominio_principal = ${cleanDomain}
           OR dominio_personalizado = ${cleanDomain}
-          OR (${cleanDomain} LIKE dominio_principal || '-%')
-          OR (dominio_principal LIKE ${vercelProjectName + '%'} AND ${vercelProjectName} != '')
+          OR (${vercelSlug} != '' AND slug = ${vercelSlug})
         )
         AND activo = true
         AND suspendido = false
+      ORDER BY
+        CASE
+          WHEN dominio_principal = ${cleanDomain} THEN 0
+          WHEN dominio_personalizado = ${cleanDomain} THEN 1
+          ELSE 2
+        END
       LIMIT 1
     `
 

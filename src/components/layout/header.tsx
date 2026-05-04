@@ -84,7 +84,16 @@ const menuItems = [
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
-export function Header() {
+interface HeaderProps {
+  /** URL del logo del tenant. Si es null, usa el logo por defecto. */
+  logoUrl?: string | null
+  /** Nombre completo del tenant para el alt text y el encabezado. */
+  nombre?: string | null
+  /** Nombre corto del tenant para la segunda línea del logo. */
+  nombreCorto?: string | null
+}
+
+export function Header({ logoUrl, nombre, nombreCorto }: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
@@ -136,13 +145,21 @@ export function Header() {
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gov-blue rounded-md">
-            <img src="/images/logo-personeria.png" alt="Logo Personería Municipal de Guadalajara de Buga" className="w-12 h-12" />
-            <div className="hidden sm:block">
-              <h1 className="text-lg font-bold text-gov-blue leading-tight">
-                Personería Municipal
-              </h1>
-              <p className="text-sm text-gray-600">Guadalajara de Buga</p>
-            </div>
+            <img
+              src={logoUrl ?? "/images/logo-personeria.png"}
+              alt={`Logo ${nombre ?? "Personería Municipal de Guadalajara de Buga"}`}
+              className="w-12 h-12 object-contain"
+            />
+            {nombre && (
+              <div className="hidden sm:block">
+                <h1 className="text-lg font-bold text-gov-blue leading-tight">
+                  {nombre}
+                </h1>
+                {nombreCorto && (
+                  <p className="text-sm text-gray-600">{nombreCorto}</p>
+                )}
+              </div>
+            )}
           </Link>
 
           {/* Navegación Desktop */}

@@ -17,6 +17,29 @@ import { isModuleActive, getVentanillaConfig } from "@/lib/modules"
 import { TipoPQRS } from "@prisma/client"
 import { pqrsPublicoSchema, validateBody } from "@/lib/validations"
 
+// ─── Rate limiting por IP para endpoint público ───────────────────────────────
+// Sliding window en memoria: máximo 5 radicaciones por IP por minuto.
+// Protege contra spam y abuso sin depender de Redis en dev/staging.
+
+const ipWindows = new Map<string, number[]>()
+const IP_LIMIT  = 5
+const WINDOW_MS = 60_000
+
+function isIpRateLimited(ip: string): boolean {
+  const now   = Date.now()
+  const start = now - WINDOW_MS
+  const hits  = (ipWindows.get(ip) ?? []).filter(t => t > start)
+  hits.push(now)
+  ipWindows.set(ip, hits)
+  // Limpiar entradas viejas periódicamente para evitar memory leak
+  if (ipWindows.size > 10_000) {
+    for (const [k, v] of ipWindows) {
+      if (v.every(t => t < start)) ipWindows.delete(k)
+    }
+  }
+  return hits.length > IP_LIMIT
+}
+
 // ─── Tipos del cuerpo de la solicitud ──────────────────────────────────────────
 
 interface PQRSPayload {
@@ -31,6 +54,15 @@ interface PQRSPayload {
   asunto: string
   descripcion: string
   turnstileToken?: string
+  // Datos demográficos voluntarios (módulo VU — FURAG POL06)
+  demografia?: {
+    genero?:     string
+    rangoEtario?: string
+    zona?:       string
+    condicion?:  string
+    municipioResidencia?: string
+    departamento?: string
+  }
 }
 
 // ─── Mapa de tipos de UI a enum Prisma ────────────────────────────────────────
@@ -193,12 +225,101 @@ async function guardarLocal(payload: PQRSPayload, tipo: TipoPQRS): Promise<strin
     console.error("[PQRS→GD] Error al crear GdRadicado:", err instanceof Error ? err.message : String(err))
   }
 
+  // ─── Módulo VU: clasificación IA + demografía ──────────────────────────────
+  // Solo si el módulo VU está activo para este tenant
+  try {
+    const modulos = await getTenantModulos()
+    if (isModuleActive(modulos, MODULO_IDS.VENTANILLA_UNICA)) {
+      const { classifyPQRSD, calcularSemaforo, calcularFechaLimite } = await import("@/lib/groq-client")
+      const { getTenantId } = await import("@/lib/tenant")
+
+      const tenantId = await getTenantId()
+
+      // Obtener dependencias disponibles para el contexto de la IA
+      const dependencias = await prisma.dependencia.findMany({
+        where: { activa: true },
+        select: { nombre: true },
+      }).then(deps => deps.map(d => d.nombre)).catch(() => [])
+
+      const tenantInfo = await import("@/lib/tenant").then(m => m.getTenantInfo())
+
+      const clasificacion = await classifyPQRSD(tenantId, payload.descripcion, {
+        nombre:      tenantInfo.nombre,
+        tipoEntidad: tenantInfo.tipoEntidad,
+        municipio:   tenantInfo.municipio,
+        dependencias,
+      })
+
+      // Calcular color del semáforo y fecha límite real
+      const fechaLimiteVU = calcularFechaLimite(new Date(), clasificacion.diasTerminoLegal)
+      const colorSemaforo = calcularSemaforo(new Date(), clasificacion.diasTerminoLegal)
+
+      // Guardar clasificación IA
+      await prisma.vuAsignacionIA.create({
+        data: {
+          pqrsId:              pqrs.id,
+          modelo:              clasificacion.modelo,
+          tokensPrompt:        clasificacion.tokensPrompt,
+          tokensRespuesta:     clasificacion.tokensRespuesta,
+          razon:               clasificacion.razon,
+          confianza:           clasificacion.confianza,
+          dependenciaSugerida: clasificacion.dependenciaSugerida,
+          funcionarioSugerido: clasificacion.funcionarioSugerido,
+          prioridadSugerida:   clasificacion.prioridad,
+          tipoDetectado:       clasificacion.tipo,
+          diasTerminoLegal:    clasificacion.diasTerminoLegal,
+        },
+      })
+
+      // Actualizar PQRS con semáforo, prioridad y fecha límite más precisa
+      await prisma.pQRS.update({
+        where: { id: pqrs.id },
+        data: {
+          prioridad:       clasificacion.prioridad,
+          colorSemaforo:   colorSemaforo as any,
+          fechaVencimiento: fechaLimiteVU,
+        },
+      })
+
+      // Guardar datos demográficos si el ciudadano los proporcionó
+      if (payload.demografia) {
+        const d = payload.demografia
+        await prisma.vuDemografia.create({
+          data: {
+            pqrsId:              pqrs.id,
+            genero:              (d.genero as any)    ?? 'PREFIERE_NO_DECIR',
+            rangoEtario:         d.rangoEtario        ?? null,
+            zona:                (d.zona as any)      ?? 'NO_INFORMA',
+            condicion:           (d.condicion as any) ?? 'NINGUNA',
+            municipioResidencia: d.municipioResidencia ?? null,
+            departamento:        d.departamento        ?? null,
+          },
+        })
+      }
+    }
+  } catch (vuErr) {
+    // La clasificación VU no bloquea la radicación
+    console.error("[PQRS→VU] Error en clasificación IA:", vuErr instanceof Error ? vuErr.message : String(vuErr))
+  }
+  // ────────────────────────────────────────────────────────────────────────────
+
   return radicado
 }
 
 // ─── Handler principal POST ───────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
+  // Rate limiting por IP — máximo 5 radicaciones por minuto
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+    ?? req.headers.get("x-real-ip")
+    ?? "unknown"
+  if (isIpRateLimited(ip)) {
+    return NextResponse.json(
+      { error: "Demasiadas solicitudes. Espere un momento antes de intentar de nuevo." },
+      { status: 429, headers: { "Retry-After": "60" } }
+    )
+  }
+
   let rawBody: unknown
   try {
     rawBody = await req.json()
@@ -228,8 +349,16 @@ export async function POST(req: NextRequest) {
 
   // Validar el token de Turnstile con Cloudflare
   try {
+    const turnstileSecret = process.env.TURNSTILE_SECRET_KEY
+    if (!turnstileSecret) {
+      console.error("[PQRS] TURNSTILE_SECRET_KEY no configurada")
+      return NextResponse.json(
+        { error: "Configuración de CAPTCHA incompleta en el servidor" },
+        { status: 500 }
+      )
+    }
     const formData = new URLSearchParams()
-    formData.append('secret', process.env.TURNSTILE_SECRET_KEY || '1x0000000000000000000000000000000AA')
+    formData.append('secret', turnstileSecret)
     formData.append('response', payload.turnstileToken)
 
     const turnstileRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
@@ -257,10 +386,13 @@ export async function POST(req: NextRequest) {
     const modulos = await getTenantModulos()
 
     // ── Despacho: Ventanilla Única ───────────────────────────────────────────
+    // Modo externo (legacy): si el tenant tiene configurada una URL externa de VU
+    // Modo interno (nuevo):  si VU está activo sin apiUrl → usa el motor IA nativo
     if (isModuleActive(modulos, MODULO_IDS.VENTANILLA_UNICA)) {
       const vuConfig = getVentanillaConfig(modulos)
 
       if (vuConfig.apiUrl && vuConfig.apiKey) {
+        // Modo externo (delegación a sistema VU externo)
         const resultado = await delegarAVentanillaUnica(
           vuConfig.apiUrl,
           vuConfig.apiKey,
@@ -268,19 +400,18 @@ export async function POST(req: NextRequest) {
         )
 
         if (resultado) {
-          // Delegación exitosa — retornar el radicado del sistema externo
           return NextResponse.json({ radicado: resultado.radicado })
         }
 
-        // Si la delegación falló, verificar si se permite fallback
         if (!vuConfig.usarFallback) {
           return NextResponse.json(
-            { error: "El sistema de Ventanilla Única no está disponible en este momento. Intente más tarde." },
+            { error: "El sistema de Ventanilla Única no está disponible. Intente más tarde." },
             { status: 503 }
           )
         }
-        // Fallback: continuar con almacenamiento local
+        // Fallback a modo interno
       }
+      // Modo interno: guardarLocal se encarga de llamar a classifyPQRSD
     }
 
     // ── Almacenamiento local (sitio web básico o fallback) ────────────────────
@@ -345,7 +476,8 @@ export async function GET(req: NextRequest) {
             dependencia: true,
             transacciones: { orderBy: { createdAt: "asc" } }
           }
-        }
+        },
+        vuAsignacion: true,
       }
     })
 
@@ -403,6 +535,13 @@ export async function GET(req: NextRequest) {
     if (respuestasOficiales.length > 0) estadoUI = "respondido"
     if (pqrs.gdRadicado?.estado === "ARCHIVADO") estadoUI = "cerrado"
 
+    // Semáforo: recalcular en tiempo real si hay fecha de vencimiento
+    let colorSemaforo = pqrs.colorSemaforo ?? null
+    if (pqrs.fechaVencimiento && pqrs.vuAsignacion?.diasTerminoLegal) {
+      const { calcularSemaforo } = await import("@/lib/groq-client")
+      colorSemaforo = calcularSemaforo(pqrs.createdAt, pqrs.vuAsignacion.diasTerminoLegal) as any
+    }
+
     return NextResponse.json({
       radicado: pqrs.radicado,
       tipo: pqrs.tipo,
@@ -410,7 +549,9 @@ export async function GET(req: NextRequest) {
       fechaRadicacion: pqrs.createdAt.toISOString().slice(0, 10),
       fechaVencimiento: pqrs.fechaVencimiento ? pqrs.fechaVencimiento.toISOString().slice(0, 10) : "Por definir",
       asunto: pqrs.asunto,
-      dependencia: pqrs.gdRadicado?.dependencia?.nombre || "Atención al Ciudadano",
+      dependencia: pqrs.gdRadicado?.dependencia?.nombre || pqrs.vuAsignacion?.dependenciaSugerida || "Atención al Ciudadano",
+      colorSemaforo,
+      diasTerminoLegal: pqrs.vuAsignacion?.diasTerminoLegal ?? null,
       seguimiento,
       respuestas: respuestasOficiales
     })

@@ -12,6 +12,11 @@ import { PrismaClient } from "@prisma/client"
 import { checkApiRoles } from "@/lib/authorization"
 
 export async function GET() {
+  // Endpoint de prueba — desactivado en producción
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'No disponible en producción' }, { status: 404 })
+  }
+
   const { error } = await checkApiRoles(['SUPER_ADMIN'])
   if (error) return error
 

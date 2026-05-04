@@ -3,23 +3,49 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { 
-  Search, 
-  Clock, 
-  CheckCircle, 
-  AlertCircle, 
+import {
+  Search,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  AlertTriangle,
+  XCircle,
   FileText,
   Calendar,
   User,
-  ArrowRight
+  ArrowRight,
+  Download
 } from 'lucide-react'
 
 // Estados posibles de una PQRSD
 const estados = {
-  radicado: { label: 'Radicado', color: 'bg-blue-100 text-blue-800', icono: FileText },
+  radicado:   { label: 'Radicado',   color: 'bg-blue-100 text-blue-800',   icono: FileText },
   en_tramite: { label: 'En Trámite', color: 'bg-yellow-100 text-yellow-800', icono: Clock },
-  respondido: { label: 'Respondido', color: 'bg-green-100 text-green-800', icono: CheckCircle },
-  cerrado: { label: 'Cerrado', color: 'bg-gray-100 text-gray-800', icono: AlertCircle },
+  respondido: { label: 'Respondido', color: 'bg-green-100 text-green-800',  icono: CheckCircle },
+  cerrado:    { label: 'Cerrado',    color: 'bg-gray-100 text-gray-800',    icono: AlertCircle },
+}
+
+// Semáforo de vencimientos legales
+type ColorSemaforo = 'VERDE' | 'AMARILLO' | 'ROJO' | 'NEGRO'
+const semaforoConfig: Record<ColorSemaforo, { bg: string; border: string; text: string; label: string; desc: string; Icon: any }> = {
+  VERDE:    { bg: 'bg-green-50',  border: 'border-green-500',  text: 'text-green-700',  label: 'En término',         desc: 'Su solicitud está siendo atendida dentro del plazo legal.',     Icon: CheckCircle  },
+  AMARILLO: { bg: 'bg-yellow-50', border: 'border-yellow-500', text: 'text-yellow-700', label: 'Próximo a vencer',    desc: 'El plazo de respuesta está por cumplirse. En seguimiento.',       Icon: Clock        },
+  ROJO:     { bg: 'bg-red-50',    border: 'border-red-500',    text: 'text-red-700',    label: 'Urgente',             desc: 'El plazo está a punto de vencerse. Prioridad máxima.',           Icon: AlertTriangle },
+  NEGRO:    { bg: 'bg-gray-800',  border: 'border-gray-900',   text: 'text-white',      label: 'Plazo vencido',       desc: 'El plazo legal de respuesta ha sido superado.',                  Icon: XCircle      },
+}
+
+function Semaforo({ color }: { color: ColorSemaforo }) {
+  const cfg = semaforoConfig[color]
+  const { Icon } = cfg
+  return (
+    <div className={`flex items-start gap-3 p-4 rounded-lg border-l-4 ${cfg.bg} ${cfg.border}`} role="status">
+      <Icon className={`w-5 h-5 shrink-0 mt-0.5 ${cfg.text}`} aria-hidden="true" />
+      <div>
+        <p className={`font-semibold text-sm ${cfg.text}`}>{cfg.label}</p>
+        <p className={`text-sm ${color === 'NEGRO' ? 'text-gray-300' : 'text-gray-600'}`}>{cfg.desc}</p>
+      </div>
+    </div>
+  )
 }
 
 // Datos de ejemplo para la demostración
@@ -134,7 +160,7 @@ export default function ConsultaContent() {
               </div>
               
               <div className="p-6">
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid md:grid-cols-2 gap-4 mb-4">
                   <div>
                     <p className="text-gray-500 text-sm">Tipo de solicitud</p>
                     <p className="font-medium text-gray-900">{resultado.tipo}</p>
@@ -144,27 +170,34 @@ export default function ConsultaContent() {
                     <p className="font-medium text-gray-900">{resultado.asunto}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-gray-400" />
+                    <Calendar className="w-4 h-4 text-gray-400" aria-hidden="true" />
                     <div>
                       <p className="text-gray-500 text-sm">Fecha de radicación</p>
                       <p className="font-medium text-gray-900">{resultado.fechaRadicacion}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-gray-400" />
+                    <Clock className="w-4 h-4 text-gray-400" aria-hidden="true" />
                     <div>
-                      <p className="text-gray-500 text-sm">Fecha de vencimiento</p>
+                      <p className="text-gray-500 text-sm">Fecha límite de respuesta</p>
                       <p className="font-medium text-gray-900">{resultado.fechaVencimiento}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-gray-400" />
+                  <div className="flex items-center gap-2 md:col-span-2">
+                    <User className="w-4 h-4 text-gray-400" aria-hidden="true" />
                     <div>
-                      <p className="text-gray-500 text-sm">Dependencia asignada</p>
+                      <p className="text-gray-500 text-sm">Dependencia responsable</p>
                       <p className="font-medium text-gray-900">{resultado.dependencia}</p>
                     </div>
                   </div>
                 </div>
+
+                {/* Semáforo de vencimiento (solo si la solicitud está en curso) */}
+                {(resultado as any).colorSemaforo &&
+                  resultado.estado !== 'respondido' &&
+                  resultado.estado !== 'cerrado' && (
+                  <Semaforo color={(resultado as any).colorSemaforo as ColorSemaforo} />
+                )}
               </div>
             </div>
 

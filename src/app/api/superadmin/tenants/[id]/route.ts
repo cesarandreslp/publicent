@@ -9,6 +9,8 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { getSASession } from "@/lib/superadmin-auth"
 import { prismaMeta } from "@/lib/prisma-meta"
+import { invalidateTenantCache } from "@/lib/tenant"
+import { encryptSecretos, decryptSecretos } from "@/lib/encryption"
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -65,6 +67,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       fechaActivacion,
       fechaVencimiento,
       modulosActivos,
+      groqApiKey,
+      shipuApiKey,
     } = body
 
     const data: Record<string, unknown> = {}
@@ -92,7 +96,25 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     if (fechaVencimiento   !== undefined) data.fechaVencimiento   = fechaVencimiento ? new Date(fechaVencimiento) : null
     if (modulosActivos     !== undefined) data.modulosActivos     = modulosActivos
 
+    // Actualizar API keys cifradas: merge con secretos existentes para no borrar otros campos
+    if (groqApiKey !== undefined || shipuApiKey !== undefined) {
+      const tenantActual = await prismaMeta.tenant.findUnique({
+        where: { id },
+        select: { secretosEncriptados: true },
+      })
+      const secretosActuales = decryptSecretos(tenantActual?.secretosEncriptados)
+      const secretosNuevos = {
+        ...secretosActuales,
+        ...(groqApiKey  !== undefined ? { groqApiKey:  groqApiKey  || undefined } : {}),
+        ...(shipuApiKey !== undefined ? { shipuApiKey: shipuApiKey || undefined } : {}),
+      }
+      data.secretosEncriptados = encryptSecretos(secretosNuevos)
+    }
+
     const tenant = await prismaMeta.tenant.update({ where: { id }, data })
+
+    // Invalidar caché del tenant actualizado
+    invalidateTenantCache(id)
 
     // Registrar evento de auditoría
     await prismaMeta.eventoTenant.create({
@@ -123,6 +145,9 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   const { id } = await params
 
   try {
+    // Invalidar caché antes de suspender
+    invalidateTenantCache(id)
+
     // Soft delete: suspender en lugar de eliminar físicamente
     await prismaMeta.tenant.update({
       where: { id },

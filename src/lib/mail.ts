@@ -17,8 +17,20 @@ function getResend(): Resend {
 const emailFrom = process.env.EMAIL_FROM || "noreply@personeria-buga.gov.co"
 const appUrl = process.env.NEXTAUTH_URL || "http://localhost:3000"
 
+/** Escapa caracteres HTML para prevenir inyección en emails */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;")
+}
+
 export async function sendPasswordResetEmail(email: string, token: string, nombre: string) {
-  const resetLink = `${appUrl}/restablecer-contrasena?token=${token}`
+  const safeNombre = escapeHtml(nombre)
+  const safeToken = encodeURIComponent(token)
+  const resetLink = `${appUrl}/restablecer-contrasena?token=${safeToken}`
   const resend = getResend()
 
   try {
@@ -42,8 +54,8 @@ export async function sendPasswordResetEmail(email: string, token: string, nombr
           <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e0e0e0; border-top: none;">
             <h2 style="color: #003366; margin-top: 0;">Recuperación de Contraseña</h2>
             
-            <p>Hola <strong>${nombre}</strong>,</p>
-            
+            <p>Hola <strong>${safeNombre}</strong>,</p>
+
             <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta en el sistema de la Personería Municipal de Guadalajara de Buga.</p>
             
             <p>Haz clic en el siguiente botón para crear una nueva contraseña:</p>
@@ -94,7 +106,8 @@ export async function sendPasswordResetEmail(email: string, token: string, nombr
   }
 }
 
-export async function sendWelcomeEmail(email: string, nombre: string) {
+export async function sendWelcomeEmail(email: string, nombreRaw: string) {
+  const nombre = escapeHtml(nombreRaw)
   const resend = getResend()
   
   try {

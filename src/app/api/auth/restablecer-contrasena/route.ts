@@ -6,21 +6,17 @@ import { restablecerContrasenaSchema, validateBody } from "@/lib/validations"
 export async function POST(request: Request) {
   try {
     const prisma = await getTenantPrisma()
-    const { token, password } = await request.json()
 
-    if (!token || !password) {
-      return NextResponse.json(
-        { error: "Token y contraseña son requeridos" },
-        { status: 400 }
-      )
+    let rawBody: unknown
+    try {
+      rawBody = await request.json()
+    } catch {
+      return NextResponse.json({ error: "Cuerpo JSON inválido" }, { status: 400 })
     }
 
-    if (password.length < 8) {
-      return NextResponse.json(
-        { error: "La contraseña debe tener al menos 8 caracteres" },
-        { status: 400 }
-      )
-    }
+    const validated = validateBody(restablecerContrasenaSchema, rawBody)
+    if (!validated.success) return validated.response
+    const { token, password } = validated.data
 
     // Buscar token válido
     const tokenRecord = await prisma.tokenRecuperacion.findFirst({

@@ -7,14 +7,17 @@ import { recuperarContrasenaSchema, validateBody } from "@/lib/validations"
 export async function POST(request: Request) {
   try {
     const prisma = await getTenantPrisma()
-    const { email } = await request.json()
 
-    if (!email) {
-      return NextResponse.json(
-        { error: "El email es requerido" },
-        { status: 400 }
-      )
+    let rawBody: unknown
+    try {
+      rawBody = await request.json()
+    } catch {
+      return NextResponse.json({ error: "Cuerpo JSON inválido" }, { status: 400 })
     }
+
+    const validated = validateBody(recuperarContrasenaSchema, rawBody)
+    if (!validated.success) return validated.response
+    const { email } = validated.data
 
     // Buscar usuario
     const usuario = await prisma.usuario.findUnique({

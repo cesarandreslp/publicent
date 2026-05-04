@@ -104,6 +104,12 @@ export default function PQRSDPage() {
     const nombreCompleto = esAnonimo ? undefined : `${nombres} ${apellidos}`.trim()
 
     try {
+      // Recoger datos demográficos del DOM (campos opcionales)
+      const demGenero    = (document.getElementById('dem-genero')    as HTMLSelectElement)?.value || undefined
+      const demEtario    = (document.getElementById('dem-etario')    as HTMLSelectElement)?.value || undefined
+      const demZona      = (document.getElementById('dem-zona')      as HTMLSelectElement)?.value || undefined
+      const demCondicion = (document.getElementById('dem-condicion') as HTMLSelectElement)?.value || undefined
+
       const res = await fetch('/api/pqrsd', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -112,13 +118,21 @@ export default function PQRSDPage() {
           anonimo:            esAnonimo,
           nombreSolicitante:  esAnonimo ? undefined : nombreCompleto,
           tipoDocumento:      esAnonimo ? undefined : tipoDocumento,
-          numeroDocumento:      esAnonimo ? undefined : numeroDocumento,
+          numeroDocumento:    esAnonimo ? undefined : numeroDocumento,
           email:              esAnonimo ? undefined : correo,
           telefono:           esAnonimo ? undefined : telefono,
           direccion:          esAnonimo ? undefined : `${departamento}, ${municipio}, ${direccionLocal}`,
           asunto,
           descripcion,
           turnstileToken,
+          demografia: {
+            genero:     demGenero    && demGenero    !== 'PREFIERE_NO_DECIR' ? demGenero    : undefined,
+            rangoEtario: demEtario   && demEtario    !== ''                  ? demEtario    : undefined,
+            zona:       demZona      && demZona      !== 'NO_INFORMA'        ? demZona      : undefined,
+            condicion:  demCondicion && demCondicion !== 'NINGUNA'           ? demCondicion : undefined,
+            municipioResidencia: esAnonimo ? undefined : municipio   || undefined,
+            departamento:        esAnonimo ? undefined : departamento || undefined,
+          },
         }),
       })
 
@@ -483,6 +497,67 @@ export default function PQRSDPage() {
                 >
                   Seleccionar archivos
                 </label>
+              </div>
+            </section>
+
+            {/* Paso 5: Datos demográficos (voluntarios — FURAG POL06) */}
+            <section className="bg-white rounded-xl shadow-sm border p-6" aria-labelledby="paso5-titulo">
+              <div className="flex items-start justify-between mb-1">
+                <h2 id="paso5-titulo" className="text-lg font-bold text-gray-900">
+                  5. Información demográfica
+                </h2>
+                <span className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-full">Opcional y voluntaria</span>
+              </div>
+              <p className="text-sm text-gray-500 mb-4">
+                Esta información nos ayuda a mejorar la atención a poblaciones vulnerables (Política MIPG de Atención al Ciudadano).
+                Su respuesta es completamente voluntaria y no afecta el trámite de su solicitud.
+              </p>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="dem-genero" className="block text-sm font-medium text-gray-700 mb-1">Género</label>
+                  <select id="dem-genero" name="dem-genero"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gov-blue focus:border-gov-blue text-sm">
+                    <option value="">Prefiero no indicar</option>
+                    <option value="MASCULINO">Masculino</option>
+                    <option value="FEMENINO">Femenino</option>
+                    <option value="NO_BINARIO">No binario / Otro</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="dem-etario" className="block text-sm font-medium text-gray-700 mb-1">Rango de edad</label>
+                  <select id="dem-etario" name="dem-etario"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gov-blue focus:border-gov-blue text-sm">
+                    <option value="">Prefiero no indicar</option>
+                    <option value="0-17">Menor de 18 años</option>
+                    <option value="18-25">18 – 25 años</option>
+                    <option value="26-40">26 – 40 años</option>
+                    <option value="41-60">41 – 60 años</option>
+                    <option value="60+">Más de 60 años</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="dem-zona" className="block text-sm font-medium text-gray-700 mb-1">Zona de residencia</label>
+                  <select id="dem-zona" name="dem-zona"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gov-blue focus:border-gov-blue text-sm">
+                    <option value="NO_INFORMA">No informa</option>
+                    <option value="URBANA">Urbana</option>
+                    <option value="RURAL">Rural</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="dem-condicion" className="block text-sm font-medium text-gray-700 mb-1">Condición especial</label>
+                  <select id="dem-condicion" name="dem-condicion"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gov-blue focus:border-gov-blue text-sm">
+                    <option value="NINGUNA">Ninguna</option>
+                    <option value="DISCAPACIDAD">Persona con discapacidad</option>
+                    <option value="LGBTIQ">Comunidad LGBTIQ+</option>
+                    <option value="VICTIMA_CONFLICTO">Víctima del conflicto</option>
+                    <option value="INDIGENA">Pueblo indígena</option>
+                    <option value="AFRODESCENDIENTE">Comunidad afrodescendiente</option>
+                    <option value="ADULTO_MAYOR">Adulto mayor (60+)</option>
+                    <option value="PRIMERA_INFANCIA">Primera infancia (0–5 años)</option>
+                  </select>
+                </div>
               </div>
             </section>
 

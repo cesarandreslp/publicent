@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { CheckCircle, AlertCircle, Save, Filter, Activity, ShieldCheck } from "lucide-react"
+import FuragValidacion from "@/components/mipg/FuragValidacion"
+import FuragAlertaVigencia from "@/components/mipg/FuragAlertaVigencia"
 
 export default function MipgEvaluacionClient() {
   const [politicas, setPoliticas] = useState<any[]>([])
@@ -95,6 +97,9 @@ export default function MipgEvaluacionClient() {
           {toast.msg}
         </div>
       )}
+
+      {/* Alerta de cierre de vigencia FURAG */}
+      <FuragAlertaVigencia anioVigencia={anioFiltro} />
 
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -258,6 +263,9 @@ export default function MipgEvaluacionClient() {
            </div>
         </div>
       )}
+
+      {/* Validación automática FURAG */}
+      <FuragValidacion anioVigencia={anioFiltro} />
     </div>
   )
 }

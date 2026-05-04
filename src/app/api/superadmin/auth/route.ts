@@ -13,16 +13,18 @@ import { superadminAuthSchema, validateBody } from "@/lib/validations"
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-    const { email, password } = body
-    const validated = validateBody(superadminAuthSchema, body)
-    if (!validated.success) return validated.response
-
-    if (!email || !password) {
-      return NextResponse.json({ error: "Credenciales requeridas" }, { status: 400 })
+    let body: unknown
+    try {
+      body = await req.json()
+    } catch {
+      return NextResponse.json({ error: "Cuerpo JSON inválido" }, { status: 400 })
     }
 
-    const result = await loginSuperAdmin(email as string, password as string)
+    const validated = validateBody(superadminAuthSchema, body)
+    if (!validated.success) return validated.response
+    const { email, password } = validated.data
+
+    const result = await loginSuperAdmin(email, password)
 
     if (!result) {
       return NextResponse.json({ error: "Credenciales inválidas" }, { status: 401 })

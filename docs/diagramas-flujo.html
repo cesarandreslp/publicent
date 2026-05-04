@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diagramas de Flujo — Personería Municipal de Guadalajara de Buga</title>
+  <link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --gov-blue: #3366cc;
+      --gov-blue-dark: #264d99;
+      --gov-blue-light: #5c85d6;
+      --gov-blue-50: #eef2ff;
+      --sidebar-bg: #0f172a;
+      --sidebar-text: #cbd5e1;
+      --sidebar-active: #3366cc;
+      --card-bg: #ffffff;
+      --card-border: #e2e8f0;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --bg-page: #f8fafc;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --error: #ef4444;
+      --info: #3b82f6;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Work Sans', Arial, Helvetica, sans-serif;
+      background: var(--bg-page);
+      color: var(--text-primary);
+      line-height: 1.6;
+    }
+    /* ─── GOV BAR ─── */
+    .gov-bar {
+      background: var(--gov-blue);
+      color: white;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .gov-bar img { height: 20px; margin-right: 12px; }
+    .gov-bar a { color: white; text-decoration: none; }
+    /* ─── HEADER ─── */
+    .header {
+      background: white;
+      border-bottom: 1px solid var(--card-border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .header-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--gov-blue-dark);
+    }
+    .header-subtitle {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    /* ─── NAV TABS ─── */
+    .nav-tabs {
+      background: white;
+      border-bottom: 2px solid var(--card-border);
+      display: flex;
+      gap: 0;
+      overflow-x: auto;
+      padding: 0 24px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .nav-tab {
+      padding: 14px 20px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: all .2s;
+      white-space: nowrap;
+      user-select: none;
+    }
+    .nav-tab:hover { color: var(--gov-blue); background: var(--gov-blue-50); }
+    .nav-tab.active {
+      color: var(--gov-blue);
+      border-bottom-color: var(--gov-blue);
+      font-weight: 600;
+    }
+    /* ─── CONTENT ─── */
+    .content { max-width: 1200px; margin: 0 auto; padding: 32px 24px 64px; }
+    .diagram-section { display: none; }
+    .diagram-section.active { display: block; }
+    .section-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--gov-blue-dark);
+      margin-bottom: 8px;
+    }
+    .section-desc {
+      color: var(--text-secondary);
+      font-size: 15px;
+      margin-bottom: 32px;
+      max-width: 700px;
+    }
+    /* ─── FLOW CARDS ─── */
+    .flow-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      margin: 24px 0;
+    }
+    .flow-node {
+      background: var(--card-bg);
+      border: 2px solid var(--card-border);
+      border-radius: 12px;
+      padding: 18px 28px;
+      min-width: 280px;
+      max-width: 420px;
+      text-align: center;
+      position: relative;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      transition: transform .2s, box-shadow .2s;
+    }
+    .flow-node:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .flow-node .node-title {
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+    .flow-node .node-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .flow-node.start {
+      background: var(--gov-blue);
+      color: white;
+      border-color: var(--gov-blue-dark);
+      border-radius: 50px;
+    }
+    .flow-node.start .node-desc { color: rgba(255,255,255,0.8); }
+    .flow-node.end {
+      background: var(--sidebar-bg);
+      color: white;
+      border-color: #1e293b;
+      border-radius: 50px;
+    }
+    .flow-node.end .node-desc { color: var(--sidebar-text); }
+    .flow-node.decision {
+      background: var(--warning);
+      color: white;
+      border-color: #d97706;
+      transform: rotate(0deg);
+      border-radius: 12px;
+      min-width: 240px;
+    }
+    .flow-node.decision .node-desc { color: rgba(255,255,255,0.85); }
+    .flow-node.error {
+      background: #fef2f2;
+      border-color: var(--error);
+      color: var(--error);
+    }
+    .flow-node.success {
+      background: #f0fdf4;
+      border-color: var(--success);
+    }
+    .flow-node.process {
+      background: var(--gov-blue-50);
+      border-color: var(--gov-blue-light);
+    }
+    .flow-node.db {
+      background: #faf5ff;
+      border-color: #a855f7;
+      border-radius: 8px 8px 24px 24px;
+    }
+    .flow-node.external {
+      background: #fffbeb;
+      border-color: var(--warning);
+      border-style: dashed;
+    }
+    .flow-arrow {
+      width: 2px;
+      height: 32px;
+      background: var(--text-secondary);
+      position: relative;
+    }
+    .flow-arrow::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 8px solid var(--text-secondary);
+    }
+    .flow-arrow .arrow-label {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 11px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      font-weight: 500;
+      background: var(--bg-page);
+      padding: 0 6px;
+    }
+    /* ─── BRANCH (YES/NO) ─── */
+    .flow-branch {
+      display: flex;
+      gap: 40px;
+      align-items: flex-start;
+      justify-content: center;
+    }
+    .flow-branch-path {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+    }
+    .branch-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--gov-blue);
+      margin-bottom: 4px;
+      padding: 2px 10px;
+      background: var(--gov-blue-50);
+      border-radius: 10px;
+    }
+    .branch-label.no { color: var(--error); background: #fef2f2; }
+    /* ─── ARCHITECTURE DIAGRAM ─── */
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      margin: 24px 0;
+    }
+    .arch-card {
+      background: var(--card-bg);
+      border: 2px solid var(--card-border);
+      border-radius: 12px;
+      padding: 24px;
+      transition: transform .2s, box-shadow .2s;
+    }
+    .arch-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    }
+    .arch-card-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      margin-bottom: 14px;
+    }
+    .arch-card h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--text-primary);
+    }
+    .arch-card p {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .arch-card .tech-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 12px;
+    }
+    .tech-badge {
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-weight: 500;
+      background: var(--gov-blue-50);
+      color: var(--gov-blue);
+      border: 1px solid rgba(51,102,204,0.2);
+    }
+    /* ─── LAYER DIAGRAM ─── */
+    .layer-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin: 24px auto;
+      max-width: 700px;
+    }
+    .layer {
+      padding: 20px 28px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      transition: transform .2s;
+    }
+    .layer:hover { transform: scale(1.02); }
+    .layer-icon { font-size: 24px; flex-shrink: 0; }
+    .layer h4 { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
+    .layer p { font-size: 12px; opacity: 0.85; }
+    .layer.l-edge { background: #dbeafe; color: #1e40af; }
+    .layer.l-middleware { background: var(--gov-blue); color: white; }
+    .layer.l-api { background: var(--gov-blue-dark); color: white; }
+    .layer.l-lib { background: #312e81; color: white; }
+    .layer.l-db { background: var(--sidebar-bg); color: white; }
+    /* ─── MODULE TABLE ─── */
+    .mod-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin: 24px 0;
+      font-size: 14px;
+    }
+    .mod-table th {
+      background: var(--gov-blue);
+      color: white;
+      padding: 14px 18px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 13px;
+    }
+    .mod-table th:first-child { border-radius: 10px 0 0 0; }
+    .mod-table th:last-child { border-radius: 0 10px 0 0; }
+    .mod-table td {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--card-border);
+      background: white;
+    }
+    .mod-table tr:last-child td:first-child { border-radius: 0 0 0 10px; }
+    .mod-table tr:last-child td:last-child { border-radius: 0 0 10px 0; }
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge-active { background: #dcfce7; color: #166534; }
+    .badge-plan { background: #dbeafe; color: #1e40af; }
+    .badge-enterprise { background: #faf5ff; color: #7e22ce; }
+    /* ─── LEGEND ─── */
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin: 20px 0 32px;
+      padding: 16px 20px;
+      background: white;
+      border-radius: 10px;
+      border: 1px solid var(--card-border);
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .legend-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      border: 2px solid;
+      flex-shrink: 0;
+    }
+    /* ─── FOOTER ─── */
+    .footer {
+      background: #111827;
+      color: #9ca3af;
+      text-align: center;
+      padding: 24px;
+      font-size: 13px;
+    }
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 768px) {
+      .nav-tab { padding: 12px 14px; font-size: 12px; }
+      .flow-branch { flex-direction: column; gap: 16px; }
+      .arch-grid { grid-template-columns: 1fr; }
+      .section-title { font-size: 22px; }
+    }
+    @media print {
+      .nav-tabs { position: static; }
+      .diagram-section { display: block !important; page-break-after: always; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- GOV BAR -->
+<div class="gov-bar">
+  <span style="font-weight:700;letter-spacing:1px;">GOV.CO</span>
+  <span style="margin-left:16px;font-weight:300;">Portal Único del Estado Colombiano</span>
+</div>
+
+<!-- HEADER -->
+<div class="header">
+  <div>
+    <div class="header-title">Personería Municipal de Guadalajara de Buga</div>
+    <div class="header-subtitle">Diagramas de Flujo — Arquitectura y Módulos del Sistema</div>
+  </div>
+  <div style="font-size:12px;color:var(--text-secondary);">Documentación Técnica v1.0</div>
+</div>
+
+<!-- NAV TABS -->
+<div class="nav-tabs" id="navTabs">
+  <div class="nav-tab active" data-target="arquitectura">Arquitectura</div>
+  <div class="nav-tab" data-target="middleware">Middleware</div>
+  <div class="nav-tab" data-target="auth-usuario">Auth Usuario</div>
+  <div class="nav-tab" data-target="auth-superadmin">Auth SuperAdmin</div>
+  <div class="nav-tab" data-target="pqrs">PQRS Ciudadano</div>
+  <div class="nav-tab" data-target="gestion-doc">Gestión Documental</div>
+  <div class="nav-tab" data-target="ventanilla">Ventanilla Única</div>
+  <div class="nav-tab" data-target="modulos">Sistema de Módulos</div>
+  <div class="nav-tab" data-target="storage">Almacenamiento</div>
+  <div class="nav-tab" data-target="transparencia">Transparencia</div>
+</div>
+
+<div class="content">
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- ARQUITECTURA GENERAL -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="diagram-section active" id="arquitectura">
+  <div class="section-title">Arquitectura General del Sistema</div>
+  <div class="section-desc">Sistema multi-tenant Next.js 15 con bases de datos aisladas por tenant en Neon PostgreSQL. Cada entidad pública opera en su propio dominio con datos completamente separados.</div>
+
+  <!-- CAPAS -->
+  <h3 style="font-size:18px;font-weight:600;margin:24px 0 12px;color:var(--gov-blue-dark);">Capas del Sistema</h3>
+  <div class="layer-stack">
+    <div class="layer l-edge">
+      <div class="layer-icon">🌐</div>
+      <div><h4>Edge Runtime (Vercel)</h4><p>Middleware multi-tenant · Resolución de dominio → tenant · SuperAdmin guard · Headers de seguridad</p></div>
+    </div>
+    <div class="layer l-middleware">
+      <div class="layer-icon">🔀</div>
+      <div><h4>Next.js App Router</h4><p>Route Handlers (API) · Server Components · Server Actions · Layouts anidados (Public / Admin / SuperAdmin)</p></div>
+    </div>
+    <div class="layer l-api">
+      <div class="layer-icon">⚙️</div>
+      <div><h4>Capa de Servicios (lib/)</h4><p>tenant.ts · auth · validations (Zod) · mail (Resend) · upload · storage · rate-limit · superadmin-auth</p></div>
+    </div>
+    <div class="layer l-lib">
+      <div class="layer-icon">🔐</div>
+      <div><h4>Autenticación</h4><p>NextAuth v5 (JWT 24h) · SuperAdmin JWT separado (jose, 8h) · Recuperación de contraseña con tokens</p></div>
+    </div>
+    <div class="layer l-db">
+      <div class="layer-icon">🗄️</div>
+      <div><h4>Base de Datos</h4><p>Meta-DB (tenants, superadmins) · Tenant-DB aislada por tenant (50+ modelos Prisma) · Neon PostgreSQL serverless</p></div>
+    </div>
+  </div>
+
+  <!-- COMPONENTES -->
+  <h3 style="font-size:18px;font-weight:600;margin:32px 0 12px;color:var(--gov-blue-dark);">Componentes Principales</h3>
+  <div class="arch-grid">
+    <div class="arch-card">
+      <div class="arch-card-icon" style="background:#dbeafe;color:#2563eb;">🏛️</div>
+      <h3>Portal Público</h3>
+      <p>Sitio web institucional conforme a Resolución 1519 de 2020. Transparencia, noticias, PQRS, servicios.</p>
+      <div class="tech-badges">
+        <span class="tech-badge">GOV.CO Bar</span>
+        <span class="tech-badge">Res. 1519</span>
+        <span class="tech-badge">WCAG 2.1</span>
+      </div>
+    </div>
+    <div class="arch-card">
+      <div class="arch-card-icon" style="background:#f0fdf4;color:#16a34a;">🔧</div>
+      <h3>Panel Administrativo</h3>
+      <p>Gestión interna: PQRS, contenido, usuarios, gestor documental AGN, MIPG, auditoría.</p>
+      <div class="tech-badges">
+        <span class="tech-badge">Sidebar oscuro</span>
+        <span class="tech-badge">RBAC</span>
+        <span class="tech-badge">Módulos</span>
+      </div>
+    </div>
+    <div class="arch-card">
+      <div class="arch-card-icon" style="background:#faf5ff;color:#9333ea;">👑</div>
+      <h3>Panel SuperAdmin</h3>
+      <p>Gestión multi-tenant: crear/editar tenants, planes, módulos, estadísticas globales.</p>
+      <div class="tech-badges">
+        <span class="tech-badge">JWT separado</span>
+        <span class="tech-badge">Meta-DB</span>
+        <span class="tech-badge">jose</span>
+      </div>
+    </div>
+    <div class="arch-card">
+      <div class="arch-card-icon" style="background:#fef3c7;color:#d97706;">📋</div>
+      <h3>Gestión Documental AGN</h3>
+      <p>TRD, radicados con numeración oficial, expedientes, VoBo, firmas electrónicas con QR.</p>
+      <div class="tech-badges">
+        <span class="tech-badge">AGN</span>
+        <span class="tech-badge">TRD</span>
+        <span class="tech-badge">Firmas QR</span>
+      </div>
+    </div>
+    <div class="arch-card">
+      <div class="arch-card-icon" style="background:#fce7f3;color:#db2777;">📡</div>
+      <h3>Ventanilla Única</h3>
+      <p>Integración con sistema externo vía webhooks para sincronizar estados de PQRS.</p>
+      <div class="tech-badges">
+        <span class="tech-badge">Webhooks</span>
+        <span class="tech-badge">API Key</span>
+        <span class="tech-badge">Mirror</span>
+      </div>
+    </div>
+    <div class="arch-card">
+      <div class="arch-card-icon" style="background:#ecfdf5;color:#059669;">📦</div>
+      <h3>Almacenamiento</h3>
+      <p>Abstracción multi-proveedor: S3, MinIO, R2, GCS, Azure, SFTP, local.</p>
+      <div class="tech-badges">
+        <span class="tech-badge">S3</span>
+        <span class="tech-badge">R2</span>
+        <span class="tech-badge">SFTP</span>
+        <span class="tech-badge">Local</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- MIDDLEWARE -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="diagram-section" id="middleware">
+  <div class="section-title">Flujo del Middleware Multi-Tenant</div>
+  <div class="section-desc">Ejecuta en Edge Runtime en cada request. Resuelve el tenant desde el dominio, protege rutas admin y maneja el acceso superadmin.</div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--gov-blue);border-color:var(--gov-blue-dark);"></div>Inicio/Fin</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--warning);border-color:#d97706;"></div>Decisión</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--gov-blue-50);border-color:var(--gov-blue-light);"></div>Proceso</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#fef2f2;border-color:var(--error);"></div>Error</div>
+  </div>
+
+  <div class="flow-container">
+    <div class="flow-node start"><div class="node-title">Request Entrante</div><div class="node-desc">GET/POST a cualquier ruta del sistema</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node decision"><div class="node-title">¿Es ruta /superadmin/*?</div></div>
+    <div class="flow-arrow"><span class="arrow-label">No</span></div>
+    <div class="flow-node process"><div class="node-title">Resolver Tenant desde Dominio</div><div class="node-desc">hostname → consulta Meta-DB (cache 60s) → TenantInfo</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node decision"><div class="node-title">¿Tenant encontrado?</div></div>
+
+    <div class="flow-branch" style="margin-top:8px;">
+      <div class="flow-branch-path">
+        <div class="branch-label no">No</div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node error"><div class="node-title">404 — Tenant no encontrado</div><div class="node-desc">Dominio no registrado en Meta-DB</div></div>
+      </div>
+      <div class="flow-branch-path">
+        <div class="branch-label">Sí</div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node process"><div class="node-title">Inyectar Headers</div><div class="node-desc">x-tenant-id, x-tenant-slug, x-tenant-db-url</div></div>
+      </div>
+    </div>
+
+    <div class="flow-arrow" style="margin-top:8px;"></div>
+    <div class="flow-node decision"><div class="node-title">¿Es ruta /admin/*?</div></div>
+
+    <div class="flow-branch" style="margin-top:8px;">
+      <div class="flow-branch-path">
+        <div class="branch-label">Sí</div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node decision"><div class="node-title">¿Token NextAuth válido?</div></div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-branch">
+          <div class="flow-branch-path">
+            <div class="branch-label no">No</div>
+            <div class="flow-arrow" style="height:20px;"></div>
+            <div class="flow-node error"><div class="node-title">Redirect → /login</div></div>
+          </div>
+          <div class="flow-branch-path">
+            <div class="branch-label">Sí</div>
+            <div class="flow-arrow" style="height:20px;"></div>
+            <div class="flow-node success"><div class="node-title">Continuar al Admin</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="flow-branch-path">
+        <div class="branch-label no">No — ruta pública</div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node success"><div class="node-title">Continuar al Portal Público</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- AUTH USUARIO -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="diagram-section" id="auth-usuario">
+  <div class="section-title">Autenticación de Usuario (NextAuth v5)</div>
+  <div class="section-desc">Flujo de login con Credentials provider, JWT strategy con duración de 24 horas, y recuperación de contraseña con token temporal.</div>
+
+  <h3 style="font-size:18px;font-weight:600;margin:24px 0 12px;color:var(--gov-blue-dark);">Login</h3>
+  <div class="flow-container">
+    <div class="flow-node start"><div class="node-title">Usuario en /login</div><div class="node-desc">Formulario: email + contraseña</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node process"><div class="node-title">POST /api/auth/callback/credentials</div><div class="node-desc">NextAuth Credentials Provider</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node process"><div class="node-title">Validar con Zod</div><div class="node-desc">loginSchema: email válido + password min 1</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node db"><div class="node-title">Buscar Usuario en Tenant-DB</div><div class="node-desc">prisma.usuario.findUnique({ where: { email } })</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node decision"><div class="node-title">¿Usuario existe y password coincide?</div><div class="node-desc">bcrypt.compare(password, hash)</div></div>
+
+    <div class="flow-branch" style="margin-top:8px;">
+      <div class="flow-branch-path">
+        <div class="branch-label no">No</div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node error"><div class="node-title">401 — Credenciales inválidas</div></div>
+      </div>
+      <div class="flow-branch-path">
+        <div class="branch-label">Sí</div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node process"><div class="node-title">Generar JWT (24h)</div><div class="node-desc">{ id, email, rol, tenantId } → cookie HttpOnly</div></div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node success"><div class="node-title">Redirect → /admin</div><div class="node-desc">Sesión activa, sidebar visible según rol</div></div>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="font-size:18px;font-weight:600;margin:32px 0 12px;color:var(--gov-blue-dark);">Recuperación de Contraseña</h3>
+  <div class="flow-container">
+    <div class="flow-node start"><div class="node-title">Usuario en /recuperar-contrasena</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node process"><div class="node-title">POST /api/auth/recuperar-contrasena</div><div class="node-desc">Validar email con Zod</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node db"><div class="node-title">Buscar Usuario por Email</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node decision"><div class="node-title">¿Existe?</div></div>
+
+    <div class="flow-branch" style="margin-top:8px;">
+      <div class="flow-branch-path">
+        <div class="branch-label no">No</div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node process"><div class="node-title">200 OK (genérico)</div><div class="node-desc">No revelar si el email existe</div></div>
+      </div>
+      <div class="flow-branch-path">
+        <div class="branch-label">Sí</div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node process"><div class="node-title">Generar Token (1h)</div><div class="node-desc">crypto.randomUUID() → TokenRecuperacion</div></div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node external"><div class="node-title">Enviar Email (Resend)</div><div class="node-desc">sendPasswordResetEmail(email, token, nombre)</div></div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node process"><div class="node-title">Usuario abre enlace</div><div class="node-desc">/restablecer-contrasena?token=xxx</div></div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node process"><div class="node-title">POST /api/auth/restablecer-contrasena</div><div class="node-desc">Valida token + nueva password con Zod</div></div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node db"><div class="node-title">Actualizar Contraseña</div><div class="node-desc">bcrypt.hash(password, 12) → usuario.password</div></div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node success"><div class="node-title">Contraseña Actualizada</div><div class="node-desc">Token eliminado de la BD</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- AUTH SUPERADMIN -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="diagram-section" id="auth-superadmin">
+  <div class="section-title">Autenticación SuperAdmin</div>
+  <div class="section-desc">Sistema JWT independiente usando la librería jose. Cookie sa_token con 8 horas de expiración. Opera sobre la Meta-DB.</div>
+
+  <div class="flow-container">
+    <div class="flow-node start"><div class="node-title">SuperAdmin en /superadmin/login</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node process"><div class="node-title">POST /api/superadmin/auth</div><div class="node-desc">Validar con superadminAuthSchema (Zod)</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node process"><div class="node-title">loginSuperAdmin(email, password)</div><div class="node-desc">lib/superadmin-auth.ts</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node db"><div class="node-title">Buscar en Meta-DB</div><div class="node-desc">prisma.superAdmin.findUnique({ email })</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node decision"><div class="node-title">¿Credenciales válidas?</div><div class="node-desc">bcrypt.compare + activo === true</div></div>
+
+    <div class="flow-branch" style="margin-top:8px;">
+      <div class="flow-branch-path">
+        <div class="branch-label no">No</div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node error"><div class="node-title">401 — Credenciales inválidas</div></div>
+      </div>
+      <div class="flow-branch-path">
+        <div class="branch-label">Sí</div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node process"><div class="node-title">Firmar JWT con jose</div><div class="node-desc">{ sub: id, email, rol: 'superadmin' } exp: 8h</div></div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node process"><div class="node-title">Set Cookie: sa_token</div><div class="node-desc">HttpOnly, Secure (prod), SameSite=lax, maxAge=8h</div></div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node success"><div class="node-title">Redirect → /superadmin</div><div class="node-desc">Dashboard multi-tenant</div></div>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="font-size:18px;font-weight:600;margin:32px 0 12px;color:var(--gov-blue-dark);">Verificación en Middleware (Edge)</h3>
+  <div class="flow-container">
+    <div class="flow-node start"><div class="node-title">Request a /superadmin/*</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node process"><div class="node-title">Leer cookie sa_token</div><div class="node-desc">superadmin-auth-edge.ts</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node process"><div class="node-title">jwtVerify(token, SA_SECRET)</div><div class="node-desc">Verifica firma + expiración con jose</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node decision"><div class="node-title">¿Token válido?</div></div>
+    <div class="flow-branch" style="margin-top:8px;">
+      <div class="flow-branch-path">
+        <div class="branch-label no">No / Expirado</div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node error"><div class="node-title">Redirect → /superadmin/login</div></div>
+      </div>
+      <div class="flow-branch-path">
+        <div class="branch-label">Sí</div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node success"><div class="node-title">Continuar al Panel SuperAdmin</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- PQRS -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="diagram-section" id="pqrs">
+  <div class="section-title">Radicación de PQRS por el Ciudadano</div>
+  <div class="section-desc">El ciudadano radica peticiones, quejas, reclamos, sugerencias y denuncias desde el portal público. Incluye verificación CAPTCHA (Turnstile) y notificación por email.</div>
+
+  <div class="flow-container">
+    <div class="flow-node start"><div class="node-title">Ciudadano en Portal Público</div><div class="node-desc">Sección "Atención al Ciudadano" → PQRS</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node process"><div class="node-title">Llenar Formulario PQRS</div><div class="node-desc">Tipo, nombre, email, cédula, asunto, descripción, archivos adjuntos</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node process"><div class="node-title">Resolver CAPTCHA Turnstile</div><div class="node-desc">Widget Cloudflare Turnstile integrado</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node process"><div class="node-title">POST /api/pqrsd</div><div class="node-desc">Enviar formulario al servidor</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node process"><div class="node-title">Validar con Zod</div><div class="node-desc">pqrsSchema: todos los campos requeridos</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node external"><div class="node-title">Verificar Turnstile Token</div><div class="node-desc">POST a challenges.cloudflare.com/turnstile/v0/siteverify</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node decision"><div class="node-title">¿CAPTCHA válido?</div></div>
+
+    <div class="flow-branch" style="margin-top:8px;">
+      <div class="flow-branch-path">
+        <div class="branch-label no">No</div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node error"><div class="node-title">400 — Verificación fallida</div></div>
+      </div>
+      <div class="flow-branch-path">
+        <div class="branch-label">Sí</div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node process"><div class="node-title">Generar Radicado Único</div><div class="node-desc">Formato: PQRS-YYYYMMDD-XXXX</div></div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node process"><div class="node-title">Sanitizar y Subir Archivos</div><div class="node-desc">Validar extensión, MIME, tamaño (10MB) → Storage</div></div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node db"><div class="node-title">Crear PQRS en Tenant-DB</div><div class="node-desc">prisma.pQRS.create({ estado: 'RECIBIDA', ... })</div></div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node success"><div class="node-title">200 OK + Radicado</div><div class="node-desc">El ciudadano recibe su número de radicado</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- GESTIÓN DOCUMENTAL -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="diagram-section" id="gestion-doc">
+  <div class="section-title">Gestión Documental (Norma AGN)</div>
+  <div class="section-desc">Sistema de gestión documental compatible con las normas del Archivo General de la Nación. Incluye TRD, radicados, expedientes, VoBo y firmas electrónicas con QR.</div>
+
+  <h3 style="font-size:18px;font-weight:600;margin:24px 0 12px;color:var(--gov-blue-dark);">Estructura TRD (Tabla de Retención Documental)</h3>
+  <div class="flow-container" style="flex-direction:row;flex-wrap:wrap;gap:20px;justify-content:center;">
+    <div class="flow-node" style="border-color:#7c3aed;">
+      <div class="node-title" style="color:#7c3aed;">Dependencia</div>
+      <div class="node-desc">Unidad organizacional (ej: Secretaría General)</div>
+    </div>
+    <div style="display:flex;align-items:center;font-size:24px;color:var(--text-secondary);">→</div>
+    <div class="flow-node" style="border-color:#2563eb;">
+      <div class="node-title" style="color:#2563eb;">Serie</div>
+      <div class="node-desc">Agrupación documental (ej: Actas)</div>
+    </div>
+    <div style="display:flex;align-items:center;font-size:24px;color:var(--text-secondary);">→</div>
+    <div class="flow-node" style="border-color:#059669;">
+      <div class="node-title" style="color:#059669;">Subserie</div>
+      <div class="node-desc">Subdivisión (ej: Actas de Comité)</div>
+    </div>
+    <div style="display:flex;align-items:center;font-size:24px;color:var(--text-secondary);">→</div>
+    <div class="flow-node" style="border-color:#d97706;">
+      <div class="node-title" style="color:#d97706;">Tipo Documental</div>
+      <div class="node-desc">Documento específico (ej: Acta 001)</div>
+    </div>
+  </div>
+
+  <h3 style="font-size:18px;font-weight:600;margin:32px 0 12px;color:var(--gov-blue-dark);">Flujo de Radicación</h3>
+  <div class="flow-container">
+    <div class="flow-node start"><div class="node-title">Funcionario en Admin → Gestor Documental</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node process"><div class="node-title">Crear Radicado</div><div class="node-desc">Tipo (E/S/I), dependencia, serie, subserie, asunto, datos remitente</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node process"><div class="node-title">Generar Número Oficial</div><div class="node-desc">Formato: [AÑO]-[DEPEND]-[CONSECUTIVO] automático</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node process"><div class="node-title">Adjuntar Documentos</div><div class="node-desc">Validar + subir a Storage → GdDocumento</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node db"><div class="node-title">Guardar en Tenant-DB</div><div class="node-desc">GdRadicado + GdDocumento + GdLogTransaccion</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node success"><div class="node-title">Radicado Creado</div><div class="node-desc">Número asignado, trazabilidad iniciada</div></div>
+  </div>
+
+  <h3 style="font-size:18px;font-weight:600;margin:32px 0 12px;color:var(--gov-blue-dark);">Flujo de VoBo (Visto Bueno)</h3>
+  <div class="flow-container">
+    <div class="flow-node start"><div class="node-title">Documento Requiere Aprobación</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node process"><div class="node-title">Crear Solicitud VoBo</div><div class="node-desc">Asignar aprobadores en orden jerárquico</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node external"><div class="node-title">Notificar a Aprobador</div><div class="node-desc">Email + notificación en panel</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node decision"><div class="node-title">¿Aprobado?</div></div>
+    <div class="flow-branch" style="margin-top:8px;">
+      <div class="flow-branch-path">
+        <div class="branch-label no">Rechazado</div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node error"><div class="node-title">Devuelto con Observaciones</div><div class="node-desc">Se registra en GdLogTransaccion</div></div>
+      </div>
+      <div class="flow-branch-path">
+        <div class="branch-label">Aprobado</div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node process"><div class="node-title">Registrar VoBo</div><div class="node-desc">GdVoBo { estado: APROBADO, fecha, observaciones }</div></div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node decision"><div class="node-title">¿Todos aprobaron?</div></div>
+        <div class="flow-arrow" style="height:20px;"><span class="arrow-label">Sí</span></div>
+        <div class="flow-node process"><div class="node-title">Generar Firma QR</div><div class="node-desc">GdFirmaQr: código único verificable</div></div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node success"><div class="node-title">Documento Firmado</div><div class="node-desc">QR estampado, trazabilidad completa</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- VENTANILLA ÚNICA -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="diagram-section" id="ventanilla">
+  <div class="section-title">Integración Ventanilla Única (Webhook)</div>
+  <div class="section-desc">Recibe notificaciones del sistema externo de Ventanilla Única cuando una PQRS cambia de estado. Opera en modo mirror actualizando la BD local.</div>
+
+  <div class="flow-container">
+    <div class="flow-node external"><div class="node-title">Sistema Externo Ventanilla Única</div><div class="node-desc">Envía webhook al cambiar estado de PQRS</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node start"><div class="node-title">POST /api/webhooks/ventanilla</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node decision"><div class="node-title">¿Módulo VENTANILLA_UNICA activo?</div></div>
+    <div class="flow-branch" style="margin-top:8px;">
+      <div class="flow-branch-path">
+        <div class="branch-label no">No</div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node error"><div class="node-title">403 — Módulo inactivo</div></div>
+      </div>
+      <div class="flow-branch-path">
+        <div class="branch-label">Sí</div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node process"><div class="node-title">Validar API Key / Bearer Token</div><div class="node-desc">Authorization header vs vuConfig.apiKey</div></div>
+      </div>
+    </div>
+    <div class="flow-arrow" style="margin-top:8px;"></div>
+    <div class="flow-node process"><div class="node-title">Validar Body con Zod</div><div class="node-desc">webhookVentanillaSchema: evento, datos.radicado, datos.nuevoEstado</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node process"><div class="node-title">Validar Estado contra Whitelist</div><div class="node-desc">RECIBIDA | EN_TRAMITE | EN_PROCESO | RESPONDIDA | CERRADA | ARCHIVADA | RECHAZADA</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node db"><div class="node-title">Buscar PQRS Local por Radicado</div><div class="node-desc">prisma.pQRS.findUnique({ radicado })</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node decision"><div class="node-title">¿Existe copia local?</div></div>
+    <div class="flow-branch" style="margin-top:8px;">
+      <div class="flow-branch-path">
+        <div class="branch-label no">No</div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node process"><div class="node-title">200 OK — procesado: false</div><div class="node-desc">Webhook recibido pero sin copia local</div></div>
+      </div>
+      <div class="flow-branch-path">
+        <div class="branch-label">Sí</div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node db"><div class="node-title">Actualizar Estado PQRS</div><div class="node-desc">prisma.pQRS.update({ estado, updatedAt })</div></div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node success"><div class="node-title">200 OK — procesado: true</div><div class="node-desc">Estado sincronizado con sistema externo</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- MÓDULOS -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="diagram-section" id="modulos">
+  <div class="section-title">Sistema de Módulos por Plan</div>
+  <div class="section-desc">Cada tenant tiene un plan que determina qué módulos están disponibles. Los módulos se activan/desactivan desde el panel SuperAdmin.</div>
+
+  <table class="mod-table">
+    <thead>
+      <tr>
+        <th>Módulo</th>
+        <th>Descripción</th>
+        <th>Plan Mínimo</th>
+        <th>Estado</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Sitio Web</strong></td>
+        <td>Portal público institucional, transparencia, noticias</td>
+        <td><span class="badge badge-active">BÁSICO</span></td>
+        <td><span class="badge badge-active">Siempre activo</span></td>
+      </tr>
+      <tr>
+        <td><strong>Ventanilla Única</strong></td>
+        <td>Integración con sistema externo de PQRS</td>
+        <td><span class="badge badge-plan">ESTÁNDAR</span></td>
+        <td>Configurable</td>
+      </tr>
+      <tr>
+        <td><strong>Gestión Documental</strong></td>
+        <td>TRD, radicados, expedientes, VoBo, firmas QR (AGN)</td>
+        <td><span class="badge badge-plan">PROFESIONAL</span></td>
+        <td>Configurable</td>
+      </tr>
+      <tr>
+        <td><strong>MIPG</strong></td>
+        <td>Modelo Integrado de Planeación y Gestión</td>
+        <td><span class="badge badge-plan">ESTÁNDAR</span></td>
+        <td>Configurable</td>
+      </tr>
+      <tr>
+        <td><strong>Almacenamiento Avanzado</strong></td>
+        <td>S3, R2, GCS, Azure, SFTP</td>
+        <td><span class="badge badge-enterprise">ENTERPRISE</span></td>
+        <td>Configurable</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 style="font-size:18px;font-weight:600;margin:32px 0 12px;color:var(--gov-blue-dark);">Flujo de Verificación de Módulo</h3>
+  <div class="flow-container">
+    <div class="flow-node start"><div class="node-title">Request a funcionalidad</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node process"><div class="node-title">getTenantModulos()</div><div class="node-desc">Cargar módulos activos del tenant desde Tenant-DB</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node process"><div class="node-title">isModuleActive(modulos, MODULO_ID)</div><div class="node-desc">Verificar si el módulo específico está activo</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node decision"><div class="node-title">¿Módulo activo?</div></div>
+    <div class="flow-branch" style="margin-top:8px;">
+      <div class="flow-branch-path">
+        <div class="branch-label no">No</div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node error"><div class="node-title">403 — Módulo no disponible</div><div class="node-desc">El plan del tenant no incluye este módulo</div></div>
+      </div>
+      <div class="flow-branch-path">
+        <div class="branch-label">Sí</div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node success"><div class="node-title">Continuar con la operación</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- STORAGE -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="diagram-section" id="storage">
+  <div class="section-title">Abstracción de Almacenamiento</div>
+  <div class="section-desc">Sistema multi-proveedor que permite cambiar el backend de almacenamiento sin modificar código. Incluye validación de archivos, sanitización de nombres y URLs pre-firmadas.</div>
+
+  <div class="flow-container">
+    <div class="flow-node start"><div class="node-title">Archivo a Subir</div><div class="node-desc">Desde formulario o API</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node process"><div class="node-title">Sanitizar Nombre</div><div class="node-desc">Remover path traversal (../), caracteres peligrosos, normalizar</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node process"><div class="node-title">Validar Archivo</div><div class="node-desc">Extensión en whitelist, MIME type, tamaño (5MB img / 10MB doc)</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node decision"><div class="node-title">¿Archivo válido?</div></div>
+    <div class="flow-branch" style="margin-top:8px;">
+      <div class="flow-branch-path">
+        <div class="branch-label no">No</div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node error"><div class="node-title">400 — Archivo rechazado</div><div class="node-desc">Extensión bloqueada (.exe, .bat, etc.) o tamaño excedido</div></div>
+      </div>
+      <div class="flow-branch-path">
+        <div class="branch-label">Sí</div>
+        <div class="flow-arrow" style="height:20px;"></div>
+        <div class="flow-node decision"><div class="node-title">¿Proveedor configurado?</div></div>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="font-size:18px;font-weight:600;margin:32px 0 12px;color:var(--gov-blue-dark);">Proveedores Soportados</h3>
+  <div class="arch-grid">
+    <div class="arch-card" style="border-left:4px solid #f97316;">
+      <h3>S3 Compatible</h3>
+      <p>AWS S3, MinIO, Cloudflare R2, Google Cloud Storage. Usa @aws-sdk/client-s3.</p>
+      <div class="tech-badges"><span class="tech-badge">PutObjectCommand</span><span class="tech-badge">GetObjectCommand</span></div>
+    </div>
+    <div class="arch-card" style="border-left:4px solid #8b5cf6;">
+      <h3>Azure Blob</h3>
+      <p>Azure Blob Storage con @azure/storage-blob SDK.</p>
+      <div class="tech-badges"><span class="tech-badge">BlobServiceClient</span></div>
+    </div>
+    <div class="arch-card" style="border-left:4px solid #06b6d4;">
+      <h3>SFTP</h3>
+      <p>Servidores remotos via SSH/SFTP con ssh2-sftp-client.</p>
+      <div class="tech-badges"><span class="tech-badge">put()</span><span class="tech-badge">delete()</span></div>
+    </div>
+    <div class="arch-card" style="border-left:4px solid #22c55e;">
+      <h3>Local</h3>
+      <p>Sistema de archivos local. Solo para desarrollo.</p>
+      <div class="tech-badges"><span class="tech-badge">fs.writeFile</span><span class="tech-badge">/public/uploads</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- TRANSPARENCIA -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="diagram-section" id="transparencia">
+  <div class="section-title">Transparencia y Acceso a la Información</div>
+  <div class="section-desc">Cumplimiento de la Resolución 1519 de 2020 de MinTIC. Estructura jerárquica obligatoria para entidades públicas colombianas.</div>
+
+  <h3 style="font-size:18px;font-weight:600;margin:24px 0 12px;color:var(--gov-blue-dark);">Estructura de Navegación (Res. 1519)</h3>
+  <div class="arch-grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
+    <div class="arch-card" style="border-top:4px solid var(--gov-blue);">
+      <h3>La Entidad</h3>
+      <p>Misión y Visión, Funciones, Organigrama, Directorio, Procesos y Procedimientos</p>
+    </div>
+    <div class="arch-card" style="border-top:4px solid #dc2626;">
+      <h3>Transparencia <span class="badge badge-active" style="background:#fef2f2;color:#dc2626;">Obligatorio</span></h3>
+      <p>Normatividad, Presupuesto, Planeación, Control, Contratación, Trámites, Instrumentos de Gestión, Info Adicional</p>
+    </div>
+    <div class="arch-card" style="border-top:4px solid #f59e0b;">
+      <h3>Atención al Ciudadano <span class="badge badge-active" style="background:#fffbeb;color:#92400e;">Obligatorio</span></h3>
+      <p>PQRS, Trámites y Servicios, Canales de Atención, Política de Tratamiento de Datos, Localizaciones</p>
+    </div>
+    <div class="arch-card" style="border-top:4px solid #8b5cf6;">
+      <h3>Participa <span class="badge badge-active" style="background:#faf5ff;color:#7c3aed;">Obligatorio</span></h3>
+      <p>Diagnóstico, Planeación, Rendición de Cuentas, Ejecución, Control Social, Consulta Ciudadana</p>
+    </div>
+  </div>
+
+  <h3 style="font-size:18px;font-weight:600;margin:32px 0 12px;color:var(--gov-blue-dark);">Modelo de Datos</h3>
+  <div class="flow-container" style="flex-direction:row;flex-wrap:wrap;gap:20px;justify-content:center;">
+    <div class="flow-node db" style="min-width:220px;">
+      <div class="node-title">CategoríaTransparencia</div>
+      <div class="node-desc">Secciones principales (La Entidad, Transparencia, etc.)</div>
+    </div>
+    <div style="display:flex;align-items:center;font-size:24px;color:var(--text-secondary);">→</div>
+    <div class="flow-node db" style="min-width:220px;">
+      <div class="node-title">SubcategoríaTransparencia</div>
+      <div class="node-desc">Subsecciones (Normatividad, Presupuesto, etc.)</div>
+    </div>
+    <div style="display:flex;align-items:center;font-size:24px;color:var(--text-secondary);">→</div>
+    <div class="flow-node db" style="min-width:220px;">
+      <div class="node-title">ItemTransparencia</div>
+      <div class="node-desc">Documentos o enlaces publicados</div>
+    </div>
+  </div>
+
+  <h3 style="font-size:18px;font-weight:600;margin:32px 0 12px;color:var(--gov-blue-dark);">Accesibilidad (WCAG 2.1)</h3>
+  <div class="arch-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+    <div class="arch-card">
+      <div class="arch-card-icon" style="background:#dbeafe;color:#2563eb;font-size:18px;">🔤</div>
+      <h3>Alto Contraste</h3>
+      <p>Modo de contraste alto activable por el usuario</p>
+    </div>
+    <div class="arch-card">
+      <div class="arch-card-icon" style="background:#f3f4f6;color:#374151;font-size:18px;">🎨</div>
+      <h3>Escala de Grises</h3>
+      <p>Modo monocromático para daltonismo</p>
+    </div>
+    <div class="arch-card">
+      <div class="arch-card-icon" style="background:#fef3c7;color:#d97706;font-size:18px;">🔗</div>
+      <h3>Subrayar Enlaces</h3>
+      <p>Todos los enlaces visiblemente subrayados</p>
+    </div>
+    <div class="arch-card">
+      <div class="arch-card-icon" style="background:#ecfdf5;color:#059669;font-size:18px;">🖱️</div>
+      <h3>Cursor Grande</h3>
+      <p>Cursor ampliado para mejor visibilidad</p>
+    </div>
+  </div>
+</div>
+
+</div><!-- /content -->
+
+<!-- FOOTER -->
+<div class="footer">
+  Personería Municipal de Guadalajara de Buga &mdash; Documentación Técnica &copy; 2025
+</div>
+
+<script>
+  // Tab navigation
+  const tabs = document.querySelectorAll('.nav-tab');
+  const sections = document.querySelectorAll('.diagram-section');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      sections.forEach(s => s.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.target).classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+</script>
+</body>
+</html>

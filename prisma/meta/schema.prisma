@@ -8,7 +8,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider    = "postgresql"
+  url         = env("META_DATABASE_URL")           // pooled (pgbouncer) — runtime
+  directUrl   = env("META_DATABASE_URL_UNPOOLED")  // sin pooler — migraciones
 }
 
 // ==========================================
@@ -61,6 +63,11 @@ model Tenant {
   logoUrl              String?
   colorPrimario        String?
   colorSecundario      String?
+
+  // Secretos cifrados con AES-256-GCM (SECRETS_ENCRYPTION_KEY en env del servidor)
+  // Estructura JSON: { groqApiKey?: string, smtpPassword?: string, ... }
+  // Nunca exponer en respuestas de API ni en logs.
+  secretosEncriptados  String?  // JSON cifrado con encrypt() de lib/encryption.ts
   
   // Auditoría
   creadoPor            String?      // ID del superadmin

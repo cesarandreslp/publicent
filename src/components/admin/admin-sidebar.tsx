@@ -225,9 +225,10 @@ const NAV_GROUPS: Array<{
     label: "Módulos activos",
     items: [
       {
-        title: "Ventanilla Única PQRS",
-        href: "",           // se reemplaza dinámicamente con apiUrl del módulo
-        externo: true,
+        title: "Ventanilla Única",
+        // Modo nativo: apunta a /admin/ventanilla. Si el módulo tiene apiUrl se sobreescribe en render.
+        href: "/admin/ventanilla",
+        externo: false,
         modulo: MODULO_IDS.VENTANILLA_UNICA,
         badge: "Activo",
         icon: (
@@ -367,7 +368,12 @@ export default function AdminSidebar({ user, tenant }: AdminSidebarProps) {
                       <span style={active ? { color: primaryColor } : undefined}>
                         {item.icon}
                       </span>
-                      {item.title}
+                      <span className="flex-1">{item.title}</span>
+                      {'badge' in item && item.badge && (
+                        <span className="text-xs bg-emerald-900/50 text-emerald-400 border border-emerald-800/40 px-1.5 py-0.5 rounded-full leading-none">
+                          {item.badge}
+                        </span>
+                      )}
                     </Link>
                   )
                 })}

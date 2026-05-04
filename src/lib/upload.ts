@@ -1,14 +1,39 @@
 /**
  * Sistema de Subida de Archivos
- * 
- * Maneja la subida de archivos al servidor local
- * Con opción de migrar a S3 en el futuro
+ *
+ * Almacena archivos en /private/uploads/ (fuera de /public) para que no sean
+ * accesibles directamente desde el navegador sin autenticación.
+ * El acceso se hace a través de /api/files/[...path] (autenticado).
+ *
+ * En producción (Vercel) los archivos deben ir a R2 — ver task #2/#11.
  */
 
 import { writeFile, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+
+// ─── Magic bytes de tipos de archivo aceptados ────────────────────────────────
+// Valida el contenido real del archivo, no el Content-Type declarado por el cliente.
+
+const MAGIC_BYTES: Record<string, number[][]> = {
+  'image/jpeg':    [[0xFF, 0xD8, 0xFF]],
+  'image/png':     [[0x89, 0x50, 0x4E, 0x47]],
+  'image/gif':     [[0x47, 0x49, 0x46, 0x38]],
+  'image/webp':    [[0x52, 0x49, 0x46, 0x46]], // RIFF....WEBP
+  'application/pdf': [[0x25, 0x50, 0x44, 0x46]], // %PDF
+  // DOCX, XLSX, ODT son ZIP → mismo magic bytes
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': [[0x50, 0x4B, 0x03, 0x04]],
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':       [[0x50, 0x4B, 0x03, 0x04]],
+  'application/msword': [[0xD0, 0xCF, 0x11, 0xE0]], // Compound Document (DOC antiguo)
+  'application/vnd.ms-excel': [[0xD0, 0xCF, 0x11, 0xE0]],
+}
+
+function validarMagicBytes(buffer: Buffer, mimeType: string): boolean {
+  const signatures = MAGIC_BYTES[mimeType]
+  if (!signatures) return true // Tipo desconocido — se confía en la extensión bloqueada
+  return signatures.some(sig => sig.every((byte, i) => buffer[i] === byte))
+}
 
 // Tipos de archivos permitidos
 export const TIPOS_PERMITIDOS = {
@@ -153,20 +178,29 @@ export async function subirArchivo(
     
     const carpetaFecha = obtenerCarpetaFecha();
     const rutaRelativa = path.join('uploads', carpeta, carpetaFecha);
-    const rutaAbsoluta = path.join(process.cwd(), 'public', rutaRelativa);
+    // ⚠️ Guardar en /private/ (fuera de /public) — acceso vía /api/files autenticado
+    const rutaAbsoluta = path.join(process.cwd(), 'private', rutaRelativa);
     
     // Asegurar que el directorio existe
     await asegurarDirectorio(rutaAbsoluta);
 
-    // Convertir archivo a buffer y guardar
+    // Convertir archivo a buffer
     const bytes = await archivo.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    
+
+    // Validar magic bytes (contenido real vs MIME declarado por el cliente)
+    if (!validarMagicBytes(buffer, archivo.type)) {
+      return {
+        success: false,
+        error: `El contenido del archivo no coincide con el tipo declarado (${archivo.type}). Archivo posiblemente alterado.`,
+      };
+    }
+
     const rutaCompleta = path.join(rutaAbsoluta, nombreArchivo);
     await writeFile(rutaCompleta, buffer);
 
-    // Generar URL pública
-    const url = `/${rutaRelativa.replace(/\\/g, '/')}/${nombreArchivo}`;
+    // URL servida por el endpoint autenticado /api/files/... (NO desde /public)
+    const url = `/api/files/${rutaRelativa.replace(/\\/g, '/')}/${nombreArchivo}`;
 
     return {
       success: true,

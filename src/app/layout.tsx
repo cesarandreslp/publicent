@@ -9,6 +9,7 @@ import { WhatsAppButton } from "@/components/shared/WhatsAppButton";
 import { CookieConsent } from "@/components/shared/CookieConsent";
 import AuthProvider from "@/components/auth/auth-provider";
 import { headers } from "next/headers";
+import { getTenantInfo } from "@/lib/tenant";
 
 const workSans = Work_Sans({
   variable: "--font-work-sans",
@@ -53,6 +54,26 @@ export default async function RootLayout({
   const layoutHint = headersList.get("x-layout");
   const isSuperAdmin = layoutHint === "superadmin";
 
+  // Cargar identidad visual del tenant (solo en contexto de tenant activo)
+  let tenantLogoUrl: string | null = null
+  let tenantNombre: string | null = null
+  let tenantNombreCorto: string | null = null
+  let tenantCssVars = ''
+  if (!isSuperAdmin) {
+    try {
+      const tenant = await getTenantInfo()
+      tenantLogoUrl = tenant.logoUrl ?? null
+      tenantNombre = tenant.nombre ?? null
+      tenantNombreCorto = tenant.nombreCorto ?? null
+      const parts: string[] = []
+      if (tenant.colorPrimario) parts.push(`--primary: ${tenant.colorPrimario};`)
+      if (tenant.colorSecundario) parts.push(`--secondary: ${tenant.colorSecundario};`)
+      if (parts.length > 0) tenantCssVars = `:root { ${parts.join(' ')} }`
+    } catch {
+      // Tenant no disponible (build time, superadmin, etc.) — usar defaults de globals.css
+    }
+  }
+
   // Detectar rutas internas donde NO se muestran widgets públicos
   // El middleware ya pone x-layout=superadmin para /superadmin
   // Para /admin y /login lo detectamos aquí via x-next-url o referer
@@ -76,6 +97,12 @@ export default async function RootLayout({
 
   return (
     <html lang="es">
+      <head>
+        {/* Variables CSS del tenant — sobreescribe defaults de globals.css */}
+        {tenantCssVars && (
+          <style dangerouslySetInnerHTML={{ __html: tenantCssVars }} />
+        )}
+      </head>
       <body className={`${workSans.variable} font-sans antialiased`}>
         <AuthProvider>
           {isPublicSite && (
@@ -106,7 +133,11 @@ export default async function RootLayout({
               <GovBar />
               
               {/* Header con navegación */}
-              <Header />
+              <Header
+                logoUrl={tenantLogoUrl}
+                nombre={tenantNombre}
+                nombreCorto={tenantNombreCorto}
+              />
             </>
           )}
           

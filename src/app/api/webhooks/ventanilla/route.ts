@@ -27,27 +27,42 @@ export async function POST(req: NextRequest) {
     }
 
     const vuConfig = getVentanillaConfig(modulos)
-    const authHeader = req.headers.get("Authorization") ?? req.headers.get("x-api-key")
 
-    // Validar autorización básica
-    if (vuConfig.apiKey && authHeader !== `Bearer ${vuConfig.apiKey}` && authHeader !== vuConfig.apiKey) {
+    // Siempre requerir apiKey — si no está configurada, el webhook no está listo
+    if (!vuConfig.apiKey) {
+      return NextResponse.json(
+        { error: "Webhook no configurado. Configure la API Key en los ajustes del módulo." },
+        { status: 503 }
+      )
+    }
+
+    const authHeader = req.headers.get("Authorization") ?? req.headers.get("x-api-key")
+    if (authHeader !== `Bearer ${vuConfig.apiKey}` && authHeader !== vuConfig.apiKey) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
     const body = await req.json()
     const validated = validateBody(webhookVentanillaSchema, body)
     if (!validated.success) return validated.response
-    const { radicado, nuevoEstado, fechaActualizacion, comentarios } = body
+    const { evento, datos } = validated.data
+    const { radicado, nuevoEstado, fechaActualizacion } = datos as Record<string, string>
 
     if (!radicado || !nuevoEstado) {
-      return NextResponse.json({ error: "Faltan parámetros requeridos" }, { status: 400 })
+      return NextResponse.json({ error: "Faltan parámetros requeridos (radicado, nuevoEstado)" }, { status: 400 })
+    }
+
+    // Validar que el estado sea un valor permitido
+    const ESTADOS_VALIDOS = ["RECIBIDA", "EN_TRAMITE", "EN_PROCESO", "RESPONDIDA", "CERRADA", "ARCHIVADA", "RECHAZADA"]
+    const estadoNormalizado = String(nuevoEstado).toUpperCase()
+    if (!ESTADOS_VALIDOS.includes(estadoNormalizado)) {
+      return NextResponse.json({ error: `Estado '${nuevoEstado}' no es válido` }, { status: 400 })
     }
 
     const prisma = await getTenantPrisma()
 
     // Verificar si tenemos copia local del radicado
     const pqrsLocal = await prisma.pQRS.findUnique({
-      where: { radicado }
+      where: { radicado: String(radicado) }
     })
 
     if (pqrsLocal) {
@@ -55,7 +70,7 @@ export async function POST(req: NextRequest) {
       await prisma.pQRS.update({
         where: { id: pqrsLocal.id },
         data: {
-          estado: nuevoEstado.toUpperCase(),
+          estado: estadoNormalizado as any,
           updatedAt: fechaActualizacion ? new Date(fechaActualizacion) : new Date(),
         }
       })
