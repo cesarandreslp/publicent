@@ -168,7 +168,7 @@ export default function FuragAlertaVigencia({ anioVigencia }: Props) {
           </p>
 
           {/* Enlace externo FURAG */}
-          {estado.nivel !== 'FUERA_DE_PERIODO' && estado.nivel !== 'VENCIDA' && (
+          {estado.nivel !== 'VENCIDA' && (
             <a
               href="https://www.funcionpublica.gov.co/web/mipg/furag"
               target="_blank"
