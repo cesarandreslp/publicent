@@ -29,6 +29,7 @@ interface Redirect {
   source: string
   destination: string
   permanent: boolean
+  has?: Array<{ type: 'query' | 'header' | 'cookie' | 'host'; key: string; value?: string }>
 }
 
 // ─── A. WordPress /index.php/... ─────────────────────────────────────────────
@@ -115,10 +116,27 @@ const wpRedirects: Redirect[] = [
 ]
 
 // ─── B. Joomla ?option=com_content&view=... ──────────────────────────────────
+// Next.js no permite querystrings en `source`; los query params se declaran en `has`.
 const joomlaRedirects: Redirect[] = [
-  { source: '/?option=com_content&view=article&id=:id',       destination: '/',                           permanent: true },
-  { source: '/component/content/article/:id',                  destination: '/',                           permanent: true },
-  { source: '/?option=com_contact&view=contact&id=:id',       destination: '/atencion-ciudadano/canales-atencion', permanent: true },
+  {
+    source: '/',
+    has: [
+      { type: 'query', key: 'option', value: 'com_content' },
+      { type: 'query', key: 'view',   value: 'article' },
+    ],
+    destination: '/',
+    permanent: true,
+  },
+  { source: '/component/content/article/:id', destination: '/', permanent: true },
+  {
+    source: '/',
+    has: [
+      { type: 'query', key: 'option', value: 'com_contact' },
+      { type: 'query', key: 'view',   value: 'contact' },
+    ],
+    destination: '/atencion-ciudadano/canales-atencion',
+    permanent: true,
+  },
 ]
 
 // ─── C. URLs cortas sin /index.php (WordPress permalinks) ────────────────────
