@@ -162,10 +162,46 @@ async function getTenantBySlug(slug: string): Promise<TenantEdgeInfo | null> {
       LIMIT 1
     `
     const tenant = (rows[0] as TenantEdgeInfo) ?? null
+
+    // Si la meta-DB no tiene el registro pero TENANT_SLUG está definido,
+    // usar fallback de variables de entorno (deploy single-tenant sin seed aún)
+    if (!tenant && process.env.TENANT_SLUG === slug) {
+      const fallback = getSingleTenantFallback(slug)
+      tenantCache.set(cacheKey, { data: fallback, ts: Date.now() })
+      return fallback
+    }
+
     tenantCache.set(cacheKey, { data: tenant, ts: Date.now() })
     return tenant
   } catch (error) {
     console.error('[tenant-edge] Error buscando por slug:', error)
+    // Fallback: si la meta-DB falla y TENANT_SLUG está definido, no bloquear
+    if (process.env.TENANT_SLUG === slug) {
+      return getSingleTenantFallback(slug)
+    }
     return null
+  }
+}
+
+/**
+ * Tenant fallback para deploy single-tenant cuando la meta-DB aún no tiene
+ * el registro sembrado. Usa exclusivamente variables de entorno.
+ * Una vez que se ejecute el seed de la meta-DB, este fallback ya no se activa.
+ */
+function getSingleTenantFallback(slug: string): TenantEdgeInfo {
+  return {
+    id:                   `env-${slug}`,
+    slug,
+    nombre:               process.env.NEXT_PUBLIC_SITE_NAME ?? 'Entidad Pública',
+    dominioPrincipal:     process.env.NEXT_PUBLIC_SITE_URL?.replace('https://', '').replace('http://', '') ?? slug,
+    dominioPersonalizado: null,
+    activo:               true,
+    suspendido:           false,
+    modulosActivos: {
+      pqrsd:             true,
+      gestionDocumental: true,
+      ventanillaUnica:   true,
+      reportes:          true,
+    },
   }
 }

@@ -99,10 +99,9 @@ async function fetchTenantInfo(tenantId: string): Promise<TenantInfo | null> {
   }
 
   // Shortcut para deploy single-tenant (Vercel):
-  // Si TENANT_SLUG está definido pero el tenantId NO coincide con el slug forzado,
-  // se consulta la meta-DB normalmente para no forzar datos del tenant equivocado.
-  // Solo usa el shortcut si el tenantId es genérico (viene del middleware single-tenant).
-  if (process.env.TENANT_SLUG && tenantId === 'dev-tenant') {
+  // El middleware inyecta IDs con prefijo 'env-' cuando la meta-DB aún no tiene
+  // el registro del tenant (fallback de tenant-edge.ts con TENANT_SLUG definido).
+  if (tenantId.startsWith('env-') && process.env.TENANT_SLUG) {
     return getSingleTenantInfo(tenantId)
   }
 
