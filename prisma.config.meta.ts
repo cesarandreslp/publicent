@@ -10,7 +10,6 @@ export default defineConfig({
     seed: "npx tsx prisma/meta/seed.ts",
   },
   datasource: {
-    url: process.env["META_DATABASE_URL"],
-    directUrl: process.env["META_DATABASE_URL_UNPOOLED"],
+    url: process.env["META_DATABASE_URL_UNPOOLED"] ?? process.env["META_DATABASE_URL"],
   },
 });
