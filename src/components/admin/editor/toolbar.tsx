@@ -1,4 +1,4 @@
-import { BubbleMenu } from '@tiptap/extension-bubble-menu'
+import { BubbleMenu } from '@tiptap/react/menus'
 import { type Editor } from '@tiptap/react'
 import {
   Bold,
@@ -37,7 +37,7 @@ export function EditorToolbar({ editor }: { editor: Editor | null }) {
   }
 
   return (
-    <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }} className="flex items-center gap-1 bg-white border border-gray-200 shadow-lg rounded-lg p-1">
+    <BubbleMenu editor={editor} className="flex items-center gap-1 bg-white border border-gray-200 shadow-lg rounded-lg p-1">
       <div className="flex items-center gap-1 border-r border-gray-200 pr-1">
         <button
           onClick={() => editor.chain().focus().toggleBold().run()}
