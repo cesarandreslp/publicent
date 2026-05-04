@@ -25,12 +25,8 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-interface Redirect {
-  source: string
-  destination: string
-  permanent: boolean
-  has?: Array<{ type: 'query' | 'header' | 'cookie' | 'host'; key: string; value?: string }>
-}
+import type { NextConfig } from "next"
+type Redirect = Awaited<ReturnType<NonNullable<NextConfig["redirects"]>>>[number]
 
 // ─── A. WordPress /index.php/... ─────────────────────────────────────────────
 const wpRedirects: Redirect[] = [
