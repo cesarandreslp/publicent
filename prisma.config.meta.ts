@@ -11,5 +11,6 @@ export default defineConfig({
   },
   datasource: {
     url: process.env["META_DATABASE_URL"],
+    directUrl: process.env["META_DATABASE_URL_UNPOOLED"],
   },
 });
