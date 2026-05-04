@@ -237,7 +237,6 @@ async function guardarLocal(payload: PQRSPayload, tipo: TipoPQRS): Promise<strin
 
       // Obtener dependencias disponibles para el contexto de la IA
       const dependencias = await prisma.dependencia.findMany({
-        where: { activa: true },
         select: { nombre: true },
       }).then(deps => deps.map(d => d.nombre)).catch(() => [])
 
