@@ -65,28 +65,28 @@ export async function POST(req: NextRequest) {
 
         // Radicados del período
         const [totalRadicados, vencidos, enRiesgo, porTipoRaw, tiempos] = await Promise.all([
-          db.pQRSD.count({
+          db.pQRS.count({
             where: { createdAt: { gte: desde, lt: hasta } },
           }),
-          db.pQRSD.count({
+          db.pQRS.count({
             where: {
               createdAt:  { gte: desde, lt: hasta },
               estadoSemaforo: "NEGRO",
             },
           }),
-          db.pQRSD.count({
+          db.pQRS.count({
             where: {
               createdAt:  { gte: desde, lt: hasta },
               estadoSemaforo: "ROJO",
             },
           }),
-          db.pQRSD.groupBy({
+          db.pQRS.groupBy({
             by:    ["tipo"],
             where: { createdAt: { gte: desde, lt: hasta } },
             _count: { tipo: true },
           }),
           // Promedio de días de respuesta (solo respondidos)
-          db.pQRSD.findMany({
+          db.pQRS.findMany({
             where: {
               createdAt: { gte: desde, lt: hasta },
               estado:    "CERRADA",
