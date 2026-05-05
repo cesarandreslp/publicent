@@ -6,39 +6,46 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Construye un Date desde un string evitando el shift UTC→local.
- * Si la entrada es 'YYYY-MM-DD' (date-only), JavaScript la interpreta como UTC
- * midnight, lo que produce un día menos cuando se formatea en Colombia (UTC-5).
- * Por eso se parsea manualmente como fecha local cuando viene en ese formato.
+ * Para fechas date-only ('YYYY-MM-DD') devuelve un Date al mediodía UTC del día
+ * indicado. El formateo posterior se fija en `timeZone: 'UTC'` para que el día
+ * impreso coincida en SSR (Vercel UTC) y cliente (Bogotá UTC-5).
+ *
+ * Si entra un Date o un ISO completo con hora, se respeta tal cual y el
+ * formateo usa America/Bogota (caso típico: timestamps de la BD).
  */
-function parseDateSafe(date: Date | string): Date {
-  if (date instanceof Date) return date
-  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date)
-  if (dateOnly) {
-    return new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
+function parseDateSafe(date: Date | string): { date: Date; dateOnly: boolean } {
+  if (date instanceof Date) return { date, dateOnly: false }
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date)
+  if (m) {
+    return {
+      date: new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12, 0, 0)),
+      dateOnly: true,
+    }
   }
-  return new Date(date)
+  return { date: new Date(date), dateOnly: false }
 }
 
 export function formatDate(date: Date | string, options?: Intl.DateTimeFormatOptions): string {
+  const { date: d, dateOnly } = parseDateSafe(date)
   const defaultOptions: Intl.DateTimeFormatOptions = {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-    timeZone: 'America/Bogota',
+    timeZone: dateOnly ? 'UTC' : 'America/Bogota',
     ...options,
   }
-  return parseDateSafe(date).toLocaleDateString('es-CO', defaultOptions)
+  return d.toLocaleDateString('es-CO', defaultOptions)
 }
 
 export function formatDateTime(date: Date | string): string {
-  return parseDateSafe(date).toLocaleDateString('es-CO', {
+  const { date: d, dateOnly } = parseDateSafe(date)
+  return d.toLocaleDateString('es-CO', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-    timeZone: 'America/Bogota',
+    timeZone: dateOnly ? 'UTC' : 'America/Bogota',
   })
 }
 
