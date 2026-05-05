@@ -113,16 +113,9 @@ const wpRedirects: Redirect[] = [
 
 // ─── B. Joomla ?option=com_content&view=... ──────────────────────────────────
 // Next.js no permite querystrings en `source`; los query params se declaran en `has`.
+// La regla `?option=com_content` apuntando a `/` se omitió porque generaba
+// loop al preservarse los query params después del redirect.
 const joomlaRedirects: Redirect[] = [
-  {
-    source: '/',
-    has: [
-      { type: 'query', key: 'option', value: 'com_content' },
-      { type: 'query', key: 'view',   value: 'article' },
-    ],
-    destination: '/',
-    permanent: true,
-  },
   { source: '/component/content/article/:id', destination: '/', permanent: true },
   {
     source: '/',
@@ -295,7 +288,7 @@ const wpAdminRedirects: Redirect[] = [
   { source: '/wp-content/:path*',                             destination: '/',                           permanent: true },
   { source: '/wp-includes/:path*',                            destination: '/',                           permanent: true },
   { source: '/administrator',                                  destination: '/login',                      permanent: true },  // Joomla
-  { source: '/admin',                                          destination: '/admin',                      permanent: false }, // No redirigir admin interno
+  // /admin no necesita redirect — es ruta interna de la app
 ]
 
 // ─── G. Variantes con extensión de archivo ────────────────────────────────────
@@ -313,7 +306,7 @@ const extensionRedirects: Redirect[] = [
 
 // ─── H. Secciones internas de transparencia (variantes adicionales) ───────────
 const transparenciaRedirects: Redirect[] = [
-  { source: '/transparencia/informacion-financiera',           destination: '/transparencia/informacion-financiera', permanent: false },
+  // /transparencia/informacion-financiera no necesita redirect — es ruta interna
   { source: '/transparencia/financiera',                       destination: '/transparencia/informacion-financiera', permanent: true },
   { source: '/transparencia/presupuesto',                      destination: '/transparencia/informacion-financiera', permanent: true },
   { source: '/transparencia/contratos',                        destination: '/transparencia/contratacion', permanent: true },
