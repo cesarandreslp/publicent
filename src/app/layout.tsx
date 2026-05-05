@@ -95,13 +95,8 @@ export default async function RootLayout({
 
   return (
     <html lang="es">
-      <head>
-        {/* Variables CSS del tenant — sobreescribe defaults de globals.css */}
-        {tenantCssVars && (
-          <style dangerouslySetInnerHTML={{ __html: tenantCssVars }} />
-        )}
-      </head>
       <body className={`${workSans.variable} font-sans antialiased`}>
+        {tenantCssVars ? <style dangerouslySetInnerHTML={{ __html: tenantCssVars }} /> : null}
         <AuthProvider>
           {isPublicSite && (
             <>

@@ -29,7 +29,7 @@ const footerLinks = {
   ],
   atencion: [
     { label: "PQRSD", href: "/atencion-ciudadano/pqrsd" },
-    { label: "Consultar PQRSD", href: "/atencion-ciudadano/consultar-pqrsd" },
+    { label: "Consultar PQRSD", href: "/atencion-ciudadano/pqrsd/consulta" },
     { label: "Mecanismos de Contacto", href: "/atencion-ciudadano/canales-atencion" },
     { label: "Preguntas Frecuentes", href: "/atencion-ciudadano/preguntas-frecuentes" },
   ],

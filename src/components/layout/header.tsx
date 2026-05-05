@@ -46,7 +46,7 @@ const menuItems = [
     obligatorio: true,
     children: [
       { label: "PQRSD", href: "/atencion-ciudadano/pqrsd" },
-      { label: "Consultar PQRSD", href: "/atencion-ciudadano/consultar-pqrsd" },
+      { label: "Consultar PQRSD", href: "/atencion-ciudadano/pqrsd/consulta" },
       { label: "Mecanismos de Contacto", href: "/atencion-ciudadano/canales-atencion" },
       { label: "Horarios de Atención", href: "/atencion-ciudadano/horarios" },
       { label: "Sede Principal", href: "/atencion-ciudadano/sede" },
