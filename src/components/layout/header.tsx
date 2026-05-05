@@ -211,11 +211,11 @@ export function Header({ logoUrl, nombre, nombreCorto }: HeaderProps) {
             </div>
 
             {/* Botón PQRSD destacado */}
-            <Link href="/atencion-ciudadano/pqrsd" className="hidden sm:block">
-              <Button variant="gov" size="sm">
+            <Button variant="gov" size="sm" asChild className="hidden sm:flex">
+              <Link href="/atencion-ciudadano/pqrsd">
                 Radicar PQRSD
-              </Button>
-            </Link>
+              </Link>
+            </Button>
 
             {/* Menú móvil */}
             <Button 
@@ -241,11 +241,11 @@ export function Header({ logoUrl, nombre, nombreCorto }: HeaderProps) {
               <MobileMenuItem key={item.label} item={item} onNavigate={() => setMobileMenuOpen(false)} />
             ))}
             <div className="pt-4 mt-4 border-t">
-              <Link href="/atencion-ciudadano/pqrsd" onClick={() => setMobileMenuOpen(false)}>
-                <Button variant="gov" className="w-full">
+              <Button variant="gov" asChild className="w-full">
+                <Link href="/atencion-ciudadano/pqrsd" onClick={() => setMobileMenuOpen(false)}>
                   Radicar PQRSD
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </div>
           </nav>
         </div>
