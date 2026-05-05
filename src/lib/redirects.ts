@@ -252,17 +252,14 @@ const shortRedirects: Redirect[] = [
   { source: '/espacios-participacion',                         destination: '/participa',                  permanent: true },
 
   // Políticas legales
-  { source: '/privacidad',                                     destination: '/privacidad',                 permanent: true },
   { source: '/politica-privacidad',                            destination: '/privacidad',                 permanent: true },
   { source: '/politica-de-privacidad',                         destination: '/privacidad',                 permanent: true },
   { source: '/terminos-condiciones',                           destination: '/terminos',                   permanent: true },
   { source: '/terminos-y-condiciones',                         destination: '/terminos',                   permanent: true },
   { source: '/derechos-autor',                                 destination: '/politicas/derechos-autor',   permanent: true },
   { source: '/propiedad-intelectual',                          destination: '/politicas/derechos-autor',   permanent: true },
-  { source: '/tratamiento-datos',                              destination: '/tratamiento-datos',          permanent: true },
   { source: '/datos-personales',                               destination: '/tratamiento-datos',          permanent: true },
   { source: '/proteccion-datos',                               destination: '/tratamiento-datos',          permanent: true },
-  { source: '/accesibilidad',                                  destination: '/accesibilidad',              permanent: true },
   { source: '/mapa-del-sitio',                                 destination: '/mapa-sitio',                 permanent: true },
   { source: '/mapa-web',                                       destination: '/mapa-sitio',                 permanent: true },
   { source: '/busqueda',                                       destination: '/buscar',                     permanent: true },

@@ -1,9 +1,10 @@
 @import "tailwindcss";
 
-/* Escaneo explícito de fuentes para Tailwind v4 en producción (Vercel) */
-@source "../**/*.{js,ts,jsx,tsx,mdx}";
-
-@plugin "@tailwindcss/typography";
+/* Escaneo explícito de fuentes para Tailwind v4 en producción (Vercel).
+   Se usa path de directorio (no glob) para que Tailwind v4 use su propio
+   scanner en lugar de depender del parseo de globs en PostCSS. */
+@source "../";
+@source "../../public/";
 
 /* ==========================================
    VARIABLES CSS - Personería Municipal
