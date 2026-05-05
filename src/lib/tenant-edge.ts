@@ -83,23 +83,23 @@ export async function getTenantByDomainEdge(
     const rows = await sql`
       SELECT
         id, slug, nombre,
-        dominio_principal   AS "dominioPrincipal",
-        dominio_personalizado AS "dominioPersonalizado",
+        "dominioPrincipal",
+        "dominioPersonalizado",
         activo, suspendido,
-        modulos_activos     AS "modulosActivos"
+        "modulosActivos"
       FROM tenants
       WHERE
         (
-          dominio_principal = ${cleanDomain}
-          OR dominio_personalizado = ${cleanDomain}
+          "dominioPrincipal" = ${cleanDomain}
+          OR "dominioPersonalizado" = ${cleanDomain}
           OR (${vercelSlug} != '' AND slug = ${vercelSlug})
         )
         AND activo = true
         AND suspendido = false
       ORDER BY
         CASE
-          WHEN dominio_principal = ${cleanDomain} THEN 0
-          WHEN dominio_personalizado = ${cleanDomain} THEN 1
+          WHEN "dominioPrincipal" = ${cleanDomain} THEN 0
+          WHEN "dominioPersonalizado" = ${cleanDomain} THEN 1
           ELSE 2
         END
       LIMIT 1
@@ -153,10 +153,10 @@ async function getTenantBySlug(slug: string): Promise<TenantEdgeInfo | null> {
     const rows = await sql`
       SELECT
         id, slug, nombre,
-        dominio_principal   AS "dominioPrincipal",
-        dominio_personalizado AS "dominioPersonalizado",
+        "dominioPrincipal",
+        "dominioPersonalizado",
         activo, suspendido,
-        modulos_activos     AS "modulosActivos"
+        "modulosActivos"
       FROM tenants
       WHERE slug = ${slug} AND activo = true AND suspendido = false
       LIMIT 1
