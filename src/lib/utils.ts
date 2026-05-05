@@ -5,23 +5,40 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/**
+ * Construye un Date desde un string evitando el shift UTC→local.
+ * Si la entrada es 'YYYY-MM-DD' (date-only), JavaScript la interpreta como UTC
+ * midnight, lo que produce un día menos cuando se formatea en Colombia (UTC-5).
+ * Por eso se parsea manualmente como fecha local cuando viene en ese formato.
+ */
+function parseDateSafe(date: Date | string): Date {
+  if (date instanceof Date) return date
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date)
+  if (dateOnly) {
+    return new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
+  }
+  return new Date(date)
+}
+
 export function formatDate(date: Date | string, options?: Intl.DateTimeFormatOptions): string {
   const defaultOptions: Intl.DateTimeFormatOptions = {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-    ...options
+    timeZone: 'America/Bogota',
+    ...options,
   }
-  return new Date(date).toLocaleDateString('es-CO', defaultOptions)
+  return parseDateSafe(date).toLocaleDateString('es-CO', defaultOptions)
 }
 
 export function formatDateTime(date: Date | string): string {
-  return new Date(date).toLocaleDateString('es-CO', {
+  return parseDateSafe(date).toLocaleDateString('es-CO', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
+    timeZone: 'America/Bogota',
   })
 }
 
