@@ -4,9 +4,7 @@ import "./globals.css";
 import { GovBar } from "@/components/layout/gov-bar";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
-import { AccessibilityToolbar } from "@/components/shared/AccessibilityToolbar";
-import { WhatsAppButton } from "@/components/shared/WhatsAppButton";
-import { CookieConsent } from "@/components/shared/CookieConsent";
+import { ClientWidgets } from "@/components/layout/client-widgets";
 import AuthProvider from "@/components/auth/auth-provider";
 import { headers } from "next/headers";
 import { getTenantInfo } from "@/lib/tenant";
@@ -150,15 +148,9 @@ export default async function RootLayout({
             <>
               {/* Footer */}
               <Footer />
-              
-              {/* Herramientas de accesibilidad */}
-              <AccessibilityToolbar />
-              
-              {/* Botón de WhatsApp - Configuración desde CMS */}
-              <WhatsAppButton />
 
-              {/* Modal de advertencia de cookies - Obligatorio */}
-              <CookieConsent />
+              {/* Widgets cargados client-only via dynamic — evita hydration mismatch */}
+              <ClientWidgets />
             </>
           )}
         </AuthProvider>

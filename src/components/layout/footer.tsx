@@ -214,7 +214,7 @@ export function Footer() {
             </div>
             
             <div className="text-center md:text-right text-sm">
-              <p>© {new Date().getFullYear()} Personería Municipal de Guadalajara de Buga</p>
+              <p suppressHydrationWarning>© {new Date().getFullYear()} Personería Municipal de Guadalajara de Buga</p>
               <p className="text-gray-500">Todos los derechos reservados - NIT: XXX.XXX.XXX-X</p>
             </div>
           </div>
