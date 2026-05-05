@@ -76,7 +76,7 @@ const defaultEnlaces: EnlaceRapido[] = [
     titulo: "Contáctenos",
     descripcion: "Canales de comunicación y atención",
     icono: "Phone",
-    enlace: "/atencion-ciudadano/contacto",
+    enlace: "/atencion-ciudadano/canales-atencion",
     gradiente: "from-indigo-600 to-indigo-800",
   },
   {

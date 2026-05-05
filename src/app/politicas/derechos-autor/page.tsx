@@ -144,7 +144,7 @@ export default function DerechosAutorPage() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
-                  href="/atencion-ciudadano/contacto"
+                  href="/atencion-ciudadano/canales-atencion"
                   className="px-6 py-3 bg-white text-gov-blue rounded-lg font-medium hover:bg-gray-100 transition-colors text-center"
                 >
                   Contactar a la Entidad

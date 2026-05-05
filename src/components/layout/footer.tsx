@@ -30,13 +30,13 @@ const footerLinks = {
   atencion: [
     { label: "PQRSD", href: "/atencion-ciudadano/pqrsd" },
     { label: "Consultar PQRSD", href: "/atencion-ciudadano/consultar-pqrsd" },
-    { label: "Mecanismos de Contacto", href: "/atencion-ciudadano/contacto" },
-    { label: "Preguntas Frecuentes", href: "/atencion-ciudadano/faq" },
+    { label: "Mecanismos de Contacto", href: "/atencion-ciudadano/canales-atencion" },
+    { label: "Preguntas Frecuentes", href: "/atencion-ciudadano/preguntas-frecuentes" },
   ],
   legal: [
     { label: "Mapa del Sitio", href: "/mapa-sitio" },
-    { label: "Políticas de Privacidad", href: "/politicas/privacidad" },
-    { label: "Términos y Condiciones", href: "/politicas/terminos" },
+    { label: "Políticas de Privacidad", href: "/privacidad" },
+    { label: "Términos y Condiciones", href: "/terminos" },
     { label: "Derechos de Autor", href: "/politicas/derechos-autor" },
     { label: "Accesibilidad", href: "/accesibilidad" },
   ],
