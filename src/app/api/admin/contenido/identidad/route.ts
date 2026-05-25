@@ -101,16 +101,25 @@ export async function PATCH(req: NextRequest) {
     )
   }
 
+  // Campos requeridos en el modelo Prisma — no pueden ser null en update/create.
+  const nombreCompleto = data.nombreCompleto
+  const nombreCorto = data.nombreCorto
+  const { nombreCompleto: _nc, nombreCorto: _ns, ...restoData } = data
+
   const prisma = await getTenantPrisma()
   const identidad = await prisma.identidadInstitucional.upsert({
     where: { singletonKey: SINGLETON_KEY },
     create: {
       singletonKey: SINGLETON_KEY,
-      nombreCompleto: data.nombreCompleto,
-      nombreCorto: data.nombreCorto,
-      ...data,
+      nombreCompleto,
+      nombreCorto,
+      ...restoData,
     },
-    update: data,
+    update: {
+      nombreCompleto,
+      nombreCorto,
+      ...restoData,
+    },
   })
 
   return NextResponse.json(identidad)

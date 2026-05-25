@@ -5,6 +5,9 @@ import { TransparenciaHome } from "@/components/home/transparencia-home"
 import { PQRSHome } from "@/components/home/pqrs-home"
 import { MapPin, Phone, Clock, Mail } from "lucide-react"
 import { getTenantPrisma } from "@/lib/tenant"
+import type { Prisma } from "@prisma/client"
+
+type NoticiaHomeRow = Prisma.NoticiaGetPayload<{ include: { categoria: true } }>
 
 export default async function HomePage() {
   let identidad: Awaited<
@@ -13,9 +16,7 @@ export default async function HomePage() {
   let sedePrincipal: Awaited<
     ReturnType<Awaited<ReturnType<typeof getTenantPrisma>>['sede']['findFirst']>
   > = null
-  let noticias: Awaited<
-    ReturnType<Awaited<ReturnType<typeof getTenantPrisma>>['noticia']['findMany']>
-  > = []
+  let noticias: NoticiaHomeRow[] = []
 
   try {
     const prisma = await getTenantPrisma()

@@ -19,6 +19,7 @@ import { prismaMeta } from "@/lib/prisma-meta"
 import { getOrCreateTenantClientById } from "@/lib/tenant"
 import { generarInformeMensual } from "@/lib/superadmin-ai"
 import type { TenantResumen } from "@/lib/superadmin-ai"
+import { EstadoPQRS } from "@prisma/client"
 
 export async function POST(req: NextRequest) {
   const session = await getSASession()
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
     const periodoLabel = `${desde.toLocaleString("es-CO", { month: "long", year: "numeric" })}`
 
     // Estados que se consideran "cerrados" (no vencibles)
-    const ESTADOS_CERRADOS = ["CERRADA", "ANULADA", "RESPONDIDA"]
+    const ESTADOS_CERRADOS: EstadoPQRS[] = [EstadoPQRS.CERRADA, EstadoPQRS.ANULADA, EstadoPQRS.RESPONDIDA]
 
     // ── 1. Obtener todos los tenants activos ─────────────────────────────────
     const tenants = await prismaMeta.tenant.findMany({

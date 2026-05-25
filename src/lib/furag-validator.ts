@@ -392,7 +392,7 @@ export async function validarIndicadoresFURAG(
     const [totalDocs, totalNoticias, totalTransparencia] = await Promise.all([
       prisma.documento?.count({ where: { createdAt: { gte: desde, lte: hasta } } }).catch(() => 0) ?? 0,
       prisma.noticia?.count({ where: { createdAt: { gte: desde, lte: hasta } } }).catch(() => 0) ?? 0,
-      prisma.paginaSeccion?.count({ where: { updatedAt: { gte: desde, lte: hasta } } }).catch(() => 0) ?? 0,
+      prisma.seccionPagina?.count({ where: { updatedAt: { gte: desde, lte: hasta } } }).catch(() => 0) ?? 0,
     ])
 
     // Puntaje heurístico: presencia de documentos + noticias + actualizaciones

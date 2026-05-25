@@ -194,7 +194,7 @@ describe('POST /api/admin/ventanilla/[id]/responder', () => {
 
   it('retorna 401 si no hay sesión', async () => {
     const { auth } = await import('@/lib/auth')
-    vi.mocked(auth).mockResolvedValueOnce(null)
+    ;(vi.mocked(auth) as ReturnType<typeof vi.fn>).mockResolvedValueOnce(null)
     const { POST } = await import('@/app/api/admin/ventanilla/[id]/responder/route')
     const req = makeRequest('POST', { tipo: 'COMPETENTE', contenido: 'texto' })
     const res = await POST(req, { params: Promise.resolve({ id: 'test-id' }) })
@@ -313,7 +313,7 @@ describe('POST /api/admin/ventanilla/[id]/reasignar', () => {
 
   it('retorna 401 si no hay sesión', async () => {
     const { auth } = await import('@/lib/auth')
-    vi.mocked(auth).mockResolvedValueOnce(null)
+    ;(vi.mocked(auth) as ReturnType<typeof vi.fn>).mockResolvedValueOnce(null)
     const { POST } = await import('@/app/api/admin/ventanilla/[id]/reasignar/route')
     const req = makeReasignarRequest({ funcionarioId: 'new-user-id' })
     const res = await POST(req, { params: Promise.resolve({ id: 'test-id' }) })
