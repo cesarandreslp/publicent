@@ -81,6 +81,7 @@ model Usuario {
   vuPlantillasReporteCreadas    VuPlantillaReporte[]      @relation("VuReportePlantillaCreador")
   vuReportesGenerados           VuReporte[]               @relation("VuReporteGenerador")
   vuConfigSistemaActualizadas   VuConfiguracionSistema[]  @relation("VuConfigSistemaActualizadoPor")
+  vuDocumentosSubidos           VuDocumento[]             @relation("VuDocumentoSubidoPor")
 
   @@map("usuarios")
 }
@@ -475,6 +476,7 @@ model PQRS {
   vuNotificaciones     VuNotificacion[]
   vuAtenciones         VuRegistroAtencion[]
   vuTokensExternos     VuRutaTokenExterno[]
+  vuDocumentos         VuDocumento[]            @relation("VuDocumentoPqrs")
 
   @@map("pqrs")
 }
@@ -2070,6 +2072,46 @@ model VuOpcionDropdown {
   @@unique([grupo, valor])
   @@index([grupo, orden])
   @@map("vu_opciones_dropdown")
+}
+
+/// Documento asociado a un PQRS dentro del modulo VU.
+/// Diferenciado de `Documento` (transversal del portal) y `GdDocumento`
+/// (gestion documental Orfeo). Ideal para adjuntos del ciudadano y
+/// evidencias del funcionario sobre un caso especifico.
+model VuDocumento {
+  id            String  @id @default(cuid())
+  pqrsId        String
+  pqrs          PQRS    @relation("VuDocumentoPqrs", fields: [pqrsId], references: [id], onDelete: Cascade)
+
+  fileName      String  // nombre saneado
+  originalName  String  // nombre original subido por el usuario
+  mimeType      String
+  fileSize      Int
+  fileUrl       String  @db.Text
+  fileKey       String? @db.Text  // key relativo en el storage para delete
+  fileHash      String?
+
+  documentType  VuTipoDocumento @default(OTRO)
+  descripcion   String?         @db.Text
+  esInterno     Boolean         @default(false)
+
+  subidoPorId    String?
+  subidoPor      Usuario? @relation("VuDocumentoSubidoPor", fields: [subidoPorId], references: [id])
+  subidoPorTipo  String  @default("USER") // USER | CITIZEN | SYSTEM
+
+  createdAt DateTime @default(now())
+
+  @@index([pqrsId, createdAt(sort: Desc)])
+  @@map("vu_documentos")
+}
+
+enum VuTipoDocumento {
+  SOLICITUD       // documento original del ciudadano
+  EVIDENCIA       // soporte aportado
+  RESPUESTA       // respuesta oficial generada
+  ANEXO           // anexo complementario
+  NOTA_INTERNA    // documento interno (no visible al ciudadano)
+  OTRO
 }
 
 /// Token externo para que el ciudadano consulte / responda sin autenticarse
