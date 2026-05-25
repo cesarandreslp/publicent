@@ -67,6 +67,20 @@ model Usuario {
   vuRespuestas          VuRespuesta[]         @relation("VuRespuestasFuncionario")
   vuChatMensajes        VuChatMensaje[]       @relation("VuChatMensajes")
 
+  // Ventanilla Única — relaciones nuevas
+  vuAsignacionesComoFuncionario VuAsignacionFuncionario[] @relation("VuAsignacionFuncionario")
+  vuAsignacionesComoResponsable VuAsignacionFuncionario[] @relation("VuAsignacionResponsable")
+  vuAsignHistorialAnterior      VuAsignacionHistorial[]   @relation("VuAsignHistAnterior")
+  vuAsignHistorialNuevo         VuAsignacionHistorial[]   @relation("VuAsignHistNuevo")
+  vuAsignHistorialResponsable   VuAsignacionHistorial[]   @relation("VuAsignHistResponsable")
+  vuReasignSolicitadas          VuPeticionReasignacion[]  @relation("VuReasignSolicitante")
+  vuReasignPropuestas           VuPeticionReasignacion[]  @relation("VuReasignPropuesto")
+  vuReasignResueltas            VuPeticionReasignacion[]  @relation("VuReasignResolutor")
+  vuNotificacionesRecibidas     VuNotificacion[]          @relation("VuNotificacionDestinatario")
+  vuAtencionesRegistradas       VuRegistroAtencion[]      @relation("VuAtencionAtendidoPor")
+  vuPlantillasReporteCreadas    VuPlantillaReporte[]      @relation("VuReportePlantillaCreador")
+  vuReportesGenerados           VuReporte[]               @relation("VuReporteGenerador")
+
   @@map("usuarios")
 }
 
@@ -436,12 +450,30 @@ model PQRS {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // ── Campos de Ventanilla Única (extienden el ticket base) ─────────────
+  folios                  Int?      // hojas que ocupa la descripción en formato carta
+  razonPrioridad          String?   @db.Text
+  diasTerminoLegal        Int?      // días hábiles del término legal según Ley 1755/2015
+  fechaTerminoSuspendido  DateTime? // suspensión del término
+  fechaTerminoReanudado   DateTime?
+  vencido                 Boolean   @default(false)
+  cerradoEn               DateTime?
+  cerradoPor              String?   // usuarioId
+  motivoCierre            String?   @db.Text
+  metadata                Json?     // datos flexibles por tipo
+
   // ── Ventanilla Única (solo activo si el módulo VU está habilitado) ──
-  colorSemaforo    VuColorSemaforo? // calculado en runtime, persiste para búsquedas
-  vuAsignacion     VuAsignacionIA?
-  vuRespuestas     VuRespuesta[]
-  vuChat           VuChatMensaje[]
-  vuDemografia     VuDemografia?
+  colorSemaforo       VuColorSemaforo? // calculado en runtime, persiste para búsquedas
+  vuAsignacion        VuAsignacionIA? // sugerencia automatica IA (no la asignacion real)
+  vuRespuestas        VuRespuesta[]
+  vuChat              VuChatMensaje[]
+  vuDemografia        VuDemografia?
+  vuAsignacionesReales VuAsignacionFuncionario[] // asignacion efectiva al funcionario
+  vuHistorialAsign     VuAsignacionHistorial[]
+  vuPeticionesReasign  VuPeticionReasignacion[]
+  vuNotificaciones     VuNotificacion[]
+  vuAtenciones         VuRegistroAtencion[]
+  vuTokensExternos     VuRutaTokenExterno[]
 
   @@map("pqrs")
 }
@@ -1738,4 +1770,335 @@ enum CategoriaFaq {
   ACCESO_INFORMACION
   ATENCION
   OTROS
+}
+
+// ==========================================
+// VENTANILLA UNICA — MODELOS EXTENDIDOS
+// (todos prefijados Vu* y con @@map("vu_...") )
+// ==========================================
+
+enum VuEstadoAsignacion {
+  ACTIVA          // asignacion vigente
+  REEMPLAZADA     // reasignada a otro funcionario
+  REVOCADA        // anulada por supervisor
+}
+
+enum VuTipoNotificacion {
+  RADICACION
+  ASIGNACION
+  REASIGNACION
+  CAMBIO_ESTADO
+  RESPUESTA
+  PROXIMO_A_VENCER
+  VENCIDO
+  CIERRE
+  CHAT
+  MENCION
+}
+
+enum VuCanalNotificacion {
+  EMAIL
+  SMS
+  WHATSAPP
+  IN_APP
+  WEBHOOK
+}
+
+enum VuEstadoNotificacion {
+  PENDIENTE
+  ENVIADA
+  ENTREGADA
+  LEIDA
+  FALLIDA
+}
+
+enum VuEstadoPeticionReasignacion {
+  PENDIENTE
+  APROBADA
+  RECHAZADA
+  CANCELADA
+}
+
+enum VuTipoCanalAtencion {
+  PRESENCIAL
+  TELEFONICO
+  VIRTUAL
+  EMAIL
+  WHATSAPP
+  OTRO
+}
+
+enum VuClavedeAjuste {
+  // Generales del modulo
+  IA_HABILITADA
+  IA_MODELO
+  IA_UMBRAL_CONFIANZA
+  // Notificaciones
+  NOTIF_EMAIL_HABILITADO
+  NOTIF_SMS_HABILITADO
+  NOTIF_WHATSAPP_HABILITADO
+  // Reportes y dashboards
+  REPORTES_DEFAULT_PERIODO
+  // Otros (extender segun necesidad)
+  PERSONALIZADO
+}
+
+/// Asignacion efectiva de un PQRS a un funcionario (no la sugerencia IA)
+model VuAsignacionFuncionario {
+  id           String              @id @default(cuid())
+  pqrsId       String
+  pqrs         PQRS                @relation(fields: [pqrsId], references: [id], onDelete: Cascade)
+
+  funcionarioId String
+  funcionario   Usuario            @relation("VuAsignacionFuncionario", fields: [funcionarioId], references: [id])
+
+  asignadoPorId String?
+  asignadoPor   Usuario?           @relation("VuAsignacionResponsable", fields: [asignadoPorId], references: [id])
+
+  estado        VuEstadoAsignacion @default(ACTIVA)
+  motivo        String?            @db.Text
+  observaciones String?            @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([pqrsId, estado])
+  @@index([funcionarioId, estado])
+  @@map("vu_asignaciones_funcionario")
+}
+
+/// Bitacora de cambios de asignacion (auditoria de quien re-asigno y por que)
+model VuAsignacionHistorial {
+  id     String @id @default(cuid())
+  pqrsId String
+  pqrs   PQRS   @relation(fields: [pqrsId], references: [id], onDelete: Cascade)
+
+  funcionarioAnteriorId String?
+  funcionarioAnterior   Usuario? @relation("VuAsignHistAnterior", fields: [funcionarioAnteriorId], references: [id])
+
+  funcionarioNuevoId String
+  funcionarioNuevo   Usuario @relation("VuAsignHistNuevo", fields: [funcionarioNuevoId], references: [id])
+
+  realizadoPorId String?
+  realizadoPor   Usuario? @relation("VuAsignHistResponsable", fields: [realizadoPorId], references: [id])
+
+  motivo    String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([pqrsId, createdAt(sort: Desc)])
+  @@map("vu_asignacion_historial")
+}
+
+/// Peticion de reasignacion que requiere aprobacion del Director / Supervisor
+model VuPeticionReasignacion {
+  id     String @id @default(cuid())
+  pqrsId String
+  pqrs   PQRS   @relation(fields: [pqrsId], references: [id], onDelete: Cascade)
+
+  solicitanteId String
+  solicitante   Usuario @relation("VuReasignSolicitante", fields: [solicitanteId], references: [id])
+
+  funcionarioPropuestoId String?
+  funcionarioPropuesto   Usuario? @relation("VuReasignPropuesto", fields: [funcionarioPropuestoId], references: [id])
+
+  motivo  String @db.Text
+  estado  VuEstadoPeticionReasignacion @default(PENDIENTE)
+
+  resueltaPorId String?
+  resueltaPor   Usuario? @relation("VuReasignResolutor", fields: [resueltaPorId], references: [id])
+  resueltaEn    DateTime?
+  observacionResolucion String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([estado, createdAt])
+  @@index([pqrsId])
+  @@map("vu_peticiones_reasignacion")
+}
+
+/// Configuracion del SLA por tipo de PQRS (en dias habiles)
+model VuConfiguracionSLA {
+  id                 String   @id @default(cuid())
+  tipo               TipoPQRS @unique
+  diasHabiles        Int      // termino legal estandar
+  diasAlerta         Int      // a partir de cuantos dias se marca como en riesgo
+  diasCriticoVencido Int?     // tolerancia adicional antes de marcar como vencido grave
+  activa             Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("vu_configuracion_sla")
+}
+
+/// Settings de runtime del modulo VU (IA, notificaciones, etc.)
+model VuConfiguracionSistema {
+  id        String          @id @default(cuid())
+  clave     VuClavedeAjuste @unique
+  valor     String          @db.Text
+  tipoDato  String          @default("string") // string | number | boolean | json
+  descripcion String?       @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("vu_configuracion_sistema")
+}
+
+/// Directorio de entidades destinatarias para REMISION / TRASLADO de PQRS
+model VuDirectorioEmail {
+  id            String  @id @default(cuid())
+  nombreEntidad String
+  email         String
+  emailCc       String?
+  telefono      String?
+  responsable   String?
+  categoria     String? // ej: "ALCALDIA", "FISCALIA", "SUPERINTENDENCIA"
+  notas         String? @db.Text
+  activa        Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([nombreEntidad, email])
+  @@index([categoria, activa])
+  @@map("vu_directorio_email")
+}
+
+/// Notificacion enviada/recibida por canal (email, SMS, in-app, etc.)
+model VuNotificacion {
+  id     String @id @default(cuid())
+  pqrsId String?
+  pqrs   PQRS?  @relation(fields: [pqrsId], references: [id], onDelete: Cascade)
+
+  destinatarioUsuarioId String?
+  destinatarioUsuario   Usuario? @relation("VuNotificacionDestinatario", fields: [destinatarioUsuarioId], references: [id])
+  destinatarioEmail     String?  // si no es usuario interno
+  destinatarioTelefono  String?
+
+  tipo       VuTipoNotificacion
+  canal      VuCanalNotificacion
+  estado     VuEstadoNotificacion @default(PENDIENTE)
+  asunto     String?
+  contenido  String   @db.Text
+  intentos   Int      @default(0)
+  ultimoError String? @db.Text
+  enviadaEn  DateTime?
+  leidaEn    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([pqrsId])
+  @@index([estado, canal])
+  @@index([destinatarioUsuarioId, leidaEn])
+  @@map("vu_notificaciones")
+}
+
+/// Bitacora de atenciones presenciales / telefonicas al ciudadano
+model VuRegistroAtencion {
+  id     String @id @default(cuid())
+  pqrsId String?
+  pqrs   PQRS?  @relation(fields: [pqrsId], references: [id])
+
+  ciudadanoNombre   String
+  ciudadanoDocumento String?
+  ciudadanoTelefono  String?
+  ciudadanoEmail     String?
+
+  canal     VuTipoCanalAtencion
+  motivo    String   @db.Text
+  resolucion String? @db.Text
+
+  atendidoPorId String?
+  atendidoPor   Usuario? @relation("VuAtencionAtendidoPor", fields: [atendidoPorId], references: [id])
+
+  duracionMinutos Int?
+  satisfaccion    Int?  // 1-5
+
+  createdAt DateTime @default(now())
+
+  @@index([canal, createdAt])
+  @@map("vu_registro_atencion")
+}
+
+/// Plantilla reutilizable para generar reportes
+model VuPlantillaReporte {
+  id          String  @id @default(cuid())
+  nombre      String  @unique
+  descripcion String? @db.Text
+  consulta    Json    // estructura del reporte (filtros, agrupaciones, columnas)
+  esPublica   Boolean @default(true)
+
+  creadoPorId String?
+  creadoPor   Usuario? @relation("VuReportePlantillaCreador", fields: [creadoPorId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reportes VuReporte[]
+
+  @@map("vu_plantillas_reporte")
+}
+
+/// Reporte generado (instancia ejecutada de una plantilla)
+model VuReporte {
+  id          String  @id @default(cuid())
+  plantillaId String?
+  plantilla   VuPlantillaReporte? @relation(fields: [plantillaId], references: [id])
+
+  parametros Json    // valores con que se ejecuto
+  resultado  Json    // snapshot del resultado en el momento de generarlo
+  archivoUrl String? // exportacion (PDF/XLSX/CSV)
+
+  generadoPorId String?
+  generadoPor   Usuario? @relation("VuReporteGenerador", fields: [generadoPorId], references: [id])
+
+  periodoDesde DateTime?
+  periodoHasta DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([plantillaId, createdAt(sort: Desc)])
+  @@map("vu_reportes")
+}
+
+/// Opciones configurables para listas desplegables en el modulo VU
+model VuOpcionDropdown {
+  id       String  @id @default(cuid())
+  grupo    String  // ej: "ZONA", "MOTIVO_CIERRE", "TIPO_DOCUMENTO"
+  valor    String
+  etiqueta String
+  orden    Int     @default(0)
+  activa   Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([grupo, valor])
+  @@index([grupo, orden])
+  @@map("vu_opciones_dropdown")
+}
+
+/// Token externo para que el ciudadano consulte / responda sin autenticarse
+model VuRutaTokenExterno {
+  id     String @id @default(cuid())
+  token  String @unique  // se entrega al ciudadano
+  pqrsId String
+  pqrs   PQRS   @relation(fields: [pqrsId], references: [id], onDelete: Cascade)
+
+  // Permisos del token
+  permiteConsulta  Boolean @default(true)
+  permiteResponder Boolean @default(false)
+
+  expiraEn   DateTime?
+  ultimoUsoEn DateTime?
+  vecesUsado  Int      @default(0)
+  revocadoEn  DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([pqrsId])
+  @@map("vu_rutas_token_externo")
 }
