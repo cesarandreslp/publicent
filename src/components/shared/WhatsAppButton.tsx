@@ -57,8 +57,8 @@ export function WhatsAppButton({
 
   // Valores finales (API > props > defaults)
   const finalPhoneNumber = config?.numero || phoneNumber || '573000000000'
-  const finalMessage = config?.mensaje || message || 'Hola, tengo una consulta sobre los servicios de la Personería Municipal de Buga.'
-  const finalAgentName = config?.nombreAgente || agentName || 'Personería de Buga'
+  const finalMessage = config?.mensaje || message || 'Hola, tengo una consulta sobre los servicios de la entidad.'
+  const finalAgentName = config?.nombreAgente || agentName || 'Atención al ciudadano'
   const finalWelcomeMessage = config?.mensajeBienvenida || welcomeMessage || '¿Necesita ayuda? Escríbanos por WhatsApp'
 
   const handleClick = () => {

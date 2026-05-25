@@ -1,14 +1,19 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
 import { PageHeader } from '@/components/shared/page-header'
+import { getIdentidadPublica } from '@/lib/identidad-publica'
 
 export const metadata: Metadata = {
-  title: 'Términos y Condiciones | Personería Municipal de Guadalajara de Buga',
-  description:
-    'Términos y condiciones de uso del sitio web de la Personería Municipal de Guadalajara de Buga',
+  title: 'Términos y Condiciones',
+  description: 'Términos y condiciones de uso del sitio web',
 }
 
-export default function TerminosPage() {
+export default async function TerminosPage() {
+  const id = await getIdentidadPublica()
+  const direccionLinea = [id.direccionPrincipal, id.ciudadDepto]
+    .filter(Boolean)
+    .join(', ')
+
   return (
     <>
       <PageHeader
@@ -27,18 +32,18 @@ export default function TerminosPage() {
 
               <h2>1. Aceptación de los Términos</h2>
               <p>
-                Al acceder y utilizar el sitio web de la Personería Municipal de Guadalajara de Buga, 
-                usted acepta estar sujeto a estos Términos y Condiciones de Uso, todas las leyes y 
-                regulaciones aplicables, y acepta que es responsable del cumplimiento de las leyes 
-                locales aplicables. Si no está de acuerdo con alguno de estos términos, tiene 
+                Al acceder y utilizar el sitio web de {id.nombreCompleto}, usted acepta estar
+                sujeto a estos Términos y Condiciones de Uso, todas las leyes y regulaciones
+                aplicables, y acepta que es responsable del cumplimiento de las leyes locales
+                aplicables. Si no está de acuerdo con alguno de estos términos, tiene
                 prohibido usar o acceder a este sitio.
               </p>
 
               <h2>2. Uso del Sitio Web</h2>
               <p>
-                Este sitio web es proporcionado por la Personería Municipal de Guadalajara de Buga 
-                como un servicio público para facilitar el acceso a información institucional y la 
-                realización de trámites en línea.
+                Este sitio web es proporcionado por {id.nombreCompleto} como un servicio
+                público para facilitar el acceso a información institucional y la realización
+                de trámites en línea.
               </p>
               <p>El usuario se compromete a:</p>
               <ul>
@@ -51,10 +56,9 @@ export default function TerminosPage() {
 
               <h2>3. Propiedad Intelectual</h2>
               <p>
-                Los contenidos de este sitio web, incluyendo textos, gráficos, logotipos, imágenes, 
-                documentos y software, son propiedad de la Personería Municipal de Guadalajara de 
-                Buga o de terceros que han autorizado su uso, y están protegidos por las leyes de 
-                propiedad intelectual.
+                Los contenidos de este sitio web, incluyendo textos, gráficos, logotipos, imágenes,
+                documentos y software, son propiedad de {id.nombreCompleto} o de terceros que han
+                autorizado su uso, y están protegidos por las leyes de propiedad intelectual.
               </p>
               <p>
                 Se permite la reproducción total o parcial de los contenidos, siempre que se cite 
@@ -122,9 +126,7 @@ export default function TerminosPage() {
               </ul>
 
               <h2>9. Limitación de Responsabilidad</h2>
-              <p>
-                La Personería Municipal de Guadalajara de Buga no será responsable por:
-              </p>
+              <p>{id.nombreCompleto} no será responsable por:</p>
               <ul>
                 <li>Daños derivados del uso o imposibilidad de uso del sitio</li>
                 <li>Errores u omisiones en el contenido</li>
@@ -151,9 +153,9 @@ export default function TerminosPage() {
                 Para consultas sobre estos Términos y Condiciones, contáctenos a través de:
               </p>
               <ul>
-                <li>Teléfono: (602) 2017004</li>
-                <li>Correo electrónico: contacto@personeriabuga.gov.co</li>
-                <li>Dirección: Calle 7 N° 12-45, Guadalajara de Buga, Valle del Cauca</li>
+                {id.telefonoConmutador && <li>Teléfono: {id.telefonoConmutador}</li>}
+                {id.emailContacto && <li>Correo electrónico: {id.emailContacto}</li>}
+                {direccionLinea && <li>Dirección: {direccionLinea}</li>}
               </ul>
             </div>
           </div>

@@ -16,11 +16,12 @@ interface Slide {
   gradiente?: string
 }
 
-const defaultSlides: Slide[] = [
+function buildDefaultSlides(nombreEntidad: string): Slide[] {
+  return [
   {
     id: "1",
     acento: "Defensores del Ciudadano",
-    titulo: "Personería Municipal de Guadalajara de Buga",
+    titulo: nombreEntidad,
     subtitulo: "Protegemos sus derechos, promovemos la transparencia y garantizamos el acceso a la justicia para todos los ciudadanos.",
     gradiente: "from-[#1a237e] via-[#283593] to-[#1565C0]",
     enlace: "/entidad",
@@ -44,7 +45,8 @@ const defaultSlides: Slide[] = [
     enlace: "/transparencia",
     textoBoton: "Ver Transparencia"
   }
-]
+  ]
+}
 
 const stats = [
   { icon: Shield, label: "Quejas resueltas", value: 1247, suffix: "+" },
@@ -92,13 +94,17 @@ interface HeroSliderProps {
   slides?: Slide[]
   autoPlay?: boolean
   interval?: number
+  /** Nombre de la entidad para el slide por defecto. Si no se pasa, usa "Entidad Pública". */
+  nombreEntidad?: string
 }
 
 export function HeroSlider({
-  slides = defaultSlides,
+  slides,
   autoPlay = true,
-  interval = 6000
+  interval = 6000,
+  nombreEntidad = "Entidad Pública",
 }: HeroSliderProps) {
+  const effectiveSlides = slides ?? buildDefaultSlides(nombreEntidad)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
   const [statsVisible, setStatsVisible] = useState(false)
@@ -107,16 +113,16 @@ export function HeroSlider({
   const nextSlide = useCallback(() => {
     if (isAnimating) return
     setIsAnimating(true)
-    setCurrentIndex((prev) => (prev + 1) % slides.length)
+    setCurrentIndex((prev) => (prev + 1) % effectiveSlides.length)
     setTimeout(() => setIsAnimating(false), 700)
-  }, [isAnimating, slides.length])
+  }, [isAnimating, effectiveSlides.length])
 
   const prevSlide = useCallback(() => {
     if (isAnimating) return
     setIsAnimating(true)
-    setCurrentIndex((prev) => (prev - 1 + slides.length) % slides.length)
+    setCurrentIndex((prev) => (prev - 1 + effectiveSlides.length) % effectiveSlides.length)
     setTimeout(() => setIsAnimating(false), 700)
-  }, [isAnimating, slides.length])
+  }, [isAnimating, effectiveSlides.length])
 
   useEffect(() => {
     if (!autoPlay) return
@@ -137,7 +143,7 @@ export function HeroSlider({
     <section className="relative w-full min-h-[560px] md:min-h-[680px] overflow-hidden" aria-label="Presentación principal">
 
       {/* Slides */}
-      {slides.map((slide, index) => (
+      {effectiveSlides.map((slide, index) => (
         <div
           key={slide.id}
           className={cn(
@@ -247,7 +253,7 @@ export function HeroSlider({
 
       {/* Slide indicators */}
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex gap-2 items-center">
-        {slides.map((_, index) => (
+        {effectiveSlides.map((_, index) => (
           <button
             key={index}
             onClick={() => { if (!isAnimating && index !== currentIndex) { setIsAnimating(true); setCurrentIndex(index); setTimeout(() => setIsAnimating(false), 700) } }}

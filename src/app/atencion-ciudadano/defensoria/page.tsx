@@ -13,11 +13,12 @@ import {
   CheckCircle,
 } from 'lucide-react'
 import { PageHeader } from '@/components/shared/page-header'
+import { getTenantPrisma } from '@/lib/tenant'
 
 export const metadata: Metadata = {
-  title: 'Defensoría del Pueblo | Personería Municipal de Guadalajara de Buga',
+  title: 'Defensoría del Pueblo',
   description:
-    'Servicios de la Defensoría del Pueblo en coordinación con la Personería Municipal de Guadalajara de Buga',
+    'Servicios de la Defensoría del Pueblo en coordinación con la entidad.',
 }
 
 const serviciosDefensoria = [
@@ -85,7 +86,18 @@ const tramites = [
   },
 ]
 
-export default function DefensoriaPage() {
+export default async function DefensoriaPage() {
+  let sedeSecundaria: Awaited<
+    ReturnType<Awaited<ReturnType<typeof getTenantPrisma>>['sede']['findFirst']>
+  > = null
+  try {
+    const prisma = await getTenantPrisma()
+    sedeSecundaria = await prisma.sede.findFirst({
+      where: { activa: true, esPrincipal: false },
+      orderBy: [{ orden: 'asc' }, { createdAt: 'asc' }],
+    })
+  } catch {}
+
   return (
     <>
       <PageHeader
@@ -198,75 +210,86 @@ export default function DefensoriaPage() {
           </div>
         </section>
 
-        {/* Contacto Casa de la Justicia */}
-        <section className="mb-12">
-          <div className="bg-gray-50 rounded-xl p-8">
-            <div className="flex flex-col lg:flex-row gap-8">
-              <div className="flex-1">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">Casa de la Justicia</h2>
-                <p className="text-gray-600 mb-6">
-                  En la Casa de la Justicia de Guadalajara de Buga encontrará servicios integrados 
-                  de acceso a la justicia. Contamos con funcionarios capacitados para orientarle 
-                  en la defensa de sus derechos.
-                </p>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-white rounded-lg shadow-sm">
-                      <MapPin className="w-5 h-5 text-gov-blue" />
+        {/* Contacto sede de servicios */}
+        {sedeSecundaria && (
+          <section className="mb-12">
+            <div className="bg-gray-50 rounded-xl p-8">
+              <div className="flex flex-col lg:flex-row gap-8">
+                <div className="flex-1">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                    {sedeSecundaria.nombre}
+                  </h2>
+                  {sedeSecundaria.observaciones && (
+                    <p className="text-gray-600 mb-6">{sedeSecundaria.observaciones}</p>
+                  )}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-white rounded-lg shadow-sm">
+                        <MapPin className="w-5 h-5 text-gov-blue" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">Dirección</p>
+                        <p className="text-gray-600 text-sm">
+                          {sedeSecundaria.direccion}
+                          {sedeSecundaria.ciudad ? `, ${sedeSecundaria.ciudad}` : ''}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium text-gray-900">Dirección</p>
-                      <p className="text-gray-600 text-sm">Calle 3 # 17-50, Guadalajara de Buga</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-white rounded-lg shadow-sm">
-                      <Phone className="w-5 h-5 text-gov-blue" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">Teléfono</p>
-                      <p className="text-gray-600 text-sm">(602) 2017004</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-white rounded-lg shadow-sm">
-                      <Clock className="w-5 h-5 text-gov-blue" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">Horario</p>
-                      <p className="text-gray-600 text-sm">Lunes a Viernes: 8:00 a.m. - 5:00 p.m.</p>
-                    </div>
+                    {sedeSecundaria.telefono && (
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-white rounded-lg shadow-sm">
+                          <Phone className="w-5 h-5 text-gov-blue" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">Teléfono</p>
+                          <p className="text-gray-600 text-sm">{sedeSecundaria.telefono}</p>
+                        </div>
+                      </div>
+                    )}
+                    {sedeSecundaria.horarioAtencion && (
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-white rounded-lg shadow-sm">
+                          <Clock className="w-5 h-5 text-gov-blue" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">Horario</p>
+                          <p className="text-gray-600 text-sm whitespace-pre-line">
+                            {sedeSecundaria.horarioAtencion}
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
-              </div>
-              <div className="lg:w-80">
-                <div className="bg-white rounded-xl shadow-sm border p-6">
-                  <h3 className="font-bold text-gray-900 mb-4">¿Necesita ayuda?</h3>
-                  <p className="text-gray-600 text-sm mb-4">
-                    Si requiere orientación sobre sus derechos o necesita interponer una acción 
-                    legal, acérquese a nuestras oficinas o radique su solicitud en línea.
-                  </p>
-                  <div className="space-y-3">
-                    <Link
-                      href="/atencion-ciudadano/pqrsd"
-                      className="flex items-center justify-between w-full px-4 py-3 bg-gov-blue text-white rounded-lg font-medium hover:bg-gov-blue-dark transition-colors"
-                    >
-                      Radicar solicitud
-                      <ArrowRight className="w-4 h-4" />
-                    </Link>
-                    <Link
-                      href="/atencion-ciudadano/canales-atencion"
-                      className="flex items-center justify-between w-full px-4 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
-                    >
-                      Ver más canales
-                      <ArrowRight className="w-4 h-4" />
-                    </Link>
+                <div className="lg:w-80">
+                  <div className="bg-white rounded-xl shadow-sm border p-6">
+                    <h3 className="font-bold text-gray-900 mb-4">¿Necesita ayuda?</h3>
+                    <p className="text-gray-600 text-sm mb-4">
+                      Si requiere orientación sobre sus derechos o necesita interponer una acción
+                      legal, acérquese a nuestras oficinas o radique su solicitud en línea.
+                    </p>
+                    <div className="space-y-3">
+                      <Link
+                        href="/atencion-ciudadano/pqrsd"
+                        className="flex items-center justify-between w-full px-4 py-3 bg-gov-blue text-white rounded-lg font-medium hover:bg-gov-blue-dark transition-colors"
+                      >
+                        Radicar solicitud
+                        <ArrowRight className="w-4 h-4" />
+                      </Link>
+                      <Link
+                        href="/atencion-ciudadano/canales-atencion"
+                        className="flex items-center justify-between w-full px-4 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                      >
+                        Ver más canales
+                        <ArrowRight className="w-4 h-4" />
+                      </Link>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         {/* Normatividad */}
         <section>

@@ -4,7 +4,7 @@ import { PageHeader } from '@/components/shared/page-header'
 import ConsultaContent from './consulta-client'
 
 export const metadata: Metadata = {
-  title: 'Consultar PQRSD | Personería Municipal de Guadalajara de Buga',
+  title: 'Consultar PQRSD',
   description: 'Consulte el estado de su Petición, Queja, Reclamo, Sugerencia o Denuncia'
 }
 

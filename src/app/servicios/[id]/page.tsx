@@ -18,6 +18,8 @@ import {
   AlertCircle,
 } from 'lucide-react'
 import { PageHeader } from '@/components/shared/page-header'
+import { getIdentidadPublica } from '@/lib/identidad-publica'
+import { getTenantPrisma } from '@/lib/tenant'
 
 // Datos de servicios
 const servicios = {
@@ -26,9 +28,9 @@ const servicios = {
     descripcion:
       'Orientación legal gratuita en temas de derechos humanos, administrativos, civiles, penales y laborales para la ciudadanía.',
     descripcionLarga: `
-      La Personería Municipal de Guadalajara de Buga ofrece el servicio de asesoría jurídica 
-      gratuita como parte de su compromiso con la defensa y promoción de los derechos de los 
-      ciudadanos. Este servicio está dirigido a toda la población del municipio, con especial 
+      La entidad ofrece el servicio de asesoría jurídica
+      gratuita como parte de su compromiso con la defensa y promoción de los derechos de los
+      ciudadanos. Este servicio está dirigido a toda la población del municipio, con especial
       atención a los sectores más vulnerables.
 
       Nuestros profesionales del derecho están capacitados para brindar orientación en diversas 
@@ -58,10 +60,7 @@ const servicios = {
       'Recibir orientación y recomendaciones jurídicas',
     ],
     poblacion: 'Todos los ciudadanos del municipio',
-    contacto: {
-      telefono: '(602) 2017004',
-      direccion: 'Calle 7 N° 12-45, Guadalajara de Buga',
-    },
+    sedeSecundaria: false,
   },
   'tutelas': {
     titulo: 'Interposición de Acciones de Tutela',
@@ -100,10 +99,7 @@ const servicios = {
       'Seguimiento al proceso hasta obtener el fallo',
     ],
     poblacion: 'Todos los ciudadanos cuyos derechos fundamentales estén siendo vulnerados',
-    contacto: {
-      telefono: '(602) 2017004',
-      direccion: 'Calle 7 N° 12-45, Guadalajara de Buga',
-    },
+    sedeSecundaria: false,
   },
   'vigilancia-administrativa': {
     titulo: 'Vigilancia de la Conducta Oficial',
@@ -144,10 +140,7 @@ const servicios = {
       'Notificación del resultado al quejoso',
     ],
     poblacion: 'Todos los ciudadanos afectados por la conducta de servidores públicos',
-    contacto: {
-      telefono: '(602) 2017004',
-      direccion: 'Calle 7 N° 12-45, Guadalajara de Buga',
-    },
+    sedeSecundaria: false,
   },
   'veedurias': {
     titulo: 'Apoyo a Veedurías Ciudadanas',
@@ -190,10 +183,7 @@ const servicios = {
       'Iniciar el ejercicio de control social',
     ],
     poblacion: 'Organizaciones civiles y ciudadanos interesados en el control social',
-    contacto: {
-      telefono: '(602) 2017004',
-      direccion: 'Calle 7 N° 12-45, Guadalajara de Buga',
-    },
+    sedeSecundaria: false,
   },
   'pqrsd': {
     titulo: 'Radicación de PQRSD',
@@ -232,10 +222,7 @@ const servicios = {
       'Consultar el estado de la solicitud si lo desea',
     ],
     poblacion: 'Todos los ciudadanos',
-    contacto: {
-      telefono: '(602) 2017004',
-      direccion: 'Calle 7 N° 12-45, Guadalajara de Buga',
-    },
+    sedeSecundaria: false,
   },
   'conciliaciones': {
     titulo: 'Conciliación en Equidad',
@@ -277,10 +264,7 @@ const servicios = {
       'Seguimiento al cumplimiento del acuerdo',
     ],
     poblacion: 'Ciudadanos con conflictos susceptibles de conciliación',
-    contacto: {
-      telefono: '(602) 2017004',
-      direccion: 'Casa de la Justicia - Calle 3 # 17-50',
-    },
+    sedeSecundaria: true,
   },
 }
 
@@ -312,7 +296,7 @@ export async function generateMetadata({
   }
 
   return {
-    title: `${servicio.titulo} | Personería Municipal de Guadalajara de Buga`,
+    title: servicio.titulo,
     description: servicio.descripcion,
   }
 }
@@ -330,6 +314,27 @@ export default async function ServicioDetallePage({
   }
 
   const IconComponent = servicio.icono
+
+  const identidad = await getIdentidadPublica()
+  let sedeContacto: { direccion: string | null; telefono: string | null } | null = null
+  try {
+    const prisma = await getTenantPrisma()
+    const sede = servicio.sedeSecundaria
+      ? await prisma.sede.findFirst({
+          where: { activa: true, esPrincipal: false },
+          orderBy: [{ orden: 'asc' }, { createdAt: 'asc' }],
+          select: { direccion: true, telefono: true },
+        })
+      : await prisma.sede.findFirst({
+          where: { activa: true, esPrincipal: true },
+          select: { direccion: true, telefono: true },
+        })
+    if (sede) sedeContacto = sede
+  } catch {}
+  const telefonoServicio =
+    sedeContacto?.telefono ?? identidad.telefonoConmutador ?? null
+  const direccionServicio =
+    sedeContacto?.direccion ?? identidad.direccionPrincipal ?? null
 
   return (
     <>
@@ -410,17 +415,21 @@ export default async function ServicioDetallePage({
                   Contáctenos o radique su solicitud en línea
                 </p>
                 <div className="space-y-2">
-                  <a
-                    href={`tel:${servicio.contacto.telefono.replace(/\D/g, '')}`}
-                    className="flex items-center gap-2 text-gov-blue hover:underline text-sm"
-                  >
-                    <Phone className="w-4 h-4" />
-                    {servicio.contacto.telefono}
-                  </a>
-                  <p className="flex items-start gap-2 text-gray-600 text-sm">
-                    <MapPin className="w-4 h-4 mt-0.5 shrink-0" />
-                    {servicio.contacto.direccion}
-                  </p>
+                  {telefonoServicio && (
+                    <a
+                      href={`tel:${telefonoServicio.replace(/\D/g, '')}`}
+                      className="flex items-center gap-2 text-gov-blue hover:underline text-sm"
+                    >
+                      <Phone className="w-4 h-4" />
+                      {telefonoServicio}
+                    </a>
+                  )}
+                  {direccionServicio && (
+                    <p className="flex items-start gap-2 text-gray-600 text-sm">
+                      <MapPin className="w-4 h-4 mt-0.5 shrink-0" />
+                      {direccionServicio}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 
 export const metadata: Metadata = {
-  title: 'Calendario de Actividades | Personería Municipal de Guadalajara de Buga',
+  title: 'Calendario de Actividades',
   description: 'Conozca los eventos, audiencias, capacitaciones y demás actividades programadas por la entidad.',
 }
 
@@ -33,7 +33,7 @@ const eventos = [
     titulo: 'Mesa de Participación de Víctimas',
     fecha: '2026-06-20',
     hora: '10:00 AM',
-    lugar: 'Auditorio Comfandi Buga',
+    lugar: 'Auditorio principal del municipio',
     tipo: 'Derechos Humanos',
     descripcion: 'Reunión ordinaria con la mesa municipal de participación efectiva de víctimas del conflicto armado.',
   },
@@ -44,7 +44,7 @@ export default function CalendarioPage() {
     <>
       <PageHeader
         title="Calendario de Actividades y Eventos"
-        description="Agéndese con las actividades, programas y espacios de participación de la Personería Municipal"
+        description="Agéndese con las actividades, programas y espacios de participación de la entidad"
         breadcrumbItems={[
           { label: 'Transparencia', href: '/transparencia' },
           { label: '1. Información de la Entidad', href: '/transparencia/informacion-entidad' },

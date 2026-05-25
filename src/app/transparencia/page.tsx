@@ -2,6 +2,9 @@ import Link from "next/link"
 import { ChevronRight, FileText, Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { getTenantPrisma } from "@/lib/tenant"
+import { getIdentidadPublica } from "@/lib/identidad-publica"
+import { formatDate } from "@/lib/utils"
 
 // Categorías según Resolución 1519 de 2020
 const categoriasTransparencia = [
@@ -126,10 +129,19 @@ const categoriasTransparencia = [
 
 export const metadata = {
   title: "Transparencia y Acceso a la Información Pública",
-  description: "Acceda a toda la información pública de la Personería Municipal de Guadalajara de Buga según la Ley 1712 de 2014 y la Resolución 1519 de 2020",
+  description: "Acceda a toda la información pública de la entidad según la Ley 1712 de 2014 y la Resolución 1519 de 2020",
 }
 
-export default function TransparenciaPage() {
+export default async function TransparenciaPage() {
+  const prisma = await getTenantPrisma()
+  const ultimoItem = await prisma.itemTransparencia.findFirst({
+    orderBy: { updatedAt: 'desc' },
+    select: { updatedAt: true, fechaActualizacion: true },
+  })
+  const fechaUltimaActualizacion =
+    ultimoItem?.fechaActualizacion ?? ultimoItem?.updatedAt ?? null
+  const id = await getIdentidadPublica()
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Breadcrumb */}
@@ -275,9 +287,14 @@ export default function TransparenciaPage() {
 
         {/* Fecha de actualización */}
         <div className="mt-8 text-center text-sm text-gray-500">
-          <p>Última actualización: {new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+          <p>
+            Última actualización:{' '}
+            {fechaUltimaActualizacion
+              ? formatDate(fechaUltimaActualizacion)
+              : 'sin registros'}
+          </p>
           <p className="mt-1">
-            Responsable: Personería Municipal de Guadalajara de Buga | 
+            Responsable: {id.nombreCompleto} |
             <Link href="/atencion-ciudadano/pqrsd" className="text-gov-blue hover:underline ml-1">
               Reportar información desactualizada
             </Link>

@@ -18,36 +18,6 @@ interface Noticia {
   }
 }
 
-const defaultNoticias: Noticia[] = [
-  {
-    id: "1",
-    titulo: "La Personería realiza jornada de atención al ciudadano en zona rural",
-    slug: "jornada-atencion-ciudadano-zona-rural",
-    extracto: "Con el objetivo de acercar los servicios de la Personería a las comunidades más alejadas, se realizó una jornada de atención en el corregimiento de Chorreras donde más de 80 familias fueron atendidas.",
-    imagenDestacada: "",
-    fechaPublicacion: "2026-03-15",
-    categoria: { nombre: "Gestión", color: "#10b981" }
-  },
-  {
-    id: "2",
-    titulo: "Capacitación en Derechos Humanos para líderes comunitarios",
-    slug: "capacitacion-derechos-humanos-lideres",
-    extracto: "La Personería Municipal llevó a cabo una capacitación dirigida a más de 60 líderes comunitarios sobre mecanismos de protección de derechos y participación ciudadana efectiva.",
-    imagenDestacada: "",
-    fechaPublicacion: "2026-03-10",
-    categoria: { nombre: "Derechos Humanos", color: "#3b82f6" }
-  },
-  {
-    id: "3",
-    titulo: "Informe de gestión del primer trimestre 2026",
-    slug: "informe-gestion-primer-trimestre-2026",
-    extracto: "La Personería Municipal presenta su informe de gestión correspondiente al primer trimestre del año 2026, con resultados positivos en la atención al ciudadano y el control disciplinario.",
-    imagenDestacada: "",
-    fechaPublicacion: "2026-03-05",
-    categoria: { nombre: "Informes", color: "#8b5cf6" }
-  }
-]
-
 const GRADIENT_FALLBACKS = [
   "from-blue-700 to-blue-900",
   "from-purple-700 to-purple-900",
@@ -58,8 +28,31 @@ interface NoticiasHomeProps {
   noticias?: Noticia[]
 }
 
-export function NoticiasHome({ noticias = defaultNoticias }: NoticiasHomeProps) {
+export function NoticiasHome({ noticias = [] }: NoticiasHomeProps) {
   const [featured, ...rest] = noticias
+
+  if (noticias.length === 0) {
+    return (
+      <section className="py-16 bg-white" aria-labelledby="noticias-title">
+        <div className="container mx-auto px-6">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-12">
+            <div>
+              <div className="inline-flex items-center gap-2 text-gov-blue font-semibold text-sm uppercase tracking-widest mb-3">
+                <span className="w-8 h-0.5 bg-gov-blue inline-block" />
+                Sala de prensa
+              </div>
+              <h2 id="noticias-title" className="text-3xl md:text-4xl font-extrabold text-gray-900">
+                Últimas Noticias
+              </h2>
+            </div>
+          </div>
+          <div className="rounded-2xl bg-gray-50 border border-gray-100 p-12 text-center text-gray-500">
+            <p>Aún no hay noticias publicadas.</p>
+          </div>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section className="py-16 bg-white" aria-labelledby="noticias-title">

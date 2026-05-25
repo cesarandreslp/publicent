@@ -89,6 +89,7 @@ export default function PQRSDPage() {
 
   // Turnstile token
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+  const [aceptoTerminos, setAceptoTerminos] = useState(false)
 
   // Descripción
   const [asunto, setAsunto] = useState('')
@@ -568,13 +569,15 @@ export default function PQRSDPage() {
                 <input
                   type="checkbox"
                   id="aceptaTerminos"
+                  checked={aceptoTerminos}
+                  onChange={(e) => setAceptoTerminos(e.target.checked)}
                   required
                   aria-required="true"
                   className="w-4 h-4 text-gov-blue rounded border-gray-300 focus:ring-gov-blue mt-1"
                 />
                 <span className="text-sm text-gray-600">
                   Acepto la{' '}
-                  <Link href="/politicas/tratamiento-datos" className="text-gov-blue hover:underline">
+                  <Link href="/tratamiento-datos" className="text-gov-blue hover:underline">
                     política de tratamiento de datos personales
                   </Link>{' '}
                   y autorizo a la Personería Municipal de Guadalajara de Buga para el procesamiento 
@@ -614,8 +617,8 @@ export default function PQRSDPage() {
               </Link>
               <button
                 type="submit"
-                disabled={!tipoPQRSD || !turnstileToken || loading}
-                aria-disabled={!tipoPQRSD || !turnstileToken || loading}
+                disabled={!tipoPQRSD || !turnstileToken || !aceptoTerminos || loading}
+                aria-disabled={!tipoPQRSD || !turnstileToken || !aceptoTerminos || loading}
                 className="px-6 py-3 bg-gov-blue text-white rounded-lg font-medium hover:bg-gov-blue-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {loading ? (

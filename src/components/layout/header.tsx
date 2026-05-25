@@ -91,9 +91,13 @@ interface HeaderProps {
   nombre?: string | null
   /** Nombre corto del tenant para la segunda línea del logo. */
   nombreCorto?: string | null
+  /** Teléfono de contacto mostrado en la barra superior. */
+  telefono?: string | null
+  /** Email de contacto mostrado en la barra superior. */
+  email?: string | null
 }
 
-export function Header({ logoUrl, nombre, nombreCorto }: HeaderProps) {
+export function Header({ logoUrl, nombre, nombreCorto, telefono, email }: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
@@ -117,19 +121,23 @@ export function Header({ logoUrl, nombre, nombreCorto }: HeaderProps) {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-8 text-xs text-gray-600">
             <div className="flex items-center gap-4">
-              <span className="hidden sm:flex items-center gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72"/>
-                </svg>
-                (602) 2017004
-              </span>
-              <span className="hidden md:flex items-center gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect width="20" height="16" x="2" y="4" rx="2"/>
-                  <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
-                </svg>
-                contacto@personeriabuga.gov.co
-              </span>
+              {telefono && (
+                <span className="hidden sm:flex items-center gap-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72"/>
+                  </svg>
+                  {telefono}
+                </span>
+              )}
+              {email && (
+                <span className="hidden md:flex items-center gap-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect width="20" height="16" x="2" y="4" rx="2"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                  </svg>
+                  {email}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-3">
               <Link href="/mapa-sitio" className="hover:text-gov-blue focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gov-blue rounded">Mapa del Sitio</Link>
@@ -147,7 +155,7 @@ export function Header({ logoUrl, nombre, nombreCorto }: HeaderProps) {
           <Link href="/" className="flex items-center gap-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gov-blue rounded-md">
             <img
               src={logoUrl ?? "/images/logo-personeria.png"}
-              alt={`Logo ${nombre ?? "Personería Municipal de Guadalajara de Buga"}`}
+              alt={`Logo ${nombre ?? "Entidad"}`}
               className="w-12 h-12 object-contain"
             />
             {nombre && (

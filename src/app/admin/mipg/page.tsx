@@ -4,7 +4,7 @@ import { redirect } from "next/navigation"
 import MipgClientPage from "./client-page"
 
 export const metadata: Metadata = {
-  title: "Dashboard MIPG | Admin Personería Buga",
+  title: "Dashboard MIPG",
   description: "Modelo Integrado de Planeación y Gestión - Dashboard Analítico"
 }
 

@@ -533,20 +533,152 @@ model BannerPopup {
 }
 
 // ==========================================
+// IDENTIDAD INSTITUCIONAL DEL TENANT (singleton)
+// Contenido editable por el admin del tenant — reemplaza datos hardcoded
+// ==========================================
+
+model IdentidadInstitucional {
+  id           String @id @default(cuid())
+  singletonKey String @unique @default("default") // garantiza un solo registro por tenant DB
+
+  // Identidad legal
+  nombreCompleto String
+  nombreCorto    String
+  eslogan        String?
+
+  // Contacto principal (general)
+  direccionPrincipal String?
+  ciudad             String?
+  departamento       String?
+  codigoPostal       String?
+
+  telefonoConmutador String?
+  telefonoPqrsd      String?
+
+  emailContacto       String?
+  emailPqrsd          String?
+  emailNotificaciones String?
+  emailAccesibilidad  String?
+
+  // Branding visual
+  logoUrl         String?
+  faviconUrl      String?
+  colorPrimario   String?
+  colorSecundario String?
+
+  // Redes sociales
+  facebookUrl    String?
+  twitterUrl     String?
+  instagramUrl   String?
+  youtubeUrl     String?
+  linkedinUrl    String?
+  whatsappNumero String? // E.164: "+573001234567"
+
+  // SEO metadata para layout root
+  seoTitle         String?
+  seoTitleTemplate String? // ej: "%s | Personería de X"
+  seoDescription   String? @db.Text
+  seoKeywords      String? // CSV
+  seoOgImageUrl    String?
+  seoOgUrl         String?
+
+  // Email branding (lib/mail.ts)
+  emailFromName      String?
+  emailFromAddress   String?
+  emailSignatureHtml String? @db.Text
+
+  // Mapa embebido
+  coordenadaLat      Float?
+  coordenadaLng      Float?
+  urlGoogleMapsEmbed String? @db.Text
+
+  updatedAt DateTime @updatedAt
+
+  @@map("identidad_institucional")
+}
+
+// ==========================================
+// SEDES FÍSICAS DE LA ENTIDAD
+// ==========================================
+
+model Sede {
+  id              String   @id @default(cuid())
+  nombre          String
+  esPrincipal     Boolean  @default(false)
+  direccion       String
+  ciudad          String?
+  telefono        String?
+  email           String?
+  coordenadaLat   Float?
+  coordenadaLng   Float?
+  horarioAtencion String?  @db.Text
+  observaciones   String?  @db.Text
+  orden           Int      @default(0)
+  activa          Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("sedes")
+}
+
+// ==========================================
+// CANALES DE ATENCIÓN AL CIUDADANO
+// ==========================================
+
+model CanalAtencion {
+  id          String            @id @default(cuid())
+  tipo        TipoCanalAtencion
+  nombre      String
+  valor       String
+  descripcion String?
+  icono       String?
+  orden       Int               @default(0)
+  activo      Boolean           @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("canales_atencion")
+}
+
+// ==========================================
+// PREGUNTAS FRECUENTES
+// ==========================================
+
+model PreguntaFrecuente {
+  id        String       @id @default(cuid())
+  pregunta  String       @db.Text
+  respuesta String       @db.Text
+  categoria CategoriaFaq @default(GENERAL)
+  orden     Int          @default(0)
+  publicada Boolean      @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("preguntas_frecuentes")
+}
+
+// ==========================================
 // DIRECTORIO INSTITUCIONAL
 // ==========================================
 
 model Funcionario {
-  id          String  @id @default(cuid())
-  nombre      String
-  cargo       String
-  dependencia String
-  email       String?
-  telefono    String?
-  extension   String?
-  foto        String?
-  orden       Int     @default(0)
-  activo      Boolean @default(true)
+  id                  String  @id @default(cuid())
+  nombre              String
+  cargo               String
+  dependencia         String
+  email               String?
+  telefono            String?
+  extension           String?
+  foto                String?
+  orden               Int     @default(0)
+  activo              Boolean @default(true)
+  formacionAcademica  String? @db.Text
+  experiencia         String? @db.Text
+  tipoVinculacion     String? // "Elección Popular", "Carrera Administrativa", "Contratista"
+  visibleEnDirectorio Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1583,4 +1715,27 @@ model VuDemografia {
   createdAt DateTime @default(now())
 
   @@map("vu_demografia")
+}
+
+// ==========================================
+// ENUMS DE CONTENIDO MULTI-TENANT
+// ==========================================
+
+enum TipoCanalAtencion {
+  PRESENCIAL
+  VIRTUAL
+  TELEFONICO
+  EMAIL
+  REDES_SOCIALES
+  CHAT
+  WHATSAPP
+}
+
+enum CategoriaFaq {
+  GENERAL
+  PQRSD
+  TRAMITES
+  ACCESO_INFORMACION
+  ATENCION
+  OTROS
 }

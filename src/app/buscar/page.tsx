@@ -4,8 +4,8 @@ import { ResultadosBusqueda } from './ResultadosBusqueda';
 import Loading from './loading';
 
 export const metadata: Metadata = {
-  title: 'Buscar - Personería Municipal de Guadalajara de Buga',
-  description: 'Busque información, noticias, documentos y servicios en el sitio web de la Personería Municipal de Guadalajara de Buga.',
+  title: 'Buscar',
+  description: 'Busque información, noticias, documentos y servicios en el sitio web de la entidad.',
   robots: {
     index: false,
     follow: true,

@@ -4,7 +4,7 @@ import TransparenciaMipgClient from './client-page'
 import { getTenantPrisma } from '@/lib/tenant'
 
 export const metadata: Metadata = {
-  title: 'Desempeño Institucional MIPG | Personería Buga',
+  title: 'Desempeño Institucional MIPG',
   description: 'Conozca los resultados y mediciones del Modelo Integrado de Planeación y Gestión (MIPG) de la entidad.',
 }
 

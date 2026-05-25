@@ -2,14 +2,20 @@ import { Metadata } from 'next'
 import Link from 'next/link'
 import { Download } from 'lucide-react'
 import { PageHeader } from '@/components/shared/page-header'
+import { getIdentidadPublica } from '@/lib/identidad-publica'
 
 export const metadata: Metadata = {
-  title: 'Tratamiento de Datos Personales | Personería Municipal de Guadalajara de Buga',
+  title: 'Tratamiento de Datos Personales',
   description:
-    'Política de tratamiento de datos personales de la Personería Municipal de Guadalajara de Buga según la Ley 1581 de 2012',
+    'Política de tratamiento de datos personales según la Ley 1581 de 2012',
 }
 
-export default function TratamientoDatosPage() {
+export default async function TratamientoDatosPage() {
+  const id = await getIdentidadPublica()
+  const direccionLinea = [id.direccionPrincipal, id.ciudadDepto]
+    .filter(Boolean)
+    .join(', ')
+
   return (
     <>
       <PageHeader
@@ -44,18 +50,18 @@ export default function TratamientoDatosPage() {
 
               <h3>Artículo 1. Objeto</h3>
               <p>
-                La presente Política de Tratamiento de Datos Personales tiene como objeto establecer 
-                los criterios para la recolección, almacenamiento, uso, circulación y supresión de 
-                los datos personales tratados por la Personería Municipal de Guadalajara de Buga, 
-                en cumplimiento de las disposiciones contenidas en la Ley Estatutaria 1581 de 2012, 
-                el Decreto Reglamentario 1377 de 2013 y demás normas concordantes.
+                La presente Política de Tratamiento de Datos Personales tiene como objeto establecer
+                los criterios para la recolección, almacenamiento, uso, circulación y supresión de
+                los datos personales tratados por {id.nombreCompleto}, en cumplimiento de las
+                disposiciones contenidas en la Ley Estatutaria 1581 de 2012, el Decreto
+                Reglamentario 1377 de 2013 y demás normas concordantes.
               </p>
 
               <h3>Artículo 2. Ámbito de Aplicación</h3>
               <p>
-                Esta política aplica a todas las bases de datos y/o archivos que contengan datos 
-                personales que sean objeto de tratamiento por parte de la Personería Municipal de 
-                Guadalajara de Buga, ya sea como responsable y/o encargado del tratamiento.
+                Esta política aplica a todas las bases de datos y/o archivos que contengan datos
+                personales que sean objeto de tratamiento por parte de {id.nombreCompleto}, ya sea
+                como responsable y/o encargado del tratamiento.
               </p>
 
               <h3>Artículo 3. Definiciones</h3>
@@ -174,19 +180,35 @@ export default function TratamientoDatosPage() {
 
               <h3>Artículo 12. Vigencia</h3>
               <p>
-                La presente Política rige a partir de su publicación y estará vigente mientras la 
-                Personería Municipal de Guadalajara de Buga realice tratamiento de datos personales 
-                y los datos reposen en sus bases de datos.
+                La presente Política rige a partir de su publicación y estará vigente mientras
+                {' '}{id.nombreCompleto} realice tratamiento de datos personales y los datos
+                reposen en sus bases de datos.
               </p>
 
               <hr />
 
               <p className="text-sm text-gray-500">
-                Para el ejercicio de sus derechos o consultas adicionales, comuníquese con:<br />
-                <strong>Personería Municipal de Guadalajara de Buga</strong><br />
-                Calle 7 N° 12-45, Guadalajara de Buga, Valle del Cauca<br />
-                Teléfono: (602) 2017004<br />
-                Correo: contacto@personeriabuga.gov.co
+                Para el ejercicio de sus derechos o consultas adicionales, comuníquese con:
+                <br />
+                <strong>{id.nombreCompleto}</strong>
+                {direccionLinea ? (
+                  <>
+                    <br />
+                    {direccionLinea}
+                  </>
+                ) : null}
+                {id.telefonoConmutador ? (
+                  <>
+                    <br />
+                    Teléfono: {id.telefonoConmutador}
+                  </>
+                ) : null}
+                {id.emailContacto ? (
+                  <>
+                    <br />
+                    Correo: {id.emailContacto}
+                  </>
+                ) : null}
               </p>
             </div>
           </div>

@@ -3,7 +3,7 @@ import { getTenantPrisma } from "@/lib/tenant"
 import GestorDocumentalClient from "./client-page"
 
 export const metadata = {
-  title: "Gestor Documental | Personería Buga",
+  title: "Gestor Documental",
   description: "Sistema de Gestión Documental AGN-compatible con TRD, radicación oficial y log auditado",
 }
 

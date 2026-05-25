@@ -33,11 +33,11 @@ const noticias: Record<string, {
   'jornada-derechos-humanos-2026': {
     id: '1',
     slug: 'jornada-derechos-humanos-2026',
-    titulo: 'Gran Jornada de Promoción de Derechos Humanos en Guadalajara de Buga',
+    titulo: 'Gran Jornada de Promoción de Derechos Humanos',
     extracto:
-      'La Personería Municipal realizó una exitosa jornada de sensibilización sobre derechos humanos dirigida a la comunidad educativa del municipio.',
+      'La entidad realizó una exitosa jornada de sensibilización sobre derechos humanos dirigida a la comunidad educativa del municipio.',
     contenido: `
-      <p>La Personería Municipal de Guadalajara de Buga llevó a cabo una importante jornada de promoción y sensibilización sobre derechos humanos, dirigida a estudiantes y docentes de las instituciones educativas del municipio.</p>
+      <p>La entidad llevó a cabo una importante jornada de promoción y sensibilización sobre derechos humanos, dirigida a estudiantes y docentes de las instituciones educativas del municipio.</p>
 
       <p>El evento, realizado en el auditorio municipal, contó con la participación de más de 500 estudiantes de diferentes colegios públicos y privados de la ciudad. Durante la jornada, funcionarios de la Personería expusieron sobre los derechos fundamentales consagrados en la Constitución Política de Colombia y los mecanismos existentes para su protección.</p>
 
@@ -57,14 +57,14 @@ const noticias: Record<string, {
       <p>Los estudiantes participaron activamente en talleres prácticos donde aprendieron a identificar situaciones de vulneración de derechos y las rutas de atención disponibles. También se realizaron dramatizaciones y actividades lúdicas que permitieron una mejor comprensión de los temas tratados.</p>
 
       <blockquote>
-        "Es fundamental que nuestros jóvenes conozcan sus derechos desde temprana edad. Solo así podremos construir una sociedad más justa y equitativa", expresó el Personero Municipal, Dr. Nikolai Olaya.
+        "Es fundamental que nuestros jóvenes conozcan sus derechos desde temprana edad. Solo así podremos construir una sociedad más justa y equitativa", expresó la entidad.
       </blockquote>
 
       <h2>Compromiso Continuo</h2>
 
-      <p>La Personería Municipal reafirma su compromiso con la promoción de los derechos humanos y anuncia que continuará realizando este tipo de jornadas en diferentes sectores del municipio durante el presente año.</p>
+      <p>La entidad reafirma su compromiso con la promoción de los derechos humanos y anuncia que continuará realizando este tipo de jornadas en diferentes sectores del municipio durante el presente año.</p>
 
-      <p>Los ciudadanos interesados en recibir capacitaciones sobre derechos humanos pueden comunicarse con la Personería Municipal al teléfono (602) 2017004 o acercarse a nuestras instalaciones ubicadas en la Calle 7 N° 12-45.</p>
+      <p>Los ciudadanos interesados en recibir capacitaciones sobre derechos humanos pueden comunicarse con la entidad o acercarse a nuestras instalaciones.</p>
     `,
     imagen: '/images/noticias/derechos-humanos.jpg',
     fecha: '2026-01-15',
@@ -80,7 +80,7 @@ const noticias: Record<string, {
     extracto:
       'Se llevó a cabo una capacitación intensiva para fortalecer las capacidades de las veedurías ciudadanas en el ejercicio del control social.',
     contenido: `
-      <p>Con el objetivo de fortalecer la participación ciudadana y el control social en el municipio, la Personería Municipal de Guadalajara de Buga realizó una jornada de capacitación dirigida a los integrantes de las veedurías ciudadanas registradas.</p>
+      <p>Con el objetivo de fortalecer la participación ciudadana y el control social en el municipio, la entidad realizó una jornada de capacitación dirigida a los integrantes de las veedurías ciudadanas registradas.</p>
 
       <p>El evento se desarrolló en las instalaciones de la Casa de la Cultura y contó con la asistencia de más de 60 veedores pertenecientes a 15 veedurías activas en el municipio.</p>
 
@@ -98,15 +98,15 @@ const noticias: Record<string, {
 
       <h2>Alianza Interinstitucional</h2>
 
-      <p>La capacitación fue realizada en alianza con la Contraloría General del Valle del Cauca y la Procuraduría Provincial, quienes aportaron sus conocimientos y experiencia en materia de control fiscal y disciplinario.</p>
+      <p>La capacitación fue realizada en alianza con organismos de control regional, quienes aportaron sus conocimientos y experiencia en materia de control fiscal y disciplinario.</p>
 
       <blockquote>
-        "Las veedurías ciudadanas son fundamentales para garantizar la transparencia en la gestión pública. Desde la Personería estamos comprometidos con su fortalecimiento", afirmó el Personero Municipal.
+        "Las veedurías ciudadanas son fundamentales para garantizar la transparencia en la gestión pública. Estamos comprometidos con su fortalecimiento", afirmó la entidad.
       </blockquote>
 
       <h2>Próximas Actividades</h2>
 
-      <p>La Personería Municipal continuará desarrollando actividades de capacitación y acompañamiento a las veedurías ciudadanas. Los ciudadanos interesados en conformar nuevas veedurías pueden acercarse a nuestras instalaciones para recibir orientación.</p>
+      <p>La entidad continuará desarrollando actividades de capacitación y acompañamiento a las veedurías ciudadanas. Los ciudadanos interesados en conformar nuevas veedurías pueden acercarse a nuestras instalaciones para recibir orientación.</p>
     `,
     imagen: '/images/noticias/veedurias.jpg',
     fecha: '2026-01-10',
@@ -122,23 +122,15 @@ const noticias: Record<string, {
     extracto:
       'Informamos a la comunidad sobre los nuevos horarios de atención presencial y virtual que regirán durante el presente año.',
     contenido: `
-      <p>La Personería Municipal de Guadalajara de Buga informa a la ciudadanía sobre los horarios de atención que regirán durante el año 2026.</p>
+      <p>La entidad informa a la ciudadanía sobre los horarios de atención que regirán durante el año 2026.</p>
 
       <h2>Horario de Atención Presencial</h2>
 
-      <p>La sede principal de la Personería, ubicada en la Calle 7 N° 12-45, atenderá al público en el siguiente horario:</p>
+      <p>La sede principal atenderá al público en el siguiente horario:</p>
 
       <ul>
         <li><strong>Lunes a viernes:</strong> 8:00 a.m. a 12:00 m. y 2:00 p.m. a 6:00 p.m.</li>
         <li><strong>Sábados, domingos y festivos:</strong> No hay atención</li>
-      </ul>
-
-      <h2>Casa de la Justicia</h2>
-
-      <p>El punto de atención en la Casa de la Justicia, ubicado en la Calle 3 # 17-50, atenderá:</p>
-
-      <ul>
-        <li><strong>Lunes a viernes:</strong> 8:00 a.m. a 12:00 m. y 2:00 p.m. a 5:00 p.m.</li>
       </ul>
 
       <h2>Atención Virtual</h2>
@@ -146,19 +138,14 @@ const noticias: Record<string, {
       <p>Los canales virtuales de atención están disponibles las 24 horas del día, los 7 días de la semana:</p>
 
       <ul>
-        <li>Portal web: www.personeriabuga.gov.co</li>
-        <li>Correo electrónico: contacto@personeriabuga.gov.co</li>
+        <li>Portal web institucional</li>
+        <li>Correo electrónico de contacto</li>
         <li>Formulario PQRSD en línea</li>
       </ul>
 
       <h2>Líneas Telefónicas</h2>
 
-      <p>Las líneas telefónicas estarán disponibles durante el horario laboral:</p>
-
-      <ul>
-        <li>Teléfono fijo: (602) 2017004</li>
-        <li>Celular/WhatsApp: 315 626 9407</li>
-      </ul>
+      <p>Las líneas telefónicas estarán disponibles durante el horario laboral. Consulte los teléfonos publicados en la sección "Atención al Ciudadano" del sitio.</p>
 
       <p>Recordamos a la ciudadanía que las solicitudes radicadas después de las 5:00 p.m. serán registradas con fecha del siguiente día hábil.</p>
     `,
@@ -212,7 +199,7 @@ export async function generateMetadata({
   }
 
   return {
-    title: `${noticia.titulo} | Personería Municipal de Guadalajara de Buga`,
+    title: noticia.titulo,
     description: noticia.extracto,
     openGraph: {
       title: noticia.titulo,

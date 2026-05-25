@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Work_Sans } from "next/font/google";
+import { Nunito_Sans } from "next/font/google";
 import "./globals.css";
 import { GovBar } from "@/components/layout/gov-bar";
 import { Header } from "@/components/layout/header";
@@ -7,41 +7,76 @@ import { Footer } from "@/components/layout/footer";
 import { ClientWidgets } from "@/components/layout/client-widgets";
 import AuthProvider from "@/components/auth/auth-provider";
 import { headers } from "next/headers";
-import { getTenantInfo } from "@/lib/tenant";
+import { getTenantInfo, getTenantPrisma } from "@/lib/tenant";
 
-const workSans = Work_Sans({
+const nunitoSans = Nunito_Sans({
   variable: "--font-work-sans",
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
 });
 
-export const metadata: Metadata = {
-  title: {
-    default: "Personería Municipal de Guadalajara de Buga",
-    template: "%s | Personería de Buga"
-  },
-  description: "Sitio web oficial de la Personería Municipal de Guadalajara de Buga. Defensores de los derechos ciudadanos. Transparencia, atención al ciudadano, PQRSD y servicios.",
-  keywords: ["Personería", "Buga", "Guadalajara de Buga", "Valle del Cauca", "Colombia", "PQRSD", "Transparencia", "Derechos Humanos"],
-  authors: [{ name: "Personería Municipal de Guadalajara de Buga" }],
-  creator: "Personería Municipal de Guadalajara de Buga",
-  openGraph: {
-    type: "website",
-    locale: "es_CO",
-    url: "https://www.personeriabuga.gov.co",
-    siteName: "Personería de Buga",
-    title: "Personería Municipal de Guadalajara de Buga",
-    description: "Defensores de los derechos ciudadanos en Guadalajara de Buga",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Personería Municipal de Guadalajara de Buga",
-    description: "Defensores de los derechos ciudadanos en Guadalajara de Buga",
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  let identidad: Awaited<
+    ReturnType<Awaited<ReturnType<typeof getTenantPrisma>>['identidadInstitucional']['findFirst']>
+  > = null
+  let tenantInfo: Awaited<ReturnType<typeof getTenantInfo>> | null = null
+
+  try {
+    const prisma = await getTenantPrisma()
+    identidad = await prisma.identidadInstitucional.findFirst({
+      where: { singletonKey: 'default' },
+    })
+  } catch {}
+  try {
+    tenantInfo = await getTenantInfo()
+  } catch {}
+
+  const nombreCompleto =
+    identidad?.nombreCompleto ?? tenantInfo?.nombre ?? 'Entidad Pública'
+  const nombreCorto =
+    identidad?.nombreCorto ?? tenantInfo?.nombreCorto ?? nombreCompleto
+
+  const titleDefault = identidad?.seoTitle ?? nombreCompleto
+  const titleTemplate = identidad?.seoTitleTemplate ?? `%s | ${nombreCorto}`
+  const description =
+    identidad?.seoDescription ??
+    `Sitio web oficial de ${nombreCompleto}.`
+  const keywords = identidad?.seoKeywords
+    ? identidad.seoKeywords.split(',').map((k) => k.trim()).filter(Boolean)
+    : undefined
+  const ogUrl = identidad?.seoOgUrl ?? undefined
+  const ogImage = identidad?.seoOgImageUrl ?? undefined
+
+  return {
+    title: {
+      default: titleDefault,
+      template: titleTemplate,
+    },
+    description,
+    keywords,
+    authors: [{ name: nombreCompleto }],
+    creator: nombreCompleto,
+    openGraph: {
+      type: 'website',
+      locale: 'es_CO',
+      url: ogUrl,
+      siteName: nombreCorto,
+      title: titleDefault,
+      description,
+      images: ogImage ? [{ url: ogImage }] : undefined,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: titleDefault,
+      description,
+      images: ogImage ? [ogImage] : undefined,
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
+  }
+}
 
 export default async function RootLayout({
   children,
@@ -56,6 +91,8 @@ export default async function RootLayout({
   let tenantLogoUrl: string | null = null
   let tenantNombre: string | null = null
   let tenantNombreCorto: string | null = null
+  let tenantTelefono: string | null = null
+  let tenantEmail: string | null = null
   let tenantCssVars = ''
   if (!isSuperAdmin) {
     try {
@@ -70,6 +107,15 @@ export default async function RootLayout({
     } catch {
       // Tenant no disponible (build time, superadmin, etc.) — usar defaults de globals.css
     }
+    try {
+      const prisma = await getTenantPrisma()
+      const id = await prisma.identidadInstitucional.findFirst({
+        where: { singletonKey: 'default' },
+        select: { telefonoConmutador: true, emailContacto: true },
+      })
+      tenantTelefono = id?.telefonoConmutador ?? null
+      tenantEmail = id?.emailContacto ?? null
+    } catch {}
   }
 
   // Detectar rutas internas donde NO se muestran widgets públicos
@@ -86,7 +132,7 @@ export default async function RootLayout({
   if (isSuperAdmin) {
     return (
       <html lang="es">
-        <body className={`${workSans.variable} font-sans antialiased`}>
+        <body className={`${nunitoSans.variable} font-sans antialiased`}>
           {children}
         </body>
       </html>
@@ -95,7 +141,7 @@ export default async function RootLayout({
 
   return (
     <html lang="es">
-      <body className={`${workSans.variable} font-sans antialiased`}>
+      <body className={`${nunitoSans.variable} font-sans antialiased`}>
         {tenantCssVars ? <style dangerouslySetInnerHTML={{ __html: tenantCssVars }} /> : null}
         <AuthProvider>
           {isPublicSite && (
@@ -130,6 +176,8 @@ export default async function RootLayout({
                 logoUrl={tenantLogoUrl}
                 nombre={tenantNombre}
                 nombreCorto={tenantNombreCorto}
+                telefono={tenantTelefono}
+                email={tenantEmail}
               />
             </>
           )}

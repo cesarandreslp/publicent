@@ -2,10 +2,11 @@ import { Metadata } from "next"
 import Link from "next/link"
 import { Users, FileText, CheckSquare, MessageSquare, BarChart, Lightbulb } from "lucide-react"
 import { PageHeader } from "@/components/shared/page-header"
+import { getIdentidadPublica } from "@/lib/identidad-publica"
 
 export const metadata: Metadata = {
-  title: "Participa | Personería Municipal de Guadalajara de Buga",
-  description: "Espacios de participación ciudadana de la Personería Municipal",
+  title: "Participa",
+  description: "Espacios de participación ciudadana de la entidad",
 }
 
 const participaSections = [
@@ -53,7 +54,8 @@ const participaSections = [
   },
 ]
 
-export default function ParticipaPage() {
+export default async function ParticipaPage() {
+  const id = await getIdentidadPublica()
   return (
     <>
       <PageHeader
@@ -73,8 +75,8 @@ export default function ParticipaPage() {
             </h2>
             <p className="text-gray-600 leading-relaxed">
               De acuerdo con los lineamientos de MinTIC y el Departamento Administrativo de la Función Pública, 
-              esta sección consolida todos los espacios, mecanismos y acciones que permiten a los ciudadanos 
-              ser parte de las decisiones y la gestión de la Personería Municipal de Guadalajara de Buga.
+              esta sección consolida todos los espacios, mecanismos y acciones que permiten a los ciudadanos
+              ser parte de las decisiones y la gestión de {id.nombreCompleto}.
             </p>
           </div>
 

@@ -35,16 +35,24 @@ const tiempos = [
   { tipo: "Denuncias disciplinarias", tiempo: "Trámite inmediato" },
 ]
 
-const canales = [
-  { icono: MapPin, label: "Presencial", desc: "Cra 14 #6-30, Centro" },
-  { icono: Phone, label: "Teléfono", desc: "+57 (2) 228-0000" },
-  { icono: Mail, label: "Correo", desc: "pqrs@personeriabuga.gov.co" },
-]
+interface PQRSHomeProps {
+  /** Dirección presencial. Si no se pasa, se omite la tarjeta. */
+  direccion?: string | null
+  /** Teléfono de PQRSD. Si no se pasa, se omite la tarjeta. */
+  telefono?: string | null
+  /** Email de PQRSD. Si no se pasa, se omite la tarjeta. */
+  email?: string | null
+}
 
-export function PQRSHome() {
+export function PQRSHome({ direccion, telefono, email }: PQRSHomeProps = {}) {
   const [radicado, setRadicado] = useState("")
   const [documento, setDocumento] = useState("")
   const { pqrsUrl, consultarPqrsUrl, ventanillaActiva, loading } = useTenantModulos()
+  const canales = [
+    direccion ? { icono: MapPin, label: "Presencial", desc: direccion } : null,
+    telefono ? { icono: Phone, label: "Teléfono", desc: telefono } : null,
+    email ? { icono: Mail, label: "Correo", desc: email } : null,
+  ].filter((c): c is { icono: typeof MapPin; label: string; desc: string } => c !== null)
 
   return (
     <section className="py-16 bg-gray-50 relative overflow-hidden" aria-labelledby="pqrs-title">
@@ -96,6 +104,7 @@ export function PQRSHome() {
             </div>
 
             {/* Canales */}
+            {canales.length > 0 && (
             <div>
               <h3 className="text-lg font-bold text-gray-800 mb-4">Canales de atención</h3>
               <div className="grid grid-cols-3 gap-3">
@@ -113,6 +122,7 @@ export function PQRSHome() {
                 })}
               </div>
             </div>
+            )}
 
             {/* CTA */}
             <div className="flex flex-wrap gap-3">

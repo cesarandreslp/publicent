@@ -15,9 +15,9 @@ import {
 import { PageHeader } from '@/components/shared/page-header'
 
 export const metadata: Metadata = {
-  title: 'Mapa del Sitio | Personería Municipal de Guadalajara de Buga',
+  title: 'Mapa del Sitio',
   description:
-    'Navegue por todas las secciones del sitio web de la Personería Municipal de Guadalajara de Buga',
+    'Navegue por todas las secciones del sitio web de la entidad',
 }
 
 const secciones = [

@@ -13,9 +13,9 @@ import {
 import { PageHeader } from '@/components/shared/page-header'
 
 export const metadata: Metadata = {
-  title: 'Servicios | Personería Municipal de Guadalajara de Buga',
+  title: 'Servicios',
   description:
-    'Catálogo de servicios que ofrece la Personería Municipal de Guadalajara de Buga a la ciudadanía',
+    'Catálogo de servicios que ofrece la entidad a la ciudadanía',
 }
 
 const servicios = [

@@ -17,7 +17,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params
   return {
-    title: `Radicado — Ventanilla Única | Admin Personería Buga`,
+    title: `Radicado — Ventanilla Única`,
     description: `Detalle del radicado ${id}`,
   }
 }

@@ -247,9 +247,9 @@ function getDevTenantInfo(): TenantInfo {
     slug: 'local',
     nombre: 'Entidad Local (Desarrollo)',
     nombreCorto: 'Dev',
-    tipoEntidad: 'PERSONERIA',
+    tipoEntidad: process.env.NEXT_PUBLIC_TIPO_ENTIDAD || 'PERSONERIA',
     municipio: 'Local',
-    departamento: 'Valle del Cauca',
+    departamento: process.env.NEXT_PUBLIC_DEPARTAMENTO || 'Su Departamento',
     dominioPrincipal: 'localhost',
     dominioPersonalizado: null,
     databaseUrl: process.env.DATABASE_URL!,
@@ -271,20 +271,25 @@ function getDevTenantInfo(): TenantInfo {
 /**
  * Info del tenant para deploys single-tenant (TENANT_SLUG definido).
  * Usa DATABASE_URL del env sin consultar la meta-DB.
+ *
+ * Los valores que NO viven en IdentidadInstitucional (slug técnico, dominio,
+ * plan, módulos) salen del env. Los valores legibles (nombre, municipio,
+ * departamento) tienen placeholders genéricos — la UI debe leerlos desde
+ * IdentidadInstitucional vía getIdentidadPublica() en lugar de TenantInfo.
  */
 function getSingleTenantInfo(tenantId: string): TenantInfo {
   return {
     id: tenantId,
     slug: process.env.TENANT_SLUG || 'default',
     nombre: process.env.NEXT_PUBLIC_SITE_NAME || 'Entidad Pública',
-    nombreCorto: 'Entidad',
-    tipoEntidad: 'PERSONERIA',
-    municipio: 'Guadalajara de Buga',
-    departamento: 'Valle del Cauca',
-    dominioPrincipal: 'personeriabuga.vercel.app',
+    nombreCorto: process.env.NEXT_PUBLIC_SITE_SHORT_NAME || 'Entidad',
+    tipoEntidad: process.env.NEXT_PUBLIC_TIPO_ENTIDAD || 'PERSONERIA',
+    municipio: process.env.NEXT_PUBLIC_MUNICIPIO || 'Su Municipio',
+    departamento: process.env.NEXT_PUBLIC_DEPARTAMENTO || 'Su Departamento',
+    dominioPrincipal: process.env.NEXT_PUBLIC_DOMAIN || 'localhost:3000',
     dominioPersonalizado: null,
     databaseUrl: process.env.DATABASE_URL!,
-    plan: 'PROFESIONAL',
+    plan: process.env.TENANT_PLAN || 'PROFESIONAL',
     activo: true,
     suspendido: false,
     modulosActivos: {

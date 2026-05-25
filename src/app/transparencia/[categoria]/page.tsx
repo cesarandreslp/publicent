@@ -174,7 +174,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   return {
-    title: `${cat.nombre} | Transparencia - Personería Municipal de Guadalajara de Buga`,
+    title: `${cat.nombre} - Transparencia`,
     description: cat.descripcion,
   }
 }

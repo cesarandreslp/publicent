@@ -1,24 +1,23 @@
-"use client"
-
 import Link from "next/link"
-import { 
-  Facebook, 
-  Twitter, 
-  Instagram, 
-  Youtube, 
-  MapPin, 
-  Phone, 
-  Mail, 
+import {
+  Facebook,
+  Twitter,
+  Instagram,
+  Youtube,
+  Linkedin,
+  MapPin,
+  Phone,
+  Mail,
   Clock,
-  ExternalLink 
+  ExternalLink,
 } from "lucide-react"
+import { getTenantPrisma } from "@/lib/tenant"
 
 const footerLinks = {
   entidad: [
     { label: "Misión y Visión", href: "/entidad/mision-vision" },
     { label: "Organigrama", href: "/entidad/organigrama" },
     { label: "Directorio", href: "/entidad/directorio" },
-    { label: "Personero Municipal", href: "/entidad/personero" },
   ],
   transparencia: [
     { label: "Información de la Entidad", href: "/transparencia/informacion-entidad" },
@@ -42,99 +41,164 @@ const footerLinks = {
   ],
 }
 
-const socialLinks = [
-  { icon: Facebook, href: "https://facebook.com/personeriabuga", label: "Facebook" },
-  { icon: Twitter, href: "https://twitter.com/personeriabuga", label: "Twitter" },
-  { icon: Instagram, href: "https://instagram.com/personeriabuga", label: "Instagram" },
-  { icon: Youtube, href: "https://youtube.com/personeriabuga", label: "YouTube" },
-]
+export async function Footer() {
+  let identidad: Awaited<
+    ReturnType<Awaited<ReturnType<typeof getTenantPrisma>>['identidadInstitucional']['findFirst']>
+  > = null
+  let sedePrincipal: Awaited<
+    ReturnType<Awaited<ReturnType<typeof getTenantPrisma>>['sede']['findFirst']>
+  > = null
 
-export function Footer() {
+  try {
+    const prisma = await getTenantPrisma()
+    ;[identidad, sedePrincipal] = await Promise.all([
+      prisma.identidadInstitucional.findFirst({ where: { singletonKey: 'default' } }),
+      prisma.sede.findFirst({ where: { esPrincipal: true, activa: true } }),
+    ])
+  } catch {
+    // Tenant DB no disponible — render con placeholders genéricos
+  }
+
+  const nombreCompleto = identidad?.nombreCompleto ?? 'Entidad Pública'
+  const ciudadDepto = [identidad?.ciudad, identidad?.departamento]
+    .filter(Boolean)
+    .join(', ')
+
+  const direccion = sedePrincipal?.direccion ?? identidad?.direccionPrincipal ?? null
+  const codigoPostal = identidad?.codigoPostal ?? null
+  const telefonoConmutador = identidad?.telefonoConmutador ?? sedePrincipal?.telefono ?? null
+  const horarioAtencion = sedePrincipal?.horarioAtencion ?? null
+  const emailContacto = identidad?.emailContacto ?? sedePrincipal?.email ?? null
+  const emailNotificaciones = identidad?.emailNotificaciones ?? null
+
+  const inicialesLogo =
+    (identidad?.nombreCorto ?? identidad?.nombreCompleto ?? 'EP')
+      .split(/\s+/)
+      .map((w) => w[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join('')
+      .toUpperCase()
+
+  const socialLinks = [
+    identidad?.facebookUrl ? { icon: Facebook, href: identidad.facebookUrl, label: 'Facebook' } : null,
+    identidad?.twitterUrl ? { icon: Twitter, href: identidad.twitterUrl, label: 'Twitter' } : null,
+    identidad?.instagramUrl ? { icon: Instagram, href: identidad.instagramUrl, label: 'Instagram' } : null,
+    identidad?.youtubeUrl ? { icon: Youtube, href: identidad.youtubeUrl, label: 'YouTube' } : null,
+    identidad?.linkedinUrl ? { icon: Linkedin, href: identidad.linkedinUrl, label: 'LinkedIn' } : null,
+  ].filter((x): x is { icon: typeof Facebook; href: string; label: string } => x !== null)
+
   return (
-    <footer id="footer" role="contentinfo" aria-label="Información de contacto y enlaces del pie de página" className="bg-gray-900 text-gray-300">
+    <footer
+      id="footer"
+      role="contentinfo"
+      aria-label="Información de contacto y enlaces del pie de página"
+      className="bg-gray-900 text-gray-300"
+    >
       {/* Sección principal */}
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
           {/* Información de contacto */}
           <div className="lg:col-span-2">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-gov-blue font-bold">
-                PB
-              </div>
+              {identidad?.logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={identidad.logoUrl}
+                  alt={`Logo ${nombreCompleto}`}
+                  className="w-12 h-12 rounded-full bg-white object-contain"
+                />
+              ) : (
+                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-gov-blue font-bold">
+                  {inicialesLogo}
+                </div>
+              )}
               <div>
-                <h3 className="font-bold text-white">Personería Municipal</h3>
-                <p className="text-sm">Guadalajara de Buga, Valle del Cauca</p>
+                <h3 className="font-bold text-white">{identidad?.nombreCorto ?? nombreCompleto}</h3>
+                {ciudadDepto ? <p className="text-sm">{ciudadDepto}</p> : null}
               </div>
             </div>
-            
-            <div className="space-y-3 text-sm">
-              <div className="flex items-start gap-3">
-                <MapPin className="h-5 w-5 text-gov-blue shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium text-white">Dirección:</p>
-                  <p>Calle 7 N° 12-45, Centro</p>
-                  <p>Guadalajara de Buga, Valle del Cauca</p>
-                  <p>Código Postal: 763001</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-3">
-                <Phone className="h-5 w-5 text-gov-blue shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium text-white">Conmutador:</p>
-                  <p>+57 (602) 2017004</p>
-                  <p>Celular: +57 315 626 9407</p>
-                </div>
-              </div>
 
-              <div className="flex items-start gap-3">
-                <Phone className="h-5 w-5 text-yellow-500 shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium text-white">Línea Anticorrupción:</p>
-                  <p>+57 (601) 587 8750</p>
-                  <p className="text-xs text-gray-400">Línea gratuita nacional: 01 8000 913 040</p>
+            <div className="space-y-3 text-sm">
+              {direccion && (
+                <div className="flex items-start gap-3">
+                  <MapPin className="h-5 w-5 text-gov-blue shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-white">Dirección:</p>
+                    <p>{direccion}</p>
+                    {ciudadDepto ? <p>{ciudadDepto}</p> : null}
+                    {codigoPostal ? <p>Código Postal: {codigoPostal}</p> : null}
+                  </div>
                 </div>
-              </div>
-              
-              <div className="flex items-start gap-3">
-                <Mail className="h-5 w-5 text-gov-blue shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium text-white">Correo institucional:</p>
-                  <a href="mailto:contacto@personeriabuga.gov.co" className="hover:text-white transition-colors">
-                    contacto@personeriabuga.gov.co
-                  </a>
-                  <p className="font-medium text-white mt-2">Notificaciones judiciales:</p>
-                  <a href="mailto:notificaciones@personeriabuga.gov.co" className="hover:text-white transition-colors">
-                    notificaciones@personeriabuga.gov.co
-                  </a>
+              )}
+
+              {telefonoConmutador && (
+                <div className="flex items-start gap-3">
+                  <Phone className="h-5 w-5 text-gov-blue shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-white">Conmutador:</p>
+                    <p>{telefonoConmutador}</p>
+                  </div>
                 </div>
-              </div>
-              
-              <div className="flex items-start gap-3">
-                <Clock className="h-5 w-5 text-gov-blue shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium text-white">Horario de Atención:</p>
-                  <p>Lunes a Viernes: 8:00 a.m. - 12:00 m.</p>
-                  <p>2:00 p.m. - 6:00 p.m.</p>
+              )}
+
+              {emailContacto && (
+                <div className="flex items-start gap-3">
+                  <Mail className="h-5 w-5 text-gov-blue shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-white">Correo institucional:</p>
+                    <a
+                      href={`mailto:${emailContacto}`}
+                      className="hover:text-white transition-colors"
+                    >
+                      {emailContacto}
+                    </a>
+                    {emailNotificaciones && (
+                      <>
+                        <p className="font-medium text-white mt-2">Notificaciones judiciales:</p>
+                        <a
+                          href={`mailto:${emailNotificaciones}`}
+                          className="hover:text-white transition-colors"
+                        >
+                          {emailNotificaciones}
+                        </a>
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {horarioAtencion && (
+                <div className="flex items-start gap-3">
+                  <Clock className="h-5 w-5 text-gov-blue shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-white">Horario de Atención:</p>
+                    <p className="whitespace-pre-line">{horarioAtencion}</p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Redes sociales */}
-            <div className="flex gap-4 mt-6">
-              {socialLinks.map((social) => (
-                <a
-                  key={social.label}
-                  href={social.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-gov-blue transition-colors"
-                  aria-label={social.label}
-                >
-                  <social.icon className="h-5 w-5" />
-                </a>
-              ))}
-            </div>
+            {socialLinks.length > 0 && (
+              <div className="flex gap-4 mt-6">
+                {socialLinks.map((social) => {
+                  const Icon = social.icon
+                  return (
+                    <a
+                      key={social.label}
+                      href={social.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-gov-blue transition-colors"
+                      aria-label={social.label}
+                    >
+                      <Icon className="h-5 w-5" />
+                    </a>
+                  )
+                })}
+              </div>
+            )}
           </div>
 
           {/* Enlaces - La Entidad */}
@@ -143,7 +207,10 @@ export function Footer() {
             <ul className="space-y-2">
               {footerLinks.entidad.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="text-sm hover:text-white transition-colors">
+                  <Link
+                    href={link.href}
+                    className="text-sm hover:text-white transition-colors"
+                  >
                     {link.label}
                   </Link>
                 </li>
@@ -157,7 +224,10 @@ export function Footer() {
             <ul className="space-y-2">
               {footerLinks.transparencia.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="text-sm hover:text-white transition-colors">
+                  <Link
+                    href={link.href}
+                    className="text-sm hover:text-white transition-colors"
+                  >
                     {link.label}
                   </Link>
                 </li>
@@ -171,18 +241,24 @@ export function Footer() {
             <ul className="space-y-2">
               {footerLinks.atencion.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="text-sm hover:text-white transition-colors">
+                  <Link
+                    href={link.href}
+                    className="text-sm hover:text-white transition-colors"
+                  >
                     {link.label}
                   </Link>
                 </li>
               ))}
             </ul>
-            
+
             <h4 className="font-bold text-white mb-4 mt-6">Legal</h4>
             <ul className="space-y-2">
               {footerLinks.legal.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="text-sm hover:text-white transition-colors">
+                  <Link
+                    href={link.href}
+                    className="text-sm hover:text-white transition-colors"
+                  >
                     {link.label}
                   </Link>
                 </li>
@@ -197,25 +273,21 @@ export function Footer() {
         <div className="container mx-auto px-4 py-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-6">
-              <Link 
-                href="https://www.gov.co" 
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <Link href="https://www.gov.co" target="_blank" rel="noopener noreferrer">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/images/govco.png" alt="GOV.CO" className="h-8" />
               </Link>
-              <Link 
-                href="https://www.colombia.co" 
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <Link href="https://www.colombia.co" target="_blank" rel="noopener noreferrer">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/images/colombiaco-logo.png" alt="Colombia.co" className="h-8" />
               </Link>
             </div>
-            
+
             <div className="text-center md:text-right text-sm">
-              <p suppressHydrationWarning>© {new Date().getFullYear()} Personería Municipal de Guadalajara de Buga</p>
-              <p className="text-gray-500">Todos los derechos reservados - NIT: XXX.XXX.XXX-X</p>
+              <p suppressHydrationWarning>
+                © {new Date().getFullYear()} {nombreCompleto}
+              </p>
+              <p className="text-gray-500">Todos los derechos reservados</p>
             </div>
           </div>
         </div>

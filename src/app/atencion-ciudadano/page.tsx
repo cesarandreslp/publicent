@@ -1,23 +1,25 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
-import { 
-  MessageSquare, 
-  Search, 
-  HelpCircle, 
-  Phone, 
+import {
+  MessageSquare,
+  Search,
+  HelpCircle,
+  Phone,
   Shield,
   Clock,
   ChevronRight,
   FileText,
   Users,
   Mail,
-  MapPin
+  MapPin,
 } from 'lucide-react'
 import { PageHeader } from '@/components/shared/page-header'
+import { getTenantPrisma } from '@/lib/tenant'
 
 export const metadata: Metadata = {
-  title: 'Atención al Ciudadano | Personería Municipal de Guadalajara de Buga',
-  description: 'Canales de atención, PQRSD, preguntas frecuentes y servicios de atención al ciudadano de la Personería Municipal de Guadalajara de Buga.',
+  title: 'Atención al Ciudadano',
+  description:
+    'Canales de atención, PQRSD, preguntas frecuentes y servicios de atención al ciudadano.',
 }
 
 const servicios = [
@@ -96,7 +98,29 @@ const tiposPQRS = [
   },
 ]
 
-export default function AtencionCiudadanoPage() {
+export default async function AtencionCiudadanoPage() {
+  let identidad: Awaited<
+    ReturnType<Awaited<ReturnType<typeof getTenantPrisma>>['identidadInstitucional']['findFirst']>
+  > = null
+  let sedePrincipal: Awaited<
+    ReturnType<Awaited<ReturnType<typeof getTenantPrisma>>['sede']['findFirst']>
+  > = null
+  try {
+    const prisma = await getTenantPrisma()
+    ;[identidad, sedePrincipal] = await Promise.all([
+      prisma.identidadInstitucional.findFirst({ where: { singletonKey: 'default' } }),
+      prisma.sede.findFirst({ where: { esPrincipal: true, activa: true } }),
+    ])
+  } catch {}
+
+  const direccion = sedePrincipal?.direccion ?? identidad?.direccionPrincipal ?? null
+  const ciudadDepto = [identidad?.ciudad, identidad?.departamento]
+    .filter(Boolean)
+    .join(', ')
+  const telefono = identidad?.telefonoConmutador ?? sedePrincipal?.telefono ?? null
+  const email = identidad?.emailContacto ?? sedePrincipal?.email ?? null
+  const horario = sedePrincipal?.horarioAtencion ?? null
+
   return (
     <>
       <PageHeader
@@ -186,47 +210,59 @@ export default function AtencionCiudadanoPage() {
         <section className="bg-gov-blue rounded-xl p-8 text-white">
           <h2 className="text-2xl font-bold mb-6">Contáctenos</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="flex items-start gap-3">
-              <MapPin className="w-6 h-6 text-white/80 shrink-0 mt-1" />
-              <div>
-                <h3 className="font-semibold mb-1">Dirección</h3>
-                <p className="text-white/80 text-sm">
-                  Calle 7 N° 12-45<br />
-                  Edificio Alcaldía Municipal<br />
-                  Guadalajara de Buga
-                </p>
+            {direccion && (
+              <div className="flex items-start gap-3">
+                <MapPin className="w-6 h-6 text-white/80 shrink-0 mt-1" />
+                <div>
+                  <h3 className="font-semibold mb-1">Dirección</h3>
+                  <p className="text-white/80 text-sm">
+                    {direccion}
+                    {ciudadDepto ? (
+                      <>
+                        <br />
+                        {ciudadDepto}
+                      </>
+                    ) : null}
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <Phone className="w-6 h-6 text-white/80 shrink-0 mt-1" />
-              <div>
-                <h3 className="font-semibold mb-1">Teléfonos</h3>
-                <p className="text-white/80 text-sm">
-                  Conmutador: (602) 2017004<br />
-                  Celular: 315 626 9407
-                </p>
+            )}
+            {telefono && (
+              <div className="flex items-start gap-3">
+                <Phone className="w-6 h-6 text-white/80 shrink-0 mt-1" />
+                <div>
+                  <h3 className="font-semibold mb-1">Teléfono</h3>
+                  <p className="text-white/80 text-sm">{telefono}</p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <Mail className="w-6 h-6 text-white/80 shrink-0 mt-1" />
-              <div>
-                <h3 className="font-semibold mb-1">Correo Electrónico</h3>
-                <p className="text-white/80 text-sm">
-                  contactenos@personeriabuga.gov.co
-                </p>
+            )}
+            {email && (
+              <div className="flex items-start gap-3">
+                <Mail className="w-6 h-6 text-white/80 shrink-0 mt-1" />
+                <div>
+                  <h3 className="font-semibold mb-1">Correo Electrónico</h3>
+                  <p className="text-white/80 text-sm">
+                    <a href={`mailto:${email}`} className="hover:underline">
+                      {email}
+                    </a>
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <Clock className="w-6 h-6 text-white/80 shrink-0 mt-1" />
-              <div>
-                <h3 className="font-semibold mb-1">Horario</h3>
-                <p className="text-white/80 text-sm">
-                  Lunes a Viernes<br />
-                  7:30 a.m. - 12:00 m.<br />
-                  2:00 p.m. - 5:00 p.m.
-                </p>
+            )}
+            {horario && (
+              <div className="flex items-start gap-3">
+                <Clock className="w-6 h-6 text-white/80 shrink-0 mt-1" />
+                <div>
+                  <h3 className="font-semibold mb-1">Horario</h3>
+                  <p className="text-white/80 text-sm whitespace-pre-line">{horario}</p>
+                </div>
               </div>
-            </div>
+            )}
+            {!direccion && !telefono && !email && !horario && (
+              <p className="text-white/80 text-sm md:col-span-2 lg:col-span-4">
+                Información de contacto pendiente de configurar.
+              </p>
+            )}
           </div>
         </section>
       </main>

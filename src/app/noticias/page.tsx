@@ -5,9 +5,9 @@ import { PageHeader } from '@/components/shared/page-header'
 import { Pagination } from '@/components/shared/pagination'
 
 export const metadata: Metadata = {
-  title: 'Noticias | Personería Municipal de Guadalajara de Buga',
+  title: 'Noticias',
   description:
-    'Mantente informado sobre las actividades, eventos y noticias de la Personería Municipal de Guadalajara de Buga',
+    'Mantente informado sobre las actividades, eventos y noticias de la entidad',
 }
 
 // Datos de ejemplo para las noticias

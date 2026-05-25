@@ -1,7 +1,7 @@
 import { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Autenticación | Personería Municipal de Guadalajara de Buga",
+  title: "Autenticación",
   description: "Acceso al sistema de administración",
   robots: "noindex, nofollow"
 }

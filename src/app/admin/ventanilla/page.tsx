@@ -11,7 +11,7 @@ import { auth } from '@/lib/auth'
 import VentanillaClientPage from './client-page'
 
 export const metadata: Metadata = {
-  title: 'Ventanilla Única — Bandeja | Admin Personería Buga',
+  title: 'Ventanilla Única — Bandeja',
   description: 'Bandeja de radicados PQRSD con semáforo de vencimientos y clasificación IA',
 }
 

@@ -1,15 +1,17 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
-import { Copyright, ExternalLink, FileText, Scale } from 'lucide-react'
+import { Copyright, FileText, Scale } from 'lucide-react'
 import { PageHeader } from '@/components/shared/page-header'
+import { getIdentidadPublica } from '@/lib/identidad-publica'
 
 export const metadata: Metadata = {
-  title: 'Política de Derechos de Autor | Personería Municipal de Guadalajara de Buga',
+  title: 'Política de Derechos de Autor',
   description:
-    'Política de derechos de autor y propiedad intelectual del sitio web de la Personería Municipal de Guadalajara de Buga.',
+    'Política de derechos de autor y propiedad intelectual del sitio web.',
 }
 
-export default function DerechosAutorPage() {
+export default async function DerechosAutorPage() {
+  const id = await getIdentidadPublica()
   return (
     <>
       <PageHeader
@@ -33,11 +35,11 @@ export default function DerechosAutorPage() {
                     Propiedad Intelectual
                   </h2>
                   <p className="text-gray-600 leading-relaxed">
-                    Todo el contenido publicado en el sitio web de la Personería Municipal de
-                    Guadalajara de Buga —incluyendo textos, documentos, imágenes, logotipos,
-                    diseños gráficos, videos y demás material— está protegido por las leyes
-                    colombianas de derechos de autor (Ley 23 de 1982 y Ley 1915 de 2018) y por
-                    los tratados internacionales suscritos por Colombia en esta materia.
+                    Todo el contenido publicado en el sitio web de {id.nombreCompleto}
+                    {' '}—incluyendo textos, documentos, imágenes, logotipos, diseños gráficos,
+                    videos y demás material— está protegido por las leyes colombianas de
+                    derechos de autor (Ley 23 de 1982 y Ley 1915 de 2018) y por los tratados
+                    internacionales suscritos por Colombia en esta materia.
                   </p>
                 </div>
               </div>
@@ -91,12 +93,12 @@ export default function DerechosAutorPage() {
               <p className="text-gray-600">Queda expresamente prohibido:</p>
               <ul className="list-disc list-inside space-y-2 text-gray-600">
                 <li>
-                  Utilizar el escudo, logo o identidad visual de la Personería Municipal para
-                  fines distintos a los institucionales sin autorización.
+                  Utilizar el escudo, logo o identidad visual de la entidad para fines
+                  distintos a los institucionales sin autorización.
                 </li>
                 <li>
                   Reproducir el contenido dando a entender que proviene de una fuente distinta
-                  a la Personería Municipal de Guadalajara de Buga.
+                  a {id.nombreCompleto}.
                 </li>
                 <li>
                   Utilizar herramientas automatizadas para la extracción masiva de contenido

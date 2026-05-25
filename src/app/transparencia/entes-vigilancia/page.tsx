@@ -2,13 +2,14 @@ import { Metadata } from 'next'
 import { Link2, Shield, Eye, Building, Scale, AlertCircle } from 'lucide-react'
 import { PageHeader } from '@/components/shared/page-header'
 import { Card, CardContent } from '@/components/ui/card'
+import { getIdentidadPublica } from '@/lib/identidad-publica'
 
 export const metadata: Metadata = {
-  title: 'Entes y Autoridades que nos Vigilan | Personería Municipal',
-  description: 'Conozca las autoridades y organismos que ejercen control sobre la Personería Municipal de Guadalajara de Buga.',
+  title: 'Entes y Autoridades que nos Vigilan',
+  description: 'Conozca las autoridades y organismos que ejercen control sobre la entidad.',
 }
 
-const entesControl = [
+const entesNacionales = [
   {
     id: 1,
     nombre: 'Procuraduría General de la Nación',
@@ -49,19 +50,6 @@ const entesControl = [
     bg: 'bg-green-100',
   },
   {
-    id: 4,
-    nombre: 'Concejo Municipal de Guadalajara de Buga',
-    tipoControl: 'Político',
-    descripcion: 'Ejerce control político sobre la administración municipal, incluyendo a la Personería Municipal.',
-    direccion: 'Calle 6 # 14-50, Buga, Valle del Cauca',
-    telefono: '+57 (602) 228 1234',
-    email: 'contacto@concejodebuga.gov.co',
-    sitioWeb: 'https://www.concejodebuga.gov.co',
-    icono: Shield,
-    color: 'text-orange-600',
-    bg: 'bg-orange-100',
-  },
-  {
     id: 5,
     nombre: 'Archivo General de la Nación',
     tipoControl: 'Archivístico y Gestión Documental',
@@ -76,7 +64,28 @@ const entesControl = [
   },
 ]
 
-export default function EntesVigilanciaPage() {
+export default async function EntesVigilanciaPage() {
+  const id = await getIdentidadPublica()
+  const concejoMunicipal = {
+    id: 4,
+    nombre: id.ciudadDepto ? `Concejo Municipal de ${id.ciudadDepto.split(',')[0].trim()}` : 'Concejo Municipal',
+    tipoControl: 'Político',
+    descripcion: 'Ejerce control político sobre la administración municipal, incluyendo a la entidad.',
+    direccion: null as string | null,
+    telefono: null as string | null,
+    email: null as string | null,
+    sitioWeb: null as string | null,
+    icono: Shield,
+    color: 'text-orange-600',
+    bg: 'bg-orange-100',
+  }
+  const entesControl = [
+    entesNacionales[0],
+    entesNacionales[1],
+    entesNacionales[2],
+    concejoMunicipal,
+    entesNacionales[3],
+  ]
   return (
     <>
       <PageHeader
@@ -94,7 +103,7 @@ export default function EntesVigilanciaPage() {
         <div className="bg-blue-50 border-l-4 border-gov-blue rounded-r-lg p-5 mb-10 max-w-4xl">
           <p className="text-gray-700 leading-relaxed">
             De acuerdo con lo establecido en el <strong>Artículo 1.13 del Anexo 2 de la Resolución 1519 de 2020</strong>, 
-            la Personería Municipal de Guadalajara de Buga pone a disposición de la ciudadanía la relación de todas 
+            {id.nombreCompleto} pone a disposición de la ciudadanía la relación de todas
             las entidades y autoridades que vigilan y supervisan nuestro actuar administrativo, financiero y disciplinario.
           </p>
         </div>
@@ -124,31 +133,39 @@ export default function EntesVigilanciaPage() {
                   </p>
 
                   <div className="space-y-3 pt-4 border-t border-gray-100 text-sm">
-                    <div className="flex items-start gap-2">
-                      <span className="font-semibold text-gray-900 min-w-[70px]">Dirección:</span>
-                      <span className="text-gray-600">{ente.direccion}</span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="font-semibold text-gray-900 min-w-[70px]">Teléfono:</span>
-                      <span className="text-gray-600">{ente.telefono}</span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="font-semibold text-gray-900 min-w-[70px]">Correo:</span>
-                      <a href={`mailto:${ente.email}`} className="text-gov-blue hover:underline break-all">
-                        {ente.email}
-                      </a>
-                    </div>
-                    <div className="pt-2">
-                      <a 
-                        href={ente.sitioWeb} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 text-gov-blue hover:text-gov-blue-dark font-medium group"
-                      >
-                        Visitar sitio web
-                        <Link2 className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                      </a>
-                    </div>
+                    {ente.direccion && (
+                      <div className="flex items-start gap-2">
+                        <span className="font-semibold text-gray-900 min-w-[70px]">Dirección:</span>
+                        <span className="text-gray-600">{ente.direccion}</span>
+                      </div>
+                    )}
+                    {ente.telefono && (
+                      <div className="flex items-start gap-2">
+                        <span className="font-semibold text-gray-900 min-w-[70px]">Teléfono:</span>
+                        <span className="text-gray-600">{ente.telefono}</span>
+                      </div>
+                    )}
+                    {ente.email && (
+                      <div className="flex items-start gap-2">
+                        <span className="font-semibold text-gray-900 min-w-[70px]">Correo:</span>
+                        <a href={`mailto:${ente.email}`} className="text-gov-blue hover:underline break-all">
+                          {ente.email}
+                        </a>
+                      </div>
+                    )}
+                    {ente.sitioWeb && (
+                      <div className="pt-2">
+                        <a
+                          href={ente.sitioWeb}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-gov-blue hover:text-gov-blue-dark font-medium group"
+                        >
+                          Visitar sitio web
+                          <Link2 className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                        </a>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

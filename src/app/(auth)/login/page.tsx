@@ -3,9 +3,10 @@ import { Suspense } from "react"
 import LoginForm from "@/components/auth/login-form"
 import Link from "next/link"
 import { Loader2 } from "lucide-react"
+import { getIdentidadPublica } from "@/lib/identidad-publica"
 
 export const metadata: Metadata = {
-  title: "Iniciar Sesión | Personería Municipal de Guadalajara de Buga",
+  title: "Iniciar Sesión",
   description: "Acceso al panel de administración"
 }
 
@@ -17,22 +18,25 @@ function LoginFormFallback() {
   )
 }
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  const id = await getIdentidadPublica()
   return (
     <div className="w-full max-w-md relative z-10">
       {/* Logo y título */}
       <div className="text-center mb-8">
         <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-full mb-4 shadow-lg">
           <div className="w-16 h-16 bg-[#003366] rounded-full flex items-center justify-center">
-            <span className="text-white font-bold text-2xl">P</span>
+            <span className="text-white font-bold text-2xl">{id.nombreCorto.charAt(0)}</span>
           </div>
         </div>
         <h1 className="text-2xl font-bold text-white mb-2">
-          Personería Municipal
+          {id.nombreCorto}
         </h1>
-        <p className="text-gray-300 text-sm">
-          Guadalajara de Buga
-        </p>
+        {id.ciudadDepto && (
+          <p className="text-gray-300 text-sm">
+            {id.ciudadDepto}
+          </p>
+        )}
       </div>
 
       {/* Formulario */}

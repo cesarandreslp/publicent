@@ -14,8 +14,25 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { getTenantPrisma, getTenantModulos, MODULO_IDS } from "@/lib/tenant"
 import { isModuleActive, getVentanillaConfig } from "@/lib/modules"
-import { TipoPQRS } from "@prisma/client"
+import { TipoPQRS, VuColorSemaforo, VuGenero, VuZona, VuCondicionVulnerabilidad, Prisma } from "@prisma/client"
 import { pqrsPublicoSchema, validateBody } from "@/lib/validations"
+
+interface SeguimientoItem {
+  fecha: string
+  estado: string
+  descripcion: string
+}
+
+interface RespuestaOficial {
+  numero: string
+  fecha: string
+  urlDescarga: string | null
+  hashVerificacion: string | null | undefined
+}
+
+type RadicadoHijoConDocs = Prisma.GdRadicadoGetPayload<{
+  include: { documentos: { include: { firmaQr: true } } }
+}>
 
 // ─── Rate limiting por IP para endpoint público ───────────────────────────────
 // Sliding window en memoria: máximo 5 radicaciones por IP por minuto.
@@ -275,7 +292,7 @@ async function guardarLocal(payload: PQRSPayload, tipo: TipoPQRS): Promise<strin
         where: { id: pqrs.id },
         data: {
           prioridad:       clasificacion.prioridad,
-          colorSemaforo:   colorSemaforo as any,
+          colorSemaforo:   colorSemaforo as VuColorSemaforo,
           fechaVencimiento: fechaLimiteVU,
         },
       })
@@ -286,12 +303,12 @@ async function guardarLocal(payload: PQRSPayload, tipo: TipoPQRS): Promise<strin
         await prisma.vuDemografia.create({
           data: {
             pqrsId:              pqrs.id,
-            genero:              (d.genero as any)    ?? 'PREFIERE_NO_DECIR',
-            rangoEtario:         d.rangoEtario        ?? null,
-            zona:                (d.zona as any)      ?? 'NO_INFORMA',
-            condicion:           (d.condicion as any) ?? 'NINGUNA',
+            genero:              (d.genero as VuGenero | undefined) ?? VuGenero.PREFIERE_NO_DECIR,
+            rangoEtario:         d.rangoEtario ?? null,
+            zona:                (d.zona as VuZona | undefined) ?? VuZona.NO_INFORMA,
+            condicion:           (d.condicion as VuCondicionVulnerabilidad | undefined) ?? VuCondicionVulnerabilidad.NINGUNA,
             municipioResidencia: d.municipioResidencia ?? null,
-            departamento:        d.departamento        ?? null,
+            departamento:        d.departamento ?? null,
           },
         })
       }
@@ -457,7 +474,7 @@ export async function GET(req: NextRequest) {
              return NextResponse.json({ error: "Radicado no encontrado en el sistema" }, { status: 404 })
           }
           // Si falló pero usarFallback es true, continúa a buscar localmente
-        } catch (err) {
+        } catch {
           if (!vuConfig.usarFallback) {
              return NextResponse.json({ error: "Sistema de consulta temporalmente no disponible" }, { status: 503 })
           }
@@ -484,15 +501,15 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Radicado no encontrado" }, { status: 404 })
     }
 
-    const seguimiento: any[] = [
-      { 
-        fecha: pqrs.createdAt.toISOString().slice(0, 10), 
-        estado: 'Radicado', 
-        descripcion: 'PQRS recibida e indexada en el sistema web.' 
+    const seguimiento: SeguimientoItem[] = [
+      {
+        fecha: pqrs.createdAt.toISOString().slice(0, 10),
+        estado: 'Radicado',
+        descripcion: 'PQRS recibida e indexada en el sistema web.'
       }
     ]
 
-    const respuestasOficiales: any[] = []
+    const respuestasOficiales: RespuestaOficial[] = []
 
     if (pqrs.gdRadicado) {
       // Inyectar el historial de transacciones reales del Gestor Documental
@@ -505,14 +522,13 @@ export async function GET(req: NextRequest) {
       })
 
       // Buscar si el radicado de entrada tiene respuestas emitidas (SALIDA)
-      const radicadosHijos = await prisma.gdRadicado.findMany({
+      const radicadosHijos: RadicadoHijoConDocs[] = await prisma.gdRadicado.findMany({
         where: { radicadoOrigen: pqrs.gdRadicado.numero, tipo: "SALIDA" },
-        include: { documentos: { include: { firmaQr: true } } } as any
+        include: { documentos: { include: { firmaQr: true } } }
       })
 
-      radicadosHijos.forEach((hijo: any) => {
-        // En NextJS TypeScript, a veces el linter se queja con forEach, se recomienda usar map o of, pero aquí mapeamos el doc.
-        const docPrincipal = hijo.documentos.find((d: any) => d.esPrincipal)
+      radicadosHijos.forEach((hijo) => {
+        const docPrincipal = hijo.documentos.find((d) => d.esPrincipal)
         if (docPrincipal) {
           seguimiento.push({
             fecha: hijo.createdAt.toISOString().slice(0, 10),
@@ -535,10 +551,10 @@ export async function GET(req: NextRequest) {
     if (pqrs.gdRadicado?.estado === "ARCHIVADO") estadoUI = "cerrado"
 
     // Semáforo: recalcular en tiempo real si hay fecha de vencimiento
-    let colorSemaforo = pqrs.colorSemaforo ?? null
+    let colorSemaforo: VuColorSemaforo | null = pqrs.colorSemaforo ?? null
     if (pqrs.fechaVencimiento && pqrs.vuAsignacion?.diasTerminoLegal) {
       const { calcularSemaforo } = await import("@/lib/groq-client")
-      colorSemaforo = calcularSemaforo(pqrs.createdAt, pqrs.vuAsignacion.diasTerminoLegal) as any
+      colorSemaforo = calcularSemaforo(pqrs.createdAt, pqrs.vuAsignacion.diasTerminoLegal) as VuColorSemaforo
     }
 
     return NextResponse.json({

@@ -11,13 +11,15 @@ import {
   Contrast,
   HelpCircle,
   ExternalLink,
+  Mail,
 } from 'lucide-react'
 import { PageHeader } from '@/components/shared/page-header'
+import { getIdentidadPublica } from '@/lib/identidad-publica'
 
 export const metadata: Metadata = {
-  title: 'Accesibilidad | Personería Municipal de Guadalajara de Buga',
+  title: 'Accesibilidad',
   description:
-    'Información sobre las características de accesibilidad del sitio web de la Personería Municipal de Guadalajara de Buga',
+    'Información sobre las características de accesibilidad del sitio web',
 }
 
 const caracteristicas = [
@@ -76,7 +78,9 @@ const atajosTeclado = [
   { tecla: 'Ctrl + 0', funcion: 'Restablecer el tamaño del texto' },
 ]
 
-export default function AccesibilidadPage() {
+export default async function AccesibilidadPage() {
+  const id = await getIdentidadPublica()
+  const emailAccesibilidad = id.emailAccesibilidad ?? id.emailContacto ?? null
   return (
     <>
       <PageHeader
@@ -87,6 +91,107 @@ export default function AccesibilidadPage() {
 
       <main className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto">
+          {/* Declaración formal de conformidad WCAG 2.1 AA — Res. 1519/2020 */}
+          <section className="mb-12" aria-labelledby="declaracion-titulo">
+            <div className="bg-white rounded-xl shadow-sm border-l-4 border-gov-blue p-8">
+              <h2 id="declaracion-titulo" className="text-2xl font-bold text-gray-900 mb-2">
+                Declaración de Conformidad de Accesibilidad
+              </h2>
+              <p className="text-sm text-gray-500 mb-6">
+                Emitida en cumplimiento de la Resolución 1519 de 2020 (MinTIC) y las Pautas
+                de Accesibilidad para el Contenido Web (WCAG) 2.1 nivel AA del W3C.
+              </p>
+
+              <dl className="grid sm:grid-cols-2 gap-4 mb-6">
+                <div>
+                  <dt className="text-xs font-semibold uppercase text-gray-500">Estado de conformidad</dt>
+                  <dd className="text-base text-gray-900 mt-1">Cumplimiento parcial con WCAG 2.1 AA</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-semibold uppercase text-gray-500">Fecha de la declaración</dt>
+                  <dd className="text-base text-gray-900 mt-1">6 de mayo de 2026</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-semibold uppercase text-gray-500">Norma de referencia</dt>
+                  <dd className="text-base text-gray-900 mt-1">WCAG 2.1 AA · NTC 5854 · Res. 1519/2020 Anexo 1</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-semibold uppercase text-gray-500">Última revisión</dt>
+                  <dd className="text-base text-gray-900 mt-1">6 de mayo de 2026</dd>
+                </div>
+              </dl>
+
+              <div className="mb-6">
+                <h3 className="font-bold text-gray-900 mb-2">Alcance</h3>
+                <p className="text-gray-600 text-sm">
+                  Aplica al portal web público de {id.nombreCompleto}, incluyendo: inicio,
+                  entidad, transparencia, atención al ciudadano, participa, noticias, servicios
+                  y formulario de PQRSD. No incluye el panel administrativo privado ni documentos
+                  PDF heredados.
+                </p>
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-4 mb-6">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <h3 className="font-bold text-green-900 mb-2 text-sm">✓ Criterios cumplidos</h3>
+                  <ul className="text-xs text-green-900 space-y-1.5">
+                    <li>1.1.1 Contenido no textual (alt en imágenes)</li>
+                    <li>2.1.1 Navegación por teclado</li>
+                    <li>2.4.1 Saltos de bloque (skip links)</li>
+                    <li>2.4.4 Propósito de los enlaces (en contexto)</li>
+                    <li>3.1.1 Idioma de la página</li>
+                    <li>3.3.2 Etiquetas o instrucciones en formularios</li>
+                    <li>4.1.2 Nombre, función, valor (ARIA)</li>
+                  </ul>
+                </div>
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <h3 className="font-bold text-yellow-900 mb-2 text-sm">⚠ Cumplimiento parcial</h3>
+                  <ul className="text-xs text-yellow-900 space-y-1.5">
+                    <li>1.4.3 Contraste mínimo (auditoría manual pendiente)</li>
+                    <li>1.4.11 Contraste no textual</li>
+                    <li>2.4.6 Encabezados y etiquetas</li>
+                    <li>3.3.1 Identificación de errores en formularios</li>
+                    <li>4.1.3 Mensajes de estado</li>
+                  </ul>
+                </div>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <h3 className="font-bold text-red-900 mb-2 text-sm">✗ No cumplidos</h3>
+                  <ul className="text-xs text-red-900 space-y-1.5">
+                    <li>1.2.2 Subtítulos en video pregrabado</li>
+                    <li>1.2.3 Audiodescripción o medio alternativo</li>
+                    <li>1.2.5 Audiodescripción pregrabada</li>
+                    <li>1.2.6 Lengua de Señas Colombiana (LSC)</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="bg-gov-blue/5 border border-gov-blue/20 rounded-lg p-4">
+                <h3 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
+                  <Mail className="w-5 h-5 text-gov-blue" />
+                  Reporte de barreras de accesibilidad
+                </h3>
+                <p className="text-sm text-gray-600 mb-2">
+                  Si encuentra una barrera de accesibilidad o necesita información en formato alternativo:
+                </p>
+                {emailAccesibilidad ? (
+                  <a
+                    href={`mailto:${emailAccesibilidad}`}
+                    className="text-gov-blue font-medium hover:underline"
+                  >
+                    {emailAccesibilidad}
+                  </a>
+                ) : (
+                  <span className="text-gray-500 italic">
+                    Email de accesibilidad pendiente de configurar
+                  </span>
+                )}
+                <p className="text-xs text-gray-500 mt-2">
+                  Tiempo estimado de respuesta: 10 días hábiles (Ley 1755 de 2015).
+                </p>
+              </div>
+            </div>
+          </section>
+
           {/* Introducción */}
           <section className="mb-12">
             <div className="bg-gov-blue/5 rounded-xl p-8 border border-gov-blue/20">
@@ -94,11 +199,11 @@ export default function AccesibilidadPage() {
                 Compromiso con la Accesibilidad
               </h2>
               <p className="text-gray-600 leading-relaxed mb-4">
-                La Personería Municipal de Guadalajara de Buga está comprometida con garantizar 
-                que su sitio web sea accesible para todas las personas, independientemente de sus 
-                capacidades o el tipo de tecnología que utilicen para navegar. Trabajamos 
-                continuamente para cumplir con las Pautas de Accesibilidad para el Contenido Web 
-                (WCAG) 2.1 nivel AA y la normativa colombiana sobre accesibilidad web.
+                {id.nombreCompleto} está comprometida con garantizar que su sitio web sea
+                accesible para todas las personas, independientemente de sus capacidades o el
+                tipo de tecnología que utilicen para navegar. Trabajamos continuamente para
+                cumplir con las Pautas de Accesibilidad para el Contenido Web (WCAG) 2.1 nivel
+                AA y la normativa colombiana sobre accesibilidad web.
               </p>
               <div className="bg-white/50 rounded-lg p-4 border border-gov-blue/10">
                 <p className="text-sm text-gov-blue font-medium mb-2">
