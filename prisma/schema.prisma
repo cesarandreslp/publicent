@@ -80,6 +80,7 @@ model Usuario {
   vuAtencionesRegistradas       VuRegistroAtencion[]      @relation("VuAtencionAtendidoPor")
   vuPlantillasReporteCreadas    VuPlantillaReporte[]      @relation("VuReportePlantillaCreador")
   vuReportesGenerados           VuReporte[]               @relation("VuReporteGenerador")
+  vuConfigSistemaActualizadas   VuConfiguracionSistema[]  @relation("VuConfigSistemaActualizadoPor")
 
   @@map("usuarios")
 }
@@ -1828,21 +1829,6 @@ enum VuTipoCanalAtencion {
   OTRO
 }
 
-enum VuClavedeAjuste {
-  // Generales del modulo
-  IA_HABILITADA
-  IA_MODELO
-  IA_UMBRAL_CONFIANZA
-  // Notificaciones
-  NOTIF_EMAIL_HABILITADO
-  NOTIF_SMS_HABILITADO
-  NOTIF_WHATSAPP_HABILITADO
-  // Reportes y dashboards
-  REPORTES_DEFAULT_PERIODO
-  // Otros (extender segun necesidad)
-  PERSONALIZADO
-}
-
 /// Asignacion efectiva de un PQRS a un funcionario (no la sugerencia IA)
 model VuAsignacionFuncionario {
   id           String              @id @default(cuid())
@@ -1932,13 +1918,18 @@ model VuConfiguracionSLA {
   @@map("vu_configuracion_sla")
 }
 
-/// Settings de runtime del modulo VU (IA, notificaciones, etc.)
+/// Settings de runtime del modulo VU (IA, notificaciones, calendario, identidad, etc.)
+/// La clave es String libre — extensible sin migracion. Ejemplos:
+///  HOLIDAYS, BUSINESS_HOURS, ATTENTION_DAYS, IA_HABILITADA, IA_MODELO,
+///  IA_UMBRAL_CONFIANZA, NOTIF_EMAIL_HABILITADO, MAX_CASE_LOAD, etc.
 model VuConfiguracionSistema {
-  id        String          @id @default(cuid())
-  clave     VuClavedeAjuste @unique
-  valor     String          @db.Text
-  tipoDato  String          @default("string") // string | number | boolean | json
-  descripcion String?       @db.Text
+  id          String  @id @default(cuid())
+  clave       String  @unique
+  valor       Json    // soporta string / number / boolean / array / objeto
+  descripcion String? @db.Text
+
+  actualizadoPorId String?
+  actualizadoPor   Usuario? @relation("VuConfigSistemaActualizadoPor", fields: [actualizadoPorId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
