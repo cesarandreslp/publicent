@@ -66,6 +66,45 @@ El plan se construyó en 4 acuerdos explícitos:
 - [x] UI superadmin agrupada por categoría con badges de tier y dependencias ([`src/components/admin/superadmin/tenant-modulos.tsx`](src/components/admin/superadmin/tenant-modulos.tsx)).
 - [x] `tsc --noEmit` limpio (solo legacy `ventanilla_unica_personeria_buga/` excluido).
 
+### ✅ Fase 10 — CCPET Territorial completo (ingresos + gastos)
+
+El usuario aportó los 4 anexos oficiales descargados manualmente del portal de MinHacienda en `docs/ccpet/`. Procesados los dos anexos territoriales; los EICE quedan descargados pero sin aplicar (ver hallazgo).
+
+**Carga completa**
+- [x] `ccpet_ingresos_territoriales.xlsx` (Anexo 1A v8) → 512 rubros INGRESO
+- [x] `ccpet_gastos_territoriales.xlsx` (Anexo 2A v8) → 1.272 rubros GASTO
+- **Total: 1.784 rubros** del CCPET Territorial, niveles 1..10, sin huérfanos.
+
+**Distribución de gastos** (la columna vertebral de CDP/RP/Obligación/Pago)
+| Nivel | Cantidad |
+|---|---|
+| 1 (Gastos) | 1 |
+| 2 (Funcionamiento / Servicio deuda / Inversión) | 3 |
+| 3 (subgrupos) | 18 |
+| 4 (conceptos) | 82 |
+| 5 (subconceptos) | 248 |
+| 6 (items) | 448 |
+| 7 | 206 |
+| 8 | 200 |
+| 9-10 | 66 |
+
+**Hallazgo arquitectónico — EICE descartado en este corte**
+- [x] Anexos 1B y 2B (Empresas Industriales y Comerciales del Estado) también están descargados en `docs/ccpet/ccpet_{ingresos,gastos}_eice.xlsx` (200 ingresos + 1.137 gastos aprox).
+- ⚠ NO se cargan en este corte por **colisión de códigos**: 1B y 1A comparten prefijo `1.x.x...`; 2B y 2A comparten `2.x.x...`. La tabla `psu_rubros` tiene `codigo @unique`, por lo que cargar ambos rompería la inserción.
+- **Migración propuesta para soportar EICE más adelante:**
+  1. Nuevo enum `PsuMarcoCcpet { TERRITORIAL, EICE }`.
+  2. Cambiar `PsuRubro.codigo @unique` → `@@unique([codigo, marco])`.
+  3. Filtrar los rubros expuestos al tenant según su tipología (campo nuevo en `Tenant.marcoCcpet`).
+- Hasta esa migración, **los tenants tipo EICE (caso SAE) usan el catálogo TERRITORIAL** que cubre la mayor parte de los conceptos comunes. Las 4 cuentas tributarias muy específicas de EICE (impuestos a empresas, dividendos) quedan pendientes hasta la migración.
+
+**Implementación**
+- [x] [`scripts/parse-ccpet-xlsx.py`](scripts/parse-ccpet-xlsx.py) procesa ambos territoriales en una sola pasada; comentario explica por qué los EICE no se incluyen.
+- [x] [`src/lib/seeders/ccp-rubros.generated.ts`](src/lib/seeders/ccp-rubros.generated.ts) ahora tiene 1.784 rubros (era 512). El seeder principal (`seedCcp`) no cambia.
+- [x] La auto-siembra al activar `presupuesto_ejecucion` desde Superadmin carga ahora los 1.784 rubros oficiales.
+- [x] `tsc --noEmit` limpio.
+
+---
+
 ### ✅ Fase 9 — CCPET ingresos cargado desde MinHacienda (parcial: faltan gastos)
 
 Expansión del CCP de ~85 rubros operativos a **512 rubros oficiales de ingresos** del CCPET (Catálogo de Clasificación Presupuestal para Entidades Territoriales y sus Descentralizadas) emitido por MinHacienda / Dirección General de Apoyo Fiscal Territorial.

@@ -29,6 +29,12 @@ INPUTS = [
     ("ccpet_ingresos_territoriales.xlsx", "INGRESO"),
     ("ccpet_gastos_territoriales.xlsx",   "GASTO"),
 ]
+# Los anexos 1B/2B (Empresas Industriales y Comerciales del Estado, EICE)
+# están descargados en docs/ccpet/ pero NO se cargan por defecto: sus
+# códigos colisionan con los del Territorial (mismos prefijos 1.x y 2.x).
+# Cuando un tenant sea una EICE (caso SAE), conviene migrar PsuRubro a
+# @@unique([codigo, marco]) con un nuevo enum PsuMarcoCcpet
+# {TERRITORIAL, EICE}. Hasta entonces, dejamos sólo el TERRITORIAL.
 
 def parse_sheet(path: Path, tipo_default: str):
     if not path.exists():
