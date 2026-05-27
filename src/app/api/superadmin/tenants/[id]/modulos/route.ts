@@ -115,7 +115,11 @@ export async function PUT(req: NextRequest, { params }: Params) {
     (cat) => actual[cat.id]?.activo !== true && nueva[cat.id]?.activo === true,
   ).map((cat) => cat.id)
   const semillas: { modulo: string; total?: number; error?: string }[] = []
-  if (recienActivados.includes("contabilidad_publica") || recienActivados.includes("presupuesto_ejecucion")) {
+  if (
+    recienActivados.includes("contabilidad_publica") ||
+    recienActivados.includes("presupuesto_ejecucion") ||
+    recienActivados.includes("nomina_publica")
+  ) {
     try {
       const { getOrCreateTenantClientById } = await import("@/lib/tenant")
       const tenantPrisma = await getOrCreateTenantClientById(id)
@@ -129,6 +133,11 @@ export async function PUT(req: NextRequest, { params }: Params) {
         const { seedCcp } = await import("@/lib/seeders/ccp-rubros")
         const r = await seedCcp(tenantPrisma)
         semillas.push({ modulo: "presupuesto_ejecucion", total: r.total })
+      }
+      if (recienActivados.includes("nomina_publica")) {
+        const { seedNominaConceptos } = await import("@/lib/seeders/nomina-conceptos")
+        const r = await seedNominaConceptos(tenantPrisma)
+        semillas.push({ modulo: "nomina_publica", total: r.total })
       }
     } catch (e) {
       // No abortamos la activación: el módulo queda activo, sólo registramos

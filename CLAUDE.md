@@ -66,6 +66,69 @@ El plan se construyó en 4 acuerdos explícitos:
 - [x] UI superadmin agrupada por categoría con badges de tier y dependencias ([`src/components/admin/superadmin/tenant-modulos.tsx`](src/components/admin/superadmin/tenant-modulos.tsx)).
 - [x] `tsc --noEmit` limpio (solo legacy `ventanilla_unica_personeria_buga/` excluido).
 
+### ✅ Fase 11 — Núcleo `nomina_publica` (cerrada)
+
+Primer módulo que integra **contabilidad + presupuesto + dominio nuevo**. Maneja empleados (planta / trabajador oficial / contratistas / supernumerarios / aprendices), catálogo de conceptos (devengado, deducción empleado, aporte patronal, prestación social), liquidación mensual con motor de cálculo, novedades y enlace a `CpComprobante` + `PsuObligacion` para la fase de pago.
+
+**Datos** (bloque nuevo `prisma/schema.prisma`)
+- [x] `NomEmpleado` — identificación, vinculación (`NomTipoVinculacion`), salario básico decimal(18,2), banca, EPS/AFP/ARL/caja, flag retención. Únicos: `documento`. Índices: `activo`, `dependencia`.
+- [x] `NomConcepto` + enums `NomTipoConcepto` (4) y `NomFormulaConcepto` (5: FIJO, %SUELDO, %DEVENGADO, %IBC, CALCULO_ESPECIAL). Campos `cuentaContableCodigo` (PUC CGC) y `rubroCcpetCodigo` (CCPET A.1.x) → puente con contabilidad/presupuesto.
+- [x] `NomNominaPeriodo` + enum `NomEstadoPeriodo` (ABIERTO/LIQUIDADO/PAGADO/CERRADO). Único por código `YYYY-MM`.
+- [x] `NomLiquidacion` con unique `[periodoId, empleadoId]` + acumulados + slots `obligacionId`/`comprobanteId`.
+- [x] `NomLiquidacionDetalle` (línea por concepto con valor y base usada).
+- [x] `NomNovedad` + enum `NomTipoNovedad` (8 tipos: vacaciones, licencias, incapacidades, ausencia, comisión, permiso).
+
+**Catálogo base de conceptos**
+- [x] [`src/lib/seeders/nomina-conceptos.ts`](src/lib/seeders/nomina-conceptos.ts) — 24 conceptos prefijados:
+  - **9 devengados** (NC-001..009): sueldo, horas extras, auxilio transporte, bonificación servicios, prima servicios, prima navidad, prima vacaciones, vacaciones, honorarios contratistas.
+  - **7 deducciones empleado** (NC-101..122): salud 4%, pensión 4%, FSP 1%, retefuente salarios, retefuente honorarios 10%, embargo, libranza, fondo empleados.
+  - **8 aportes patronales** (NC-201..208): salud 8.5%, pensión 12%, ARL 0.522%, caja 4%, ICBF 3%, SENA 2%, ESAP 0.5%, escuelas técnicas 0.5%.
+  - **2 prestaciones sociales** (NC-301..302): cesantías 8.33%, intereses cesantías 1%.
+  - Cada concepto enlazado a la cuenta CGC sembrada en Fase 8 (5101/5103/5104/5111/2425/2436/2510) y al rubro CCPET A.1.x de Fase 10 cuando aplica.
+  - Función `seedNominaConceptos(prisma)` idempotente vía upsert por `codigo`.
+
+**Motor de liquidación**
+- [x] [`src/lib/nomina-motor.ts`](src/lib/nomina-motor.ts) — función pura `liquidarEmpleado(empleado, conceptos, dias, novedades)`:
+  1. Filtra conceptos aplicables al `tipoVinculacion`.
+  2. Pasada 1 — devengados (calcula IBC = sólo conceptos `constitutivoSalario:true`).
+  3. Pasada 2 — deducciones empleado (sobre IBC, devengado o fijo).
+  4. Pasada 3 — aportes patronales + prestaciones (sobre IBC/devengado).
+  - Aplica `factorDias = dias/30` a fórmulas % de sueldo.
+  - Provisiones (prima/vacaciones) usan aproximaciones determinísticas (8.33% / 4.17%) — placeholder por no consultar histórico.
+  - Retefuente queda en 0 (TODO: tablas UVT DIAN).
+
+**Núcleo**
+- [x] [`src/lib/frisco-guard.ts`](src/lib/frisco-guard.ts) — añadido `requireNomina(roles)` (gateado por `MODULO_IDS.NOMINA_PUBLICA`).
+- [x] [`src/lib/validations.ts`](src/lib/validations.ts) — schemas zod nuevos: `nomEmpleadoCreate/Update`, `nomPeriodoCreate`, `nomNovedadCreate`, `nomLiquidarPeriodo`.
+
+**Endpoints admin**
+- [x] `GET/POST /api/admin/nom/empleados` (filtros q/activo/tipoVinculacion).
+- [x] `GET/PATCH/DELETE /api/admin/nom/empleados/[id]` (DELETE = soft inactivar + fechaRetiro).
+- [x] `GET/POST /api/admin/nom/periodos` (auto-calcula código `YYYY-MM` y rangos UTC).
+- [x] `GET /api/admin/nom/liquidaciones?periodoId|empleadoId` (incluye empleado + periodo + detalles con concepto).
+- [x] `POST /api/admin/nom/liquidar { periodoId, diasLiquidados? }` — orquesta `liquidarEmpleado` por empleado, upsert `NomLiquidacion` + reemplaza detalles en `$transaction`, marca periodo `LIQUIDADO` y registra `liquidadoPor`.
+
+**Auto-siembra al activar el módulo**
+- [x] `PUT /api/superadmin/tenants/[id]/modulos` ahora detecta `nomina_publica` recién activado y siembra los 24 conceptos en la BD del tenant. Devuelve `{ semillas: [{ modulo: "nomina_publica", total }] }`.
+
+**UI**
+- [x] [`/admin/nomina`](src/app/admin/nomina/page.tsx) — server: carga empleados (200), últimos 12 periodos con totales acumulados, count de conceptos activos.
+- [x] [`client-page.tsx`](src/app/admin/nomina/client-page.tsx) — KPIs (empleados activos / último periodo / neto / aportes), tabla de periodos con badge de estado y botón "Liquidar" en ABIERTO, tabla de empleados, 3 modales (Empleado, Periodo, Liquidar). El modal de Liquidar muestra resumen post-corrida (devengado/deducciones/aportes/neto).
+- [x] Entrada "Nómina" en sidebar gateada por `MODULO_IDS.NOMINA_PUBLICA` ([`admin-sidebar.tsx`](src/components/admin/admin-sidebar.tsx)).
+
+**Verificación**
+- [x] `prisma generate` OK + `tsc --noEmit` limpio.
+
+**Hallazgos**
+- El motor de liquidación es **función pura** (no toca DB) → testeable sin mock. La capa de orquestación (`/liquidar` route) hace upsert + reemplazo de detalles + cambio de estado en una sola `$transaction` para no dejar liquidaciones a medias.
+- Las provisiones (prima de servicios, vacaciones) son aproximaciones — para cumplir formalmente con la norma colombiana hay que promediar últimos 12 meses. Documentado como TODO en el motor.
+- La retención en la fuente quedó como **placeholder = 0**. Implementarla requiere tablas UVT DIAN del año fiscal y procedimientos 1/2 — fuera del scope MVP pero pendiente antes de pagar nómina real.
+- El concepto NC-009 "Honorarios" para contratistas usa `FIJO` (sin porcentaje) porque se pega el valor mensual contratado directamente — eventualmente un campo `valorMensual` en `NomEmpleado` para OPS.
+- La cadena completa **liquidación → obligación presupuestal → pago → comprobante contable** queda para la siguiente fase: hoy `NomLiquidacion.obligacionId` y `.comprobanteId` están preparados pero ningún endpoint los llena. Ese flujo es la *fase 12* (pagar-nomina).
+- ⚠ Migración pendiente: `npx prisma db push` para crear tablas `nom_*`. Al activar el módulo desde Superadmin se siembran los 24 conceptos automáticamente.
+
+---
+
 ### ✅ Fase 10 — CCPET Territorial completo (ingresos + gastos)
 
 El usuario aportó los 4 anexos oficiales descargados manualmente del portal de MinHacienda en `docs/ccpet/`. Procesados los dos anexos territoriales; los EICE quedan descargados pero sin aplicar (ver hallazgo).
@@ -521,11 +584,11 @@ Avance respecto al MVP SAE de A0 (portal + plan CGN + bienes FRISCO + presupuest
 - [x] Portal externo del depositario (`portal_externo`)
 - [x] **Plan CGN + motor contable** (`contabilidad_publica` — Fase 5)
 - [x] **Presupuesto mínimo (CDP/RP/Obligación/Pago)** (`presupuesto_ejecucion` — Fase 6, con comprobante contable auto al pagar)
+- [x] **Nómina pública** (`nomina_publica` — Fase 11, motor de liquidación + 24 conceptos sembrados)
+- [ ] **Pagar nómina** — generar Obligación presupuestal por liquidación + Comprobante contable (gasto/pasivo/banco) cuando la entidad confirma el pago. Estructura ya está (NomLiquidacion.obligacionId/comprobanteId).
 - [ ] **Reporte CHIP básico** ← siguiente palanca del MVP SAE
 
-**Siguiente: `reportes_control`** o `tesoreria` (a definir). Con el motor contable + cadena presupuestal vivos, el MVP SAE necesita los reportes a entes (CHIP/FUT) para cerrar el círculo de venta.
-
-Alternativa razonable: `nomina_publica` (también depende del PUC; usa terceros, comprobantes y cuentas 2505/2510/5101/5103 ya sembradas). Decisión pendiente con el usuario.
+**Siguiente sugerido:** cerrar el círculo de nómina con `/api/admin/nom/pagar` (genera obligación + comprobante en `$transaction`), o saltar a `reportes_control` para entregar CHIP/FUT del MVP SAE. Decisión pendiente con el usuario.
 
 ### Pendientes inmediatos en `presupuesto_ejecucion`
 - [ ] `npx prisma db push` por tenant para crear tablas `psu_*`.

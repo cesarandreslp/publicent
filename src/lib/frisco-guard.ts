@@ -60,3 +60,8 @@ export function requireContabilidad(roles: Role[]) {
 export function requirePresupuesto(roles: Role[]) {
   return requireModule(MODULO_IDS.PRESUPUESTO_EJECUCION, "Ejecución presupuestal", roles)
 }
+
+/** Gate para endpoints admin de nómina pública (módulo `nomina_publica`). */
+export function requireNomina(roles: Role[]) {
+  return requireModule(MODULO_IDS.NOMINA_PUBLICA, "Nómina pública", roles)
+}

@@ -685,6 +685,59 @@ export const psuPagoCreateSchema = z.object({
   generarComprobante: z.boolean().optional(),                   // default true
 })
 
+// ─── Nómina pública ───────────────────────────────────────────────────────────
+
+const nomTipoVinculacion = z.enum(["PLANTA", "TRABAJADOR_OFICIAL", "CONTRATISTA", "SUPERNUMERARIO", "APRENDIZ"])
+
+export const nomEmpleadoCreateSchema = z.object({
+  documento: z.string().min(3).max(30),
+  tipoDocumento: z.enum(["CC", "CE", "PA", "NIT", "TI"]),
+  primerNombre: z.string().min(1).max(60),
+  segundoNombre: z.string().max(60).optional().nullable(),
+  primerApellido: z.string().min(1).max(60),
+  segundoApellido: z.string().max(60).optional().nullable(),
+  email: z.string().email().optional().nullable(),
+  telefono: z.string().max(30).optional().nullable(),
+  cargo: z.string().min(1).max(120),
+  dependencia: z.string().max(120).optional().nullable(),
+  tipoVinculacion: nomTipoVinculacion,
+  fechaIngreso: z.string().datetime(),
+  salarioBasico: z.number().positive(),
+  cuentaBanco: z.string().max(30).optional().nullable(),
+  bancoNombre: z.string().max(80).optional().nullable(),
+  tipoCuenta: z.enum(["AHORROS", "CORRIENTE"]).optional().nullable(),
+  eps: z.string().max(80).optional().nullable(),
+  afp: z.string().max(80).optional().nullable(),
+  arl: z.string().max(80).optional().nullable(),
+  cajaCompensacion: z.string().max(80).optional().nullable(),
+  retencionFuenteAplica: z.boolean().optional(),
+})
+
+export const nomEmpleadoUpdateSchema = nomEmpleadoCreateSchema.partial().extend({
+  activo: z.boolean().optional(),
+  fechaRetiro: z.string().datetime().optional().nullable(),
+})
+
+export const nomPeriodoCreateSchema = z.object({
+  anio: z.number().int().min(2000).max(2100),
+  mes: z.number().int().min(1).max(12),
+})
+
+export const nomNovedadCreateSchema = z.object({
+  empleadoId: z.string().cuid(),
+  tipo: z.enum(["VACACIONES", "LICENCIA_REMUNERADA", "LICENCIA_NO_REMUNERADA", "INCAPACIDAD_EPS", "INCAPACIDAD_ARL", "AUSENCIA", "COMISION_SERVICIOS", "PERMISO"]),
+  fechaInicio: z.string().datetime(),
+  fechaFin: z.string().datetime(),
+  dias: z.number().int().positive(),
+  observacion: z.string().max(500).optional().nullable(),
+  valor: z.number().nonnegative().optional().nullable(),
+})
+
+export const nomLiquidarPeriodoSchema = z.object({
+  periodoId: z.string().cuid(),
+  diasLiquidados: z.number().int().min(1).max(31).optional(),
+})
+
 // ──────────────────────────────────────────────────────────────────────────────
 
 export function validateBody<T>(

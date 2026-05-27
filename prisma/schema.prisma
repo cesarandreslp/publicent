@@ -2804,3 +2804,220 @@ enum PsuMedioPago {
   EFECTIVO
   OTRO
 }
+
+// ╔════════════════════════════════════════════════════════════════════════════╗
+// ║ MÓDULO: Nómina pública (nomina_publica)                                    ║
+// ║ Maneja empleados (planta y contratistas), conceptos de devengado y         ║
+// ║ deducción (PUC CGC + rubros CCPET A.1), liquidación mensual, integración   ║
+// ║ con presupuesto (Obligación/Pago) y contabilidad (CpComprobante).          ║
+// ╚════════════════════════════════════════════════════════════════════════════╝
+
+// ─── Empleado / vinculado ────────────────────────────────────────────────────
+
+model NomEmpleado {
+  id              String   @id @default(cuid())
+  documento       String   @unique
+  tipoDocumento   String                                       // CC|CE|PA|NIT
+  primerNombre    String
+  segundoNombre   String?
+  primerApellido  String
+  segundoApellido String?
+  email           String?
+  telefono        String?
+  cargo           String
+  dependencia     String?
+  tipoVinculacion NomTipoVinculacion @default(PLANTA)
+  fechaIngreso    DateTime
+  fechaRetiro     DateTime?
+  activo          Boolean  @default(true)
+  salarioBasico   Decimal  @db.Decimal(18, 2)
+  // Identificadores bancarios / aportes
+  cuentaBanco     String?
+  bancoNombre     String?
+  tipoCuenta      String?                                      // AHORROS|CORRIENTE
+  eps             String?
+  afp             String?
+  arl             String?
+  cajaCompensacion String?
+  // Información tributaria
+  retencionFuenteAplica Boolean @default(true)
+
+  liquidaciones NomLiquidacion[]
+  novedades     NomNovedad[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([activo])
+  @@index([dependencia])
+  @@map("nom_empleados")
+}
+
+enum NomTipoVinculacion {
+  PLANTA            // empleado público de carrera o libre nombramiento
+  TRABAJADOR_OFICIAL
+  CONTRATISTA       // OPS — prestación de servicios
+  SUPERNUMERARIO
+  APRENDIZ
+}
+
+// ─── Concepto de nómina (devengado o deducción) ──────────────────────────────
+
+model NomConcepto {
+  id          String   @id @default(cuid())
+  codigo      String   @unique                                // NC-001, NC-002
+  nombre      String
+  tipo        NomTipoConcepto
+  // Base de cálculo
+  formula     NomFormulaConcepto @default(FIJO)
+  porcentaje  Decimal? @db.Decimal(6, 4)                      // ej 0.04 = 4%
+  valorFijo   Decimal? @db.Decimal(18, 2)
+  // Aplica a
+  aplicaA     NomTipoVinculacion[]                            // a quiénes aplica
+  // Comportamiento contable / tributario
+  baseRetencion Boolean @default(false)                       // suma a base retención
+  baseAportes   Boolean @default(false)                       // suma a IBC
+  constitutivoSalario Boolean @default(true)
+  // Cuenta CGC asociada (gasto si devengado, pasivo si deducción)
+  cuentaContableCodigo String?                                // ej "510101", "243603"
+  // Rubro CCPET asociado (sólo devengados)
+  rubroCcpetCodigo     String?                                // ej "2.1.1.01.01.01.01"
+  // Orden de aplicación dentro de la liquidación
+  orden       Int      @default(100)
+  activo      Boolean  @default(true)
+
+  detalles    NomLiquidacionDetalle[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("nom_conceptos")
+}
+
+enum NomTipoConcepto {
+  DEVENGADO            // sueldo, prima, bonificación, auxilio
+  DEDUCCION_EMPLEADO   // pensión 4%, salud 4%, retefuente, embargos
+  APORTE_PATRONAL      // pensión 12%, salud 8.5%, ARL, parafiscales
+  PRESTACION_SOCIAL    // cesantías, intereses, primas (provisiones)
+}
+
+enum NomFormulaConcepto {
+  FIJO                 // valorFijo en el empleado (manual)
+  PORCENTAJE_SUELDO    // porcentaje * salarioBasico
+  PORCENTAJE_DEVENGADO // porcentaje * suma devengados constitutivos
+  PORCENTAJE_IBC       // porcentaje * Ingreso Base de Cotización
+  CALCULO_ESPECIAL     // ej cesantías: prom 12 meses, vacaciones: días*salario/30
+}
+
+// ─── Periodo de nómina ───────────────────────────────────────────────────────
+
+model NomNominaPeriodo {
+  id          String   @id @default(cuid())
+  codigo      String   @unique                                // "2026-05"
+  anio        Int
+  mes         Int                                             // 1..12
+  estado      NomEstadoPeriodo @default(ABIERTO)
+  fechaInicio DateTime
+  fechaFin    DateTime
+  liquidadoEn DateTime?
+  liquidadoPor String?
+
+  liquidaciones NomLiquidacion[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([anio, mes])
+  @@map("nom_periodos")
+}
+
+enum NomEstadoPeriodo {
+  ABIERTO          // se puede liquidar
+  LIQUIDADO        // ya liquidado, sólo lectura
+  PAGADO           // pagado a empleados (genera comprobantes)
+  CERRADO          // cerrado contablemente
+}
+
+// ─── Liquidación (1 por empleado por periodo) ────────────────────────────────
+
+model NomLiquidacion {
+  id          String   @id @default(cuid())
+  periodoId   String
+  periodo     NomNominaPeriodo @relation(fields: [periodoId], references: [id])
+  empleadoId  String
+  empleado    NomEmpleado @relation(fields: [empleadoId], references: [id])
+  // Acumulados
+  totalDevengado Decimal @db.Decimal(18, 2) @default(0)
+  totalDeducciones Decimal @db.Decimal(18, 2) @default(0)
+  totalAportesPatronales Decimal @db.Decimal(18, 2) @default(0)
+  netoPagar      Decimal @db.Decimal(18, 2) @default(0)
+  // Días liquidados
+  diasLiquidados Int @default(30)
+  // Salario base usado
+  salarioBasico  Decimal @db.Decimal(18, 2)
+  // Vínculos a presupuesto / contabilidad
+  obligacionId   String?
+  comprobanteId  String?
+
+  detalles NomLiquidacionDetalle[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([periodoId, empleadoId])
+  @@index([empleadoId])
+  @@map("nom_liquidaciones")
+}
+
+// ─── Detalle de liquidación (línea por concepto aplicado) ────────────────────
+
+model NomLiquidacionDetalle {
+  id            String   @id @default(cuid())
+  liquidacionId String
+  liquidacion   NomLiquidacion @relation(fields: [liquidacionId], references: [id], onDelete: Cascade)
+  conceptoId    String
+  concepto      NomConcepto @relation(fields: [conceptoId], references: [id])
+  valor         Decimal  @db.Decimal(18, 2)
+  base          Decimal? @db.Decimal(18, 2)                   // base usada para el cálculo
+  observacion   String?
+
+  createdAt DateTime @default(now())
+
+  @@index([liquidacionId])
+  @@index([conceptoId])
+  @@map("nom_liquidacion_detalles")
+}
+
+// ─── Novedad (vacaciones, licencia, ausencia, incapacidad) ───────────────────
+
+model NomNovedad {
+  id          String   @id @default(cuid())
+  empleadoId  String
+  empleado    NomEmpleado @relation(fields: [empleadoId], references: [id])
+  tipo        NomTipoNovedad
+  fechaInicio DateTime
+  fechaFin    DateTime
+  dias        Int
+  observacion String?
+  valor       Decimal? @db.Decimal(18, 2)                     // si aplica (ej. liquidación de vacaciones)
+  aprobada    Boolean @default(false)
+  aprobadaPor String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([empleadoId])
+  @@index([fechaInicio])
+  @@map("nom_novedades")
+}
+
+enum NomTipoNovedad {
+  VACACIONES
+  LICENCIA_REMUNERADA
+  LICENCIA_NO_REMUNERADA
+  INCAPACIDAD_EPS          // pagada por EPS
+  INCAPACIDAD_ARL          // pagada por ARL
+  AUSENCIA                 // descontable
+  COMISION_SERVICIOS
+  PERMISO
+}

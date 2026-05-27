@@ -1,0 +1,333 @@
+"use client"
+
+import { useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
+import { Users, Calendar, Plus, X, Loader2, Calculator } from "lucide-react"
+
+type Empleado = {
+  id: string; documento: string; nombre: string; cargo: string;
+  dependencia: string | null; tipoVinculacion: string; activo: boolean; salarioBasico: number;
+}
+type PeriodoRes = {
+  id: string; codigo: string; anio: number; mes: number; estado: string;
+  liquidaciones: number; devengado: number; deducciones: number; aportes: number; neto: number;
+}
+
+function fmt(n: number) {
+  return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(n)
+}
+
+export default function NominaClient({
+  empleados, empleadosActivos, periodos, conceptosTotal,
+}: {
+  empleados: Empleado[]; empleadosActivos: number; periodos: PeriodoRes[]; conceptosTotal: number;
+}) {
+  const router = useRouter()
+  const [modal, setModal] = useState<null | 'empleado' | 'periodo' | 'liquidar'>(null)
+  const [liquidarPeriodoId, setLiquidarPeriodoId] = useState<string | null>(null)
+  const ultimo = periodos[0]
+
+  return (
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2"><Users className="w-6 h-6" /> Nómina pública</h1>
+          <p className="text-sm text-slate-600">Empleados, periodos mensuales y liquidación · {conceptosTotal} conceptos activos</p>
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          <button onClick={() => setModal('empleado')} className="px-3 py-2 text-sm rounded-md border flex items-center gap-1">
+            <Plus className="w-4 h-4" /> Empleado
+          </button>
+          <button onClick={() => setModal('periodo')} className="px-3 py-2 text-sm rounded-md bg-blue-600 text-white flex items-center gap-1">
+            <Plus className="w-4 h-4" /> Periodo
+          </button>
+        </div>
+      </div>
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="rounded-lg border p-3 bg-slate-50">
+          <div className="text-xs text-slate-500">Empleados activos</div>
+          <div className="text-lg font-semibold mt-1">{empleadosActivos}</div>
+        </div>
+        <div className="rounded-lg border p-3 bg-blue-50">
+          <div className="text-xs text-slate-500">Último periodo</div>
+          <div className="text-lg font-semibold mt-1">{ultimo?.codigo ?? "—"}</div>
+        </div>
+        <div className="rounded-lg border p-3 bg-emerald-50">
+          <div className="text-xs text-slate-500">Neto pagado último periodo</div>
+          <div className="text-lg font-semibold mt-1">{ultimo ? fmt(ultimo.neto) : "—"}</div>
+        </div>
+        <div className="rounded-lg border p-3 bg-violet-50">
+          <div className="text-xs text-slate-500">Aportes patronales último periodo</div>
+          <div className="text-lg font-semibold mt-1">{ultimo ? fmt(ultimo.aportes) : "—"}</div>
+        </div>
+      </div>
+
+      {/* Periodos */}
+      <section className="bg-white rounded-lg border">
+        <header className="p-4 border-b flex items-center gap-2">
+          <Calendar className="w-5 h-5" /> <h2 className="font-semibold">Periodos</h2>
+        </header>
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead className="bg-slate-50 text-left text-xs text-slate-600">
+              <tr>
+                <th className="px-3 py-2">Código</th><th className="px-3 py-2">Estado</th>
+                <th className="px-3 py-2 text-right">Liquidaciones</th>
+                <th className="px-3 py-2 text-right">Devengado</th>
+                <th className="px-3 py-2 text-right">Deducciones</th>
+                <th className="px-3 py-2 text-right">Neto</th>
+                <th className="px-3 py-2 text-right">Aportes</th>
+                <th className="px-3 py-2"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {periodos.length === 0 && (
+                <tr><td colSpan={8} className="p-4 text-center text-slate-500">Sin periodos. Crea el primero con &quot;+ Periodo&quot;.</td></tr>
+              )}
+              {periodos.map(p => (
+                <tr key={p.id} className="border-t">
+                  <td className="px-3 py-2 font-mono">{p.codigo}</td>
+                  <td className="px-3 py-2">
+                    <span className={`text-xs px-2 py-0.5 rounded ${
+                      p.estado === 'ABIERTO' ? 'bg-amber-100 text-amber-700' :
+                      p.estado === 'LIQUIDADO' ? 'bg-blue-100 text-blue-700' :
+                      p.estado === 'PAGADO' ? 'bg-emerald-100 text-emerald-700' :
+                      'bg-slate-100 text-slate-700'
+                    }`}>{p.estado}</span>
+                  </td>
+                  <td className="px-3 py-2 text-right">{p.liquidaciones}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{fmt(p.devengado)}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{fmt(p.deducciones)}</td>
+                  <td className="px-3 py-2 text-right tabular-nums font-semibold">{fmt(p.neto)}</td>
+                  <td className="px-3 py-2 text-right tabular-nums text-slate-600">{fmt(p.aportes)}</td>
+                  <td className="px-3 py-2">
+                    {p.estado === 'ABIERTO' && (
+                      <button onClick={() => { setLiquidarPeriodoId(p.id); setModal('liquidar') }}
+                        className="px-2 py-1 text-xs bg-violet-600 text-white rounded flex items-center gap-1">
+                        <Calculator className="w-3 h-3" /> Liquidar
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* Empleados */}
+      <section className="bg-white rounded-lg border">
+        <header className="p-4 border-b flex items-center gap-2">
+          <Users className="w-5 h-5" /> <h2 className="font-semibold">Empleados</h2>
+          <span className="text-xs text-slate-500 ml-auto">{empleados.length} registros</span>
+        </header>
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead className="bg-slate-50 text-left text-xs text-slate-600">
+              <tr>
+                <th className="px-3 py-2">Documento</th><th className="px-3 py-2">Nombre</th>
+                <th className="px-3 py-2">Cargo</th><th className="px-3 py-2">Vinculación</th>
+                <th className="px-3 py-2 text-right">Salario básico</th>
+                <th className="px-3 py-2">Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {empleados.length === 0 && (
+                <tr><td colSpan={6} className="p-4 text-center text-slate-500">Sin empleados. Registra el primero con &quot;+ Empleado&quot;.</td></tr>
+              )}
+              {empleados.map(e => (
+                <tr key={e.id} className="border-t">
+                  <td className="px-3 py-2 font-mono">{e.documento}</td>
+                  <td className="px-3 py-2">{e.nombre}</td>
+                  <td className="px-3 py-2">{e.cargo}{e.dependencia ? ` · ${e.dependencia}` : ''}</td>
+                  <td className="px-3 py-2 text-xs">{e.tipoVinculacion}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{fmt(e.salarioBasico)}</td>
+                  <td className="px-3 py-2">
+                    <span className={`text-xs px-2 py-0.5 rounded ${e.activo ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'}`}>
+                      {e.activo ? 'Activo' : 'Retirado'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {modal === 'empleado' && <EmpleadoModal onClose={() => setModal(null)} onSaved={() => router.refresh()} />}
+      {modal === 'periodo' && <PeriodoModal onClose={() => setModal(null)} onSaved={() => router.refresh()} />}
+      {modal === 'liquidar' && liquidarPeriodoId && (
+        <LiquidarModal periodoId={liquidarPeriodoId}
+          onClose={() => { setModal(null); setLiquidarPeriodoId(null) }}
+          onSaved={() => router.refresh()} />
+      )}
+    </div>
+  )
+}
+
+// ─── Modales ────────────────────────────────────────────────────────────────
+
+function ModalShell({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-start justify-center pt-12 p-4 z-50" onClick={onClose}>
+      <div className="bg-white rounded-lg max-w-xl w-full shadow-xl" onClick={e => e.stopPropagation()}>
+        <header className="px-4 py-3 border-b flex items-center">
+          <h3 className="font-semibold">{title}</h3>
+          <button onClick={onClose} className="ml-auto text-slate-500 hover:text-slate-700"><X className="w-4 h-4" /></button>
+        </header>
+        <div className="p-4">{children}</div>
+      </div>
+    </div>
+  )
+}
+
+function EmpleadoModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+  const [pending, start] = useTransition()
+  const [err, setErr] = useState<string | null>(null)
+
+  function submit(fd: FormData) {
+    start(async () => {
+      setErr(null)
+      const body = {
+        documento: String(fd.get('documento')),
+        tipoDocumento: String(fd.get('tipoDocumento')),
+        primerNombre: String(fd.get('primerNombre')),
+        primerApellido: String(fd.get('primerApellido')),
+        segundoNombre: fd.get('segundoNombre') ? String(fd.get('segundoNombre')) : null,
+        segundoApellido: fd.get('segundoApellido') ? String(fd.get('segundoApellido')) : null,
+        cargo: String(fd.get('cargo')),
+        dependencia: fd.get('dependencia') ? String(fd.get('dependencia')) : null,
+        tipoVinculacion: String(fd.get('tipoVinculacion')),
+        fechaIngreso: new Date(String(fd.get('fechaIngreso'))).toISOString(),
+        salarioBasico: Number(fd.get('salarioBasico')),
+      }
+      const r = await fetch('/api/admin/nom/empleados', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+      if (!r.ok) { setErr((await r.json()).error ?? 'Error'); return }
+      onSaved(); onClose()
+    })
+  }
+
+  return (
+    <ModalShell title="Registrar empleado" onClose={onClose}>
+      <form action={submit} className="space-y-3 text-sm">
+        <div className="grid grid-cols-2 gap-3">
+          <label>Documento <input name="documento" required className="w-full border rounded p-2" /></label>
+          <label>Tipo doc
+            <select name="tipoDocumento" required className="w-full border rounded p-2">
+              <option value="CC">CC</option><option value="CE">CE</option><option value="PA">PA</option><option value="NIT">NIT</option><option value="TI">TI</option>
+            </select>
+          </label>
+          <label>Primer nombre <input name="primerNombre" required className="w-full border rounded p-2" /></label>
+          <label>Segundo nombre <input name="segundoNombre" className="w-full border rounded p-2" /></label>
+          <label>Primer apellido <input name="primerApellido" required className="w-full border rounded p-2" /></label>
+          <label>Segundo apellido <input name="segundoApellido" className="w-full border rounded p-2" /></label>
+          <label className="col-span-2">Cargo <input name="cargo" required className="w-full border rounded p-2" /></label>
+          <label className="col-span-2">Dependencia <input name="dependencia" className="w-full border rounded p-2" /></label>
+          <label>Vinculación
+            <select name="tipoVinculacion" required className="w-full border rounded p-2">
+              <option value="PLANTA">PLANTA</option>
+              <option value="TRABAJADOR_OFICIAL">TRABAJADOR_OFICIAL</option>
+              <option value="CONTRATISTA">CONTRATISTA</option>
+              <option value="SUPERNUMERARIO">SUPERNUMERARIO</option>
+              <option value="APRENDIZ">APRENDIZ</option>
+            </select>
+          </label>
+          <label>Fecha de ingreso <input name="fechaIngreso" type="date" required className="w-full border rounded p-2" /></label>
+          <label className="col-span-2">Salario básico <input name="salarioBasico" type="number" min={1} step={1000} required className="w-full border rounded p-2" /></label>
+        </div>
+        {err && <p className="text-red-600 text-sm">{err}</p>}
+        <div className="flex justify-end gap-2 pt-2">
+          <button type="button" onClick={onClose} className="px-3 py-2 border rounded">Cancelar</button>
+          <button disabled={pending} className="px-3 py-2 bg-blue-600 text-white rounded flex items-center gap-1">
+            {pending && <Loader2 className="w-4 h-4 animate-spin" />} Guardar
+          </button>
+        </div>
+      </form>
+    </ModalShell>
+  )
+}
+
+function PeriodoModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+  const now = new Date()
+  const [pending, start] = useTransition()
+  const [err, setErr] = useState<string | null>(null)
+
+  function submit(fd: FormData) {
+    start(async () => {
+      setErr(null)
+      const body = { anio: Number(fd.get('anio')), mes: Number(fd.get('mes')) }
+      const r = await fetch('/api/admin/nom/periodos', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+      if (!r.ok) { setErr((await r.json()).error ?? 'Error'); return }
+      onSaved(); onClose()
+    })
+  }
+
+  return (
+    <ModalShell title="Crear periodo" onClose={onClose}>
+      <form action={submit} className="space-y-3 text-sm">
+        <div className="grid grid-cols-2 gap-3">
+          <label>Año <input name="anio" type="number" defaultValue={now.getFullYear()} required className="w-full border rounded p-2" /></label>
+          <label>Mes <input name="mes" type="number" min={1} max={12} defaultValue={now.getMonth() + 1} required className="w-full border rounded p-2" /></label>
+        </div>
+        {err && <p className="text-red-600 text-sm">{err}</p>}
+        <div className="flex justify-end gap-2 pt-2">
+          <button type="button" onClick={onClose} className="px-3 py-2 border rounded">Cancelar</button>
+          <button disabled={pending} className="px-3 py-2 bg-blue-600 text-white rounded flex items-center gap-1">
+            {pending && <Loader2 className="w-4 h-4 animate-spin" />} Crear
+          </button>
+        </div>
+      </form>
+    </ModalShell>
+  )
+}
+
+function LiquidarModal({ periodoId, onClose, onSaved }: { periodoId: string; onClose: () => void; onSaved: () => void }) {
+  const [pending, start] = useTransition()
+  const [err, setErr] = useState<string | null>(null)
+  const [resumen, setResumen] = useState<any>(null)
+
+  function submit(fd: FormData) {
+    start(async () => {
+      setErr(null); setResumen(null)
+      const body = { periodoId, diasLiquidados: Number(fd.get('diasLiquidados') || 30) }
+      const r = await fetch('/api/admin/nom/liquidar', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+      const j = await r.json()
+      if (!r.ok) { setErr(j.error ?? 'Error'); return }
+      setResumen(j.resumen)
+      onSaved()
+    })
+  }
+
+  return (
+    <ModalShell title="Liquidar periodo" onClose={onClose}>
+      {resumen ? (
+        <div className="space-y-3 text-sm">
+          <p className="text-emerald-700 font-medium">✓ {resumen.liquidadas} empleados liquidados</p>
+          <ul className="text-xs space-y-1 text-slate-600">
+            <li>Devengado: {fmt(resumen.totalDevengado)}</li>
+            <li>Deducciones: {fmt(resumen.totalDeducciones)}</li>
+            <li>Aportes patronales: {fmt(resumen.totalAportes)}</li>
+            <li className="font-semibold text-slate-900">Neto: {fmt(resumen.totalNeto)}</li>
+          </ul>
+          <div className="flex justify-end">
+            <button onClick={onClose} className="px-3 py-2 border rounded">Cerrar</button>
+          </div>
+        </div>
+      ) : (
+        <form action={submit} className="space-y-3 text-sm">
+          <label>Días liquidados <input name="diasLiquidados" type="number" min={1} max={31} defaultValue={30} className="w-full border rounded p-2" /></label>
+          <p className="text-xs text-slate-600">Se aplicará el catálogo de conceptos vigente a todos los empleados activos al cierre del periodo.</p>
+          {err && <p className="text-red-600 text-sm">{err}</p>}
+          <div className="flex justify-end gap-2 pt-2">
+            <button type="button" onClick={onClose} className="px-3 py-2 border rounded">Cancelar</button>
+            <button disabled={pending} className="px-3 py-2 bg-violet-600 text-white rounded flex items-center gap-1">
+              {pending && <Loader2 className="w-4 h-4 animate-spin" />} Liquidar
+            </button>
+          </div>
+        </form>
+      )}
+    </ModalShell>
+  )
+}
