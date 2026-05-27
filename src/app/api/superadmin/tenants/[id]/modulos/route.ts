@@ -108,18 +108,47 @@ export async function PUT(req: NextRequest, { params }: Params) {
     .filter((cat) => actual[cat.id]?.activo !== nueva[cat.id]?.activo)
     .map((cat) => cat.id)
 
+  // ── Auto-siembra de catálogos al activar módulos del MVP fiscal ───────────
+  // Si un módulo recién activado necesita un catálogo de base (PUC, rubros),
+  // lo sembramos en la BD del tenant. Idempotente: si ya está, no hace nada.
+  const recienActivados = MODULOS_CATALOGO.filter(
+    (cat) => actual[cat.id]?.activo !== true && nueva[cat.id]?.activo === true,
+  ).map((cat) => cat.id)
+  const semillas: { modulo: string; total?: number; error?: string }[] = []
+  if (recienActivados.includes("contabilidad_publica") || recienActivados.includes("presupuesto_ejecucion")) {
+    try {
+      const { getOrCreateTenantClientById } = await import("@/lib/tenant")
+      const tenantPrisma = await getOrCreateTenantClientById(id)
+
+      if (recienActivados.includes("contabilidad_publica")) {
+        const { seedCgc } = await import("@/lib/seeders/cgc-cuentas")
+        const r = await seedCgc(tenantPrisma)
+        semillas.push({ modulo: "contabilidad_publica", total: r.total })
+      }
+      if (recienActivados.includes("presupuesto_ejecucion")) {
+        const { seedCcp } = await import("@/lib/seeders/ccp-rubros")
+        const r = await seedCcp(tenantPrisma)
+        semillas.push({ modulo: "presupuesto_ejecucion", total: r.total })
+      }
+    } catch (e) {
+      // No abortamos la activación: el módulo queda activo, sólo registramos
+      // que la siembra automática falló (puede correrse manualmente luego).
+      semillas.push({ modulo: recienActivados.join(","), error: e instanceof Error ? e.message : String(e) })
+    }
+  }
+
   if (modulosCambiados.length > 0) {
     await prismaMeta.eventoTenant.create({
       data: {
         tenantId: id,
         tipo: "MODULO_ACTUALIZADO",
         descripcion: `Módulos modificados: ${modulosCambiados.join(", ")}`,
-        datos: { anterior: actual, nuevo: nueva } as unknown as Prisma.InputJsonValue,
+        datos: { anterior: actual, nuevo: nueva, semillas } as unknown as Prisma.InputJsonValue,
       },
     })
   }
 
-  return NextResponse.json({ modulos: resolveModulosConfig(updated.modulosActivos) })
+  return NextResponse.json({ modulos: resolveModulosConfig(updated.modulosActivos), semillas })
 }
 
 // ─── PATCH /api/superadmin/tenants/[id]/modulos ────────────────────────────────

@@ -66,6 +66,41 @@ El plan se construyó en 4 acuerdos explícitos:
 - [x] UI superadmin agrupada por categoría con badges de tier y dependencias ([`src/components/admin/superadmin/tenant-modulos.tsx`](src/components/admin/superadmin/tenant-modulos.tsx)).
 - [x] `tsc --noEmit` limpio (solo legacy `ventanilla_unica_personeria_buga/` excluido).
 
+### ✅ Fase 7 — Catálogos públicos completos + auto-siembra al activar (cerrada)
+
+Corrección importante traída por el usuario: **el plan de cuentas y el catálogo presupuestal del sector público son distintos a los del sector privado**, y **no pueden quedar como tablas vacías** cuando se activa el módulo. Se reemplaza el JSON mínimo de la Fase 5 por dos catálogos canónicos completos y se conecta su carga a la activación del módulo desde Superadmin.
+
+**Catálogos canónicos**
+- [x] [`src/lib/seeders/cgc-cuentas.ts`](src/lib/seeders/cgc-cuentas.ts) — **CGC (Catálogo General de Cuentas) público** Resolución 533/2015 CGN. ≈210 cuentas cubriendo clases 1..9 (activos, pasivos, patrimonio, ingresos, gastos, costos de producción 7, orden 8/9). Incluye:
+  - Niveles 1..5 (Clase/Grupo/Cuenta/Subcuenta/Auxiliar).
+  - Cuentas específicas del sector público: 17 (bienes de uso público), 47/57 (operaciones interinstitucionales), 44 (SGP educación/salud/agua/propósito general), 4407 (SGR), 55 (gasto público social), 59 (cierre).
+  - Cuentas correctoras con naturaleza invertida (1386 Deterioro CxC, 1685 Depreciación, 8920 Por contra).
+  - Función exportada `seedCgc(prisma)` — idempotente por upsert en `codigo`, resuelve grafo por pasadas.
+- [x] [`src/lib/seeders/ccp-rubros.ts`](src/lib/seeders/ccp-rubros.ts) — **CCP (Catálogo de Clasificación Presupuestal)** MinHacienda/DGPPN, basado en CICP Resolución 4015/2021 + Decreto 111/96. Cubre:
+  - **A — Funcionamiento** completo: A.1 personal (sueldos + contribuciones + parafiscales + servicios indirectos), A.2 bienes y servicios (activos no financieros + servicios públicos + mantenimiento + arrendamientos + viáticos + seguros + capacitación), A.3 transferencias corrientes (SGP, órganos de control con sub-rubros personería/contraloría/concejo), A.4 tributos/multas/sanciones, A.6 disminución de pasivos.
+  - **B — Servicio de deuda** (interna/externa: amortización + intereses + comisiones).
+  - **C — Inversión** por sectores DNP (educación, salud, vivienda, agua, transporte, cultura, ambiente, gobierno/seguridad, equidad, agro).
+  - **INGRESOS**: 1 corrientes (1.1 tributarios directos+indirectos, 1.2 no tributarios + SGP + SGR), 2 capital (crédito interno/externo, balance, rendimientos, donaciones, cofinanciación).
+  - Función `seedCcp(prisma)` análoga.
+
+**Auto-siembra al activar el módulo**
+- [x] [`PUT /api/superadmin/tenants/[id]/modulos`](src/app/api/superadmin/tenants/[id]/modulos/route.ts) detecta los módulos **recién activados** (no estaban antes, sí están ahora) y, si incluyen `contabilidad_publica` o `presupuesto_ejecucion`, obtiene la BD del tenant vía `getOrCreateTenantClientById(id)` y ejecuta el seeder correspondiente. La respuesta JSON incluye `{ semillas: [{ modulo, total }] }` para que el frontend lo confirme.
+- [x] Las semillas se ejecutan tras la actualización del meta-tenant; si fallan no abortan la activación (se registra `error` en el log de evento), porque puede correrse manualmente con el script CLI.
+- [x] El evento `MODULO_ACTUALIZADO` ahora guarda `{ anterior, nuevo, semillas }` en `EventoTenant.datos` — auditable desde Superadmin.
+
+**Script CLI**
+- [x] [`scripts/seed-puc.ts`](scripts/seed-puc.ts) reescrito: importa `seedCgc`/`seedCcp` desde el mismo módulo `lib/seeders/*` (única fuente de verdad). Banderas: `--ccp` para sólo presupuesto, `--all` para ambos, sin flag = sólo contabilidad.
+- [x] Eliminado [`prisma/seeds/puc-cgn.json`](prisma/seeds/puc-cgn.json) (era seed mínimo de 45 cuentas — ahora obsoleto).
+
+**Hallazgos**
+- Confusión común: el "PUC" colloquialmente se refiere al plan de cuentas privado (Decreto 2650/93). Para entidades públicas la norma vigente es la **Resolución 533/2015** de la CGN, que define el "Catálogo General de Cuentas (CGC)" dentro del Régimen de Contabilidad Pública (RCP). El código de los modelos sigue siendo `CpPlanCuenta` (sin rename para evitar migración invasiva) pero la documentación y los seeders ya hablan correctamente de CGC.
+- Para evitar tablas vacías en producción, la auto-siembra es **idempotente** (upsert por código): activar/desactivar/reactivar un módulo sólo siembra lo que falta y refresca metadatos sin destruir asientos ni movimientos.
+- `getOrCreateTenantClientById` se importa **dinámicamente** dentro del handler para no atar la ruta del meta al cliente del tenant si la ruta nunca dispara siembra (evita imports pesados en cold-start).
+- El CGC sembrado es **subset operativo** (~210 cuentas) — el catálogo completo de CGN tiene ~1500. Cuando un cliente necesite el resto, se amplía directamente en el array `CGC_CUENTAS` del seeder y se vuelve a correr (idempotente). Documentado en el header del archivo.
+- ⚠ Migración pendiente: para tenants donde ya se activó contabilidad_publica con el JSON mínimo, correr `DATABASE_URL=... npx tsx scripts/seed-puc.ts --all` una vez para completar el catálogo a la versión nueva.
+
+---
+
 ### ✅ Fase 6 — Núcleo `presupuesto_ejecucion` (cerrada)
 
 Cadena clásica del gasto público colombiano: **CDP → RP → Obligación → Pago**, con validación de saldos disponibles en cada paso y generación automática del comprobante contable al confirmar el pago.
@@ -391,7 +426,8 @@ Alternativa razonable: `nomina_publica` (también depende del PUC; usa terceros,
 - [ ] Generación del comprobante también en el paso de **Obligación** (devengo) si CGN lo exige formalmente — hoy sólo en Pago.
 
 ### Pendientes inmediatos en `contabilidad_publica`
-- [ ] Correr `prisma db push` + `npx tsx scripts/seed-puc.ts` en el tenant SAE.
-- [ ] **IA retroactiva**: sugerencia de cuentas PUC y de tercero auxiliar (modelo `CpAsientoSugerenciaIA` aún por crear); detector de comprobantes anómalos.
-- [ ] Cierre anual: comprobante automático de cierre que traslada saldos de cuentas de resultado (4 y 5) a `3110` (resultado del ejercicio).
+- [x] Auto-siembra del CGC al activar el módulo (Fase 7).
+- [ ] Correr `prisma db push` por tenant (para crear las tablas `cp_*`).
+- [ ] **IA retroactiva**: sugerencia de cuentas CGC y de tercero auxiliar (modelo `CpAsientoSugerenciaIA` aún por crear); detector de comprobantes anómalos.
+- [ ] Cierre anual: comprobante automático de cierre que traslada saldos de cuentas de resultado (4 y 5) a `3110` (resultado del ejercicio) usando las cuentas 5905/5910/5915 ya sembradas.
 - [ ] Balance comparativo (vs. periodo anterior) y libros oficiales (Diario, Mayor, Auxiliar).
