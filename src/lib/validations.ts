@@ -738,6 +738,15 @@ export const nomLiquidarPeriodoSchema = z.object({
   diasLiquidados: z.number().int().min(1).max(31).optional(),
 })
 
+export const rcGenerarSchema = z.object({
+  tipo: z.enum(["CHIP_BALANCE", "CHIP_ACTIVIDAD", "FUT_INGRESOS", "FUT_GASTOS", "LEY_617"]),
+  periodoContableId: z.string().cuid().optional(),
+  vigencia: z.number().int().min(2000).max(2100).optional(),
+  icldManual: z.number().nonnegative().optional(),
+  topeCategoria: z.number().min(0.001).max(0.5).optional(),
+  observacion: z.string().max(500).optional(),
+})
+
 export const nomPagarPeriodoSchema = z.object({
   periodoId: z.string().cuid(),
   fecha: z.string().datetime(),

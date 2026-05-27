@@ -66,6 +66,42 @@ El plan se construyó en 4 acuerdos explícitos:
 - [x] UI superadmin agrupada por categoría con badges de tier y dependencias ([`src/components/admin/superadmin/tenant-modulos.tsx`](src/components/admin/superadmin/tenant-modulos.tsx)).
 - [x] `tsc --noEmit` limpio (solo legacy `ventanilla_unica_personeria_buga/` excluido).
 
+### ✅ Fase 13 — Módulo `reportes_control` (cerrada)
+
+Cierra la última pieza del MVP SAE original (A0): reportes a entes de control (CHIP / FUT / Ley 617). Implementación como snapshots JSON persistidos en `RcReporteGenerado`, mapeo al layout XLS oficial queda pendiente.
+
+**Datos**
+- [x] `RcReporteGenerado` (campo `datos` Json + `totales` Json para listar rápido) + enum `RcTipoReporte` (5 valores: CHIP_BALANCE, CHIP_ACTIVIDAD, FUT_INGRESOS, FUT_GASTOS, LEY_617). Indexado por `[tipo, vigencia]` y `[tipo, periodoContableId]`.
+
+**Núcleo (`src/lib/reportes-control/`)**
+- [x] [`chip.ts`](src/lib/reportes-control/chip.ts) — `chipBalance(prisma, periodoId)` y `chipActividad(prisma, periodoId)`. Agregan asientos REGISTRADOS no anulados por cuenta (clases 1/2/3 para Balance, 4/5 para Actividad), aplican signo según naturaleza DEBITO/CREDITO y devuelven totales (activo / pasivo / patrimonio / diferencia, ingresos / gastos / excedente).
+- [x] [`fut.ts`](src/lib/reportes-control/fut.ts) — `futGastos(prisma, vigencia)` (apropiación / comprometido / obligado / pagado por rubro CCPET tipo GASTO) y `futIngresos(prisma, vigencia)` (aforado definitivo por rubro INGRESO). El recaudo real desde clase 4 contable queda como nota pendiente — requiere amarra subcuenta→rubro que hoy no existe a nivel catálogo.
+- [x] [`ley617.ts`](src/lib/reportes-control/ley617.ts) — `ley617({ prisma, vigencia, icldManual?, topeCategoria? })`. Suma obligaciones de rubros `A.1*` y `A.2*` como gastos de funcionamiento, divide por ICLD (manual o derivado de CCPET `1.1*`) y compara contra tope por categoría municipal (default 3.7% = categoría 6).
+
+**Endpoints**
+- [x] `POST /api/admin/rc/generar { tipo, periodoContableId?, vigencia?, icldManual?, topeCategoria?, observacion? }` — dispatch por tipo, persiste snapshot.
+- [x] `GET /api/admin/rc/reportes?tipo=&vigencia=&periodoContableId=` — lista (sólo metadata + totales para tabla).
+- [x] `GET/DELETE /api/admin/rc/reportes/[id]` — descarga JSON completo / borra snapshot.
+- [x] `requireReportesControl` guard.
+- [x] `rcGenerarSchema` zod.
+
+**UI**
+- [x] [`/admin/reportes-control`](src/app/admin/reportes-control/page.tsx) — server: últimos 24 periodos contables + últimos 60 reportes.
+- [x] [`client-page.tsx`](src/app/admin/reportes-control/client-page.tsx) — 5 botones (uno por tipo), tabla de bitácora con resumen línea-por-línea por tipo (`A: ... · P+P: ...` para Balance, `Apropiado X · Pagado Y` para FUT, `% · ✓/✗ cumple` para Ley 617), descarga JSON al click (`URL.createObjectURL` + `<a download>`), eliminar con confirm. Modal único `GenerarModal` adaptativo al tipo (pide periodo para CHIP, vigencia para FUT/617, selector de tope categoría para 617).
+- [x] Entrada "Reportes de control" en sidebar gateada por `MODULO_IDS.REPORTES_CONTROL`.
+
+**Verificación**
+- [x] `prisma generate` OK + `tsc --noEmit` limpio.
+
+**Hallazgos**
+- Los snapshots se persisten como Json crudo. Razón: estos reportes se entregan al organismo externo en formato propio (CHIP usa su software, FUT usa plantilla XLS) — guardar el JSON normalizado deja la puerta abierta a renderizar contra cualquier layout sin re-consultar la BD ni recalcular.
+- El cálculo de Balance / Actividad **filtra en JS por prefijo** (`startsWith('1')`) tras un `findMany` sin filtro de código. Razón: Prisma no tiene `OR` cómodo sobre `startsWith` múltiples sin construir array. Para volúmenes de personería (<5k asientos/mes) es trivial; para alcaldías grandes hay que mover el filtro a SQL crudo.
+- El FUT de ingresos devuelve **aforado**, no recaudo real. El recaudo necesita amarrar cuentas clase 4 ↔ rubros CCPET 1.x.x — pendiente de modelo (campo `rubroCcpetCodigo` en `CpPlanCuenta`, similar a lo que hicimos en NomConcepto). Documentado en el output del reporte.
+- Ley 617 usa `topeCategoria` parametrizable porque cada municipio tiene su categoría (1.5%–3.7%). Personería Buga es categoría 6 → 3.7%. El selector lista las 6 categorías comunes.
+- ⚠ Migración pendiente: `npx prisma db push` para crear `rc_reportes` por tenant.
+
+---
+
 ### ✅ Fase 12 — Pago de nómina → comprobante contable (cerrada)
 
 Cierra el círculo `Liquidación → Comprobante`. Cuando un periodo está `LIQUIDADO`, la entidad presiona "Pagar" y se genera **un único comprobante EGRESO** que agrega todas las liquidaciones del periodo. El periodo pasa a `PAGADO` y cada `NomLiquidacion.comprobanteId` queda apuntando al comprobante creado.
@@ -624,9 +660,10 @@ Avance respecto al MVP SAE de A0 (portal + plan CGN + bienes FRISCO + presupuest
 - [x] **Nómina pública** (`nomina_publica` — Fase 11, motor de liquidación + 24 conceptos sembrados)
 - [x] **Pagar nómina → comprobante contable** (`/api/admin/nom/pagar` — Fase 12, agrega liquidaciones en un único comprobante EGRESO)
 - [ ] **Pago de pasivos de nómina** — segundo comprobante para liquidar 2425/2436/2505/2510 contra EPS/AFP/DIAN/parafiscales (vía cadena CDP/RP/Obligación/Pago del módulo presupuesto).
-- [ ] **Reporte CHIP básico** ← siguiente palanca del MVP SAE
+- [x] **Reportes a entes de control** (`reportes_control` — Fase 13: CHIP Balance + Actividad, FUT Ingresos + Gastos, Ley 617) — **MVP SAE cerrado en feature core**
+- [ ] **Mapeo a plantillas oficiales** del CHIP/FUT (hoy se descarga JSON; falta exportador XLS con el layout exacto del CGN/DNP).
 
-**Siguiente sugerido:** saltar a `reportes_control` para entregar CHIP/FUT (cierra el MVP SAE) o cerrar el ciclo de pasivos de nómina (CDP/RP automático contra EPS/AFP). Decisión pendiente con el usuario.
+**Siguiente sugerido:** exportador XLS con el layout oficial de CHIP/FUT (lo que un contador entrega físicamente), o ciclo de pasivos de nómina (CDP/RP automático contra EPS/AFP/DIAN), o avanzar a `tesoreria`. Decisión pendiente con el usuario.
 
 ### Pendientes inmediatos en `presupuesto_ejecucion`
 - [ ] `npx prisma db push` por tenant para crear tablas `psu_*`.

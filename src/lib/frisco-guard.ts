@@ -65,3 +65,8 @@ export function requirePresupuesto(roles: Role[]) {
 export function requireNomina(roles: Role[]) {
   return requireModule(MODULO_IDS.NOMINA_PUBLICA, "Nómina pública", roles)
 }
+
+/** Gate para endpoints admin de reportes a entes de control. */
+export function requireReportesControl(roles: Role[]) {
+  return requireModule(MODULO_IDS.REPORTES_CONTROL, "Reportes a entes de control", roles)
+}

@@ -3021,3 +3021,36 @@ enum NomTipoNovedad {
   COMISION_SERVICIOS
   PERMISO
 }
+
+// ╔════════════════════════════════════════════════════════════════════════════╗
+// ║ MÓDULO: Reportes a entes de control (reportes_control)                     ║
+// ║ Genera snapshots periódicos para CHIP (CGN), FUT (DNP), Ley 617,           ║
+// ║ persistidos como JSON descargable para mapear a las plantillas oficiales.  ║
+// ╚════════════════════════════════════════════════════════════════════════════╝
+
+model RcReporteGenerado {
+  id           String   @id @default(cuid())
+  tipo         RcTipoReporte
+  // Identificación del corte (uno de los dos según el tipo):
+  periodoContableId String?                                  // CHIP_BALANCE / CHIP_ACTIVIDAD
+  vigencia          Int?                                     // FUT_INGRESOS / FUT_GASTOS / LEY_617
+  // Resultado
+  datos        Json
+  totales      Json?                                         // resumen para listar
+  // Metadata
+  generadoPor  String?
+  generadoEn   DateTime @default(now())
+  observacion  String?
+
+  @@index([tipo, vigencia])
+  @@index([tipo, periodoContableId])
+  @@map("rc_reportes")
+}
+
+enum RcTipoReporte {
+  CHIP_BALANCE       // Balance General CGN: saldos clase 1, 2, 3 al cierre del periodo
+  CHIP_ACTIVIDAD     // Estado de Actividad CGN: ingresos (clase 4) y gastos (clase 5)
+  FUT_INGRESOS       // Ejecución de ingresos por rubro CCPET
+  FUT_GASTOS         // Ejecución de gastos: apropiación / comprometido / obligado / pagado
+  LEY_617            // Indicador gastos de funcionamiento sobre ICLD (40% para personerías)
+}
