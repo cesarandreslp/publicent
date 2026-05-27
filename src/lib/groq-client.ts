@@ -65,23 +65,60 @@ export interface ContextoEntidad {
   nombre:       string
   /** Tipo de entidad (PERSONERIA, ALCALDIA, etc.) */
   tipoEntidad:  string
-  /** Municipio */
+  /** Municipio o ubicación principal */
   municipio:    string
-  /** Dependencias disponibles */
+  /** Dependencias disponibles donde puede asignarse */
   dependencias: string[]
+  /** País (default: "Colombia"). Determina la normativa por defecto del prompt. */
+  pais?:        string
+  /**
+   * Marco legal a referenciar en el prompt al modelo.
+   * Default: "Ley 1755 de 2015, CPACA - Ley 1437 de 2011" (Colombia).
+   * Cambia esto para entidades de otro país o con normativa propia.
+   */
+  marcoLegal?:  string
+  /**
+   * Override de los términos legales (días hábiles) por tipo de PQRSD.
+   * Si se omite, se usa TERMINOS_LEGALES_DEFAULT.
+   * Una entidad puede pasar aquí los valores derivados de su GdTrdTipoDocumental
+   * para garantizar coherencia entre TRD y clasificación IA.
+   */
+  terminosLegales?: Partial<Record<TipoPQRS, number>>
+  /**
+   * Bloque de definiciones de los tipos de PQRSD para inyectar en el prompt.
+   * Si se omite se usan las reglas estándar colombianas.
+   */
+  definicionesTipos?: string
 }
 
-// ─── Términos legales CPACA / Ley 1437 ────────────────────────────────────────
+// ─── Términos legales por defecto (CPACA / Ley 1755 de 2015 — Colombia) ───────
+// Los callers pueden overridear estos valores vía ContextoEntidad.terminosLegales
+// (típicamente leyéndolos de GdTrdTipoDocumental por tenant).
 
-const TERMINOS_LEGALES: Record<TipoPQRS, number> = {
+export const TERMINOS_LEGALES_DEFAULT: Record<TipoPQRS, number> = {
   PETICION:     15,  // Art. 14 — 15 días hábiles
-  QUEJA:        15,  // Art. 14
-  RECLAMO:      15,  // Art. 14
-  SUGERENCIA:   15,  // Art. 14
-  DENUNCIA:     15,  // Art. 14 (puede variar según tipo)
-  FELICITACION: 15,  // Cortesía institucional
+  QUEJA:        15,
+  RECLAMO:      15,
+  SUGERENCIA:   15,
+  DENUNCIA:     15,
+  FELICITACION: 15,
   CONSULTA:     30,  // Art. 14 — 30 días hábiles para consultas
 }
+
+// ─── Reglas estándar para el prompt (sustituibles vía ContextoEntidad) ────────
+
+const DEFINICIONES_TIPOS_DEFAULT = `Reglas de clasificación:
+- PETICION: solicitud de información, trámite o servicio
+- QUEJA: inconformidad con la conducta de un servidor público
+- RECLAMO: inconformidad con la prestación de un servicio
+- SUGERENCIA: propuesta de mejora
+- DENUNCIA: reporte de irregularidad, corrupción o conducta indebida
+- FELICITACION: reconocimiento positivo
+- CONSULTA: pregunta sobre normativa o procedimientos
+- URGENTE: riesgo para la vida, la salud o derechos fundamentales`
+
+const MARCO_LEGAL_DEFAULT = 'Ley 1755 de 2015, CPACA - Ley 1437 de 2011'
+const PAIS_DEFAULT = 'Colombia'
 
 // ─── Obtener API keys del tenant ─────────────────────────────────────────────
 
@@ -168,9 +205,13 @@ function buildPrompt(texto: string, contexto: ContextoEntidad): string {
     ? contexto.dependencias.join(', ')
     : 'No especificadas'
 
-  return `Eres el asistente de clasificación de solicitudes ciudadanas de la ${contexto.nombre} (${contexto.tipoEntidad}) ubicada en ${contexto.municipio}, Colombia.
+  const pais         = contexto.pais        ?? PAIS_DEFAULT
+  const marcoLegal   = contexto.marcoLegal  ?? MARCO_LEGAL_DEFAULT
+  const definiciones = contexto.definicionesTipos ?? DEFINICIONES_TIPOS_DEFAULT
 
-Tu tarea es analizar la siguiente solicitud ciudadana y clasificarla según la normativa colombiana (Ley 1755 de 2015, CPACA - Ley 1437 de 2011).
+  return `Eres el asistente de clasificación de solicitudes ciudadanas de la ${contexto.nombre} (${contexto.tipoEntidad}) ubicada en ${contexto.municipio}, ${pais}.
+
+Tu tarea es analizar la siguiente solicitud ciudadana y clasificarla según el marco legal aplicable (${marcoLegal}).
 
 DEPENDENCIAS DISPONIBLES EN LA ENTIDAD: ${dependenciasStr}
 
@@ -186,20 +227,12 @@ Responde ÚNICAMENTE con un objeto JSON válido con esta estructura exacta (sin 
   "prioridad": "BAJA|NORMAL|ALTA|URGENTE",
   "dependenciaSugerida": "nombre exacto de una dependencia de la lista o la más apropiada",
   "funcionarioSugerido": null,
-  "diasTerminoLegal": <número entero de días hábiles según CPACA>,
+  "diasTerminoLegal": <número entero de días hábiles aplicables>,
   "razon": "explicación breve de la clasificación en máximo 150 palabras",
   "confianza": <número decimal entre 0.0 y 1.0>
 }
 
-Reglas de clasificación:
-- PETICION: solicitud de información, trámite o servicio
-- QUEJA: inconformidad con la conducta de un servidor público
-- RECLAMO: inconformidad con la prestación de un servicio
-- SUGERENCIA: propuesta de mejora
-- DENUNCIA: reporte de irregularidad, corrupción o conducta indebida
-- FELICITACION: reconocimiento positivo
-- CONSULTA: pregunta sobre normativa o procedimientos (30 días hábiles)
-- URGENTE: riesgo para la vida, la salud o derechos fundamentales`
+${definiciones}`
 }
 
 // ─── Clasificación principal ──────────────────────────────────────────────────
@@ -260,7 +293,8 @@ export async function classifyPQRSD(
 
   const tipo      = String(parsed.tipo      ?? 'PETICION')  as TipoPQRS
   const prioridad = String(parsed.prioridad ?? 'NORMAL')    as PrioridadPQRS
-  const dias      = TERMINOS_LEGALES[tipo] ?? 15
+  const terminos  = { ...TERMINOS_LEGALES_DEFAULT, ...(contexto.terminosLegales ?? {}) }
+  const dias      = terminos[tipo] ?? 15
 
   return {
     tipo,
@@ -320,4 +354,45 @@ export function calcularFechaLimite(fechaRadicacion: Date, diasHabiles: number):
     }
   }
   return fecha
+}
+
+// ─── Helper genérico para otros módulos (FRISCO, etc.) ───────────────────────
+
+export interface IaJsonResult {
+  raw: string
+  modelo: string
+  proveedor: Proveedor
+  tokensPrompt: number
+  tokensRespuesta: number
+}
+
+/**
+ * Llama al modelo del tenant con un prompt arbitrario que debe responder JSON.
+ * Mismo patrón Groq → Shipu que `classifyPQRSD`. Lanza si todos los proveedores fallan.
+ */
+export async function callIaJson(tenantId: string, prompt: string): Promise<IaJsonResult> {
+  const keys = await getTenantApiKeys(tenantId)
+  const errores: string[] = []
+
+  if (keys.groqApiKey) {
+    try {
+      const r = await llamarProveedor(keys.groqApiKey, 'groq', prompt)
+      return { ...r, proveedor: 'groq' }
+    } catch (e) {
+      errores.push(`Groq: ${e instanceof Error ? e.message : String(e)}`)
+    }
+  } else {
+    errores.push(`Groq: API key no configurada para "${keys.nombreTenant}"`)
+  }
+
+  if (keys.shipuApiKey) {
+    try {
+      const r = await llamarProveedor(keys.shipuApiKey, 'shipu', prompt)
+      return { ...r, proveedor: 'shipu' }
+    } catch (e) {
+      errores.push(`Shipu: ${e instanceof Error ? e.message : String(e)}`)
+    }
+  }
+
+  throw new Error(`[ia] Todos los proveedores fallaron para "${keys.nombreTenant}". ${errores.join(' | ')}`)
 }

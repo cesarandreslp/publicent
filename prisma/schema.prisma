@@ -1120,6 +1120,9 @@ model GdExpediente {
   updatedAt DateTime   @updatedAt
   gaCarpeta GaCarpeta?
 
+  // FRISCO: bienes vinculados a este expediente (módulo vertical SAE)
+  friscoBienes FriscoBien[]
+
   @@map("gd_expedientes")
 }
 
@@ -1213,6 +1216,9 @@ model GaCarpeta {
   expediente   GdExpediente? @relation(fields: [expedienteId], references: [id], onDelete: SetNull)
 
   prestamos GaPrestamo[]
+
+  // FRISCO: bienes cuya documentación física reposa en esta carpeta
+  friscoBienes FriscoBien[]
 
   @@map("ga_carpetas")
 }
@@ -2134,4 +2140,484 @@ model VuRutaTokenExterno {
 
   @@index([pqrsId])
   @@map("vu_rutas_token_externo")
+}
+
+// ============================================================================
+// FRISCO — Bienes en proceso de extinción de dominio (módulo vertical SAE)
+// ----------------------------------------------------------------------------
+// Activado por el módulo `frisco_bienes`. Cada bien queda vinculado a un
+// expediente documental (GdExpediente) y, opcionalmente, a su ubicación
+// física en archivo (GaCarpeta) cuando aplica. Tablas pensadas para soportar
+// el ciclo: ingreso por orden judicial → custodia → contratos → destinación.
+// ============================================================================
+
+model FriscoBien {
+  id              String   @id @default(cuid())
+  codigo          String   @unique                 // consecutivo interno
+  folioMatricula  String?                          // SNR — inmuebles
+  placa           String?                          // automotores
+  tipo            FriscoTipoBien
+  estadoJuridico  FriscoEstadoJuridico @default(EN_PROCESO)
+  estadoFisico    FriscoEstadoFisico?  @default(SIN_VERIFICAR)
+
+  descripcion     String   @db.Text
+  ubicacion       String?                          // dirección textual
+  latitud         Float?
+  longitud        Float?
+
+  avaluoVigente   Decimal? @db.Decimal(18, 2)
+  monedaAvaluo    String?  @default("COP")
+  fechaAvaluo     DateTime?
+
+  numeroProceso   String?                          // proceso de extinción
+  fechaIngreso    DateTime @default(now())
+  juzgado         String?
+
+  // Vínculos a documentación
+  expedienteId    String?
+  expediente      GdExpediente? @relation(fields: [expedienteId], references: [id])
+  carpetaFisicaId String?
+  carpetaFisica   GaCarpeta?    @relation(fields: [carpetaFisicaId], references: [id])
+
+  depositarios FriscoDepositario[]
+  contratos    FriscoContrato[]
+  destinacion  FriscoDestinacion?
+  interopLogs  FriscoInteropLog[]
+
+  observaciones String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([estadoJuridico])
+  @@index([tipo])
+  @@index([folioMatricula])
+  @@index([placa])
+  @@index([numeroProceso])
+  @@map("frisco_bienes")
+}
+
+enum FriscoTipoBien {
+  INMUEBLE_URBANO
+  INMUEBLE_RURAL
+  VEHICULO
+  SEMOVIENTE
+  ESTABLECIMIENTO_COMERCIO
+  EMBARCACION
+  AERONAVE
+  OBRA_ARTE
+  TITULO_VALOR
+  EMPRESA
+  OTRO
+}
+
+enum FriscoEstadoJuridico {
+  EN_PROCESO   // proceso activo de extinción
+  CAUTELAR     // medida cautelar vigente
+  EXTINTO      // sentencia de extinción ejecutoriada
+  DEVUELTO     // devuelto al propietario original
+}
+
+enum FriscoEstadoFisico {
+  BUENO
+  REGULAR
+  MALO
+  PERDIDO
+  DESTRUIDO
+  SIN_VERIFICAR
+}
+
+// ─── Depositario: custodio temporal de un bien ────────────────────────────────
+
+model FriscoDepositario {
+  id          String   @id @default(cuid())
+  tipoPersona FriscoTipoPersona
+  nombre      String
+  documento   String                              // cédula o NIT
+  email       String?
+  telefono    String?
+  direccion   String?
+
+  bienId String
+  bien   FriscoBien @relation(fields: [bienId], references: [id], onDelete: Cascade)
+
+  fechaAsignacion    DateTime
+  fechaFin           DateTime?
+  activo             Boolean   @default(true)
+  ultimoReporte      DateTime?
+  polizaVigenteHasta DateTime?
+
+  observaciones String? @db.Text
+
+  accesos  FriscoPortalAcceso[]
+  reportes FriscoReporteDepositario[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([bienId])
+  @@index([activo])
+  @@index([documento])
+  @@map("frisco_depositarios")
+}
+
+enum FriscoTipoPersona {
+  NATURAL
+  JURIDICA
+}
+
+// ─── Portal externo del depositario: acceso por token + reportes mensuales ───
+
+model FriscoPortalAcceso {
+  id            String   @id @default(cuid())
+  tokenHash     String   @unique                    // SHA-256 del token; el token plano nunca se persiste
+  depositarioId String
+  depositario   FriscoDepositario @relation(fields: [depositarioId], references: [id], onDelete: Cascade)
+
+  expiraEn      DateTime
+  revocadoEn    DateTime?
+  ultimoAccesoEn DateTime?
+  accesoCount   Int      @default(0)
+
+  createdAt DateTime @default(now())
+  createdBy String?
+
+  @@index([depositarioId])
+  @@index([expiraEn])
+  @@map("frisco_portal_accesos")
+}
+
+model FriscoReporteDepositario {
+  id            String   @id @default(cuid())
+  depositarioId String
+  depositario   FriscoDepositario @relation(fields: [depositarioId], references: [id], onDelete: Cascade)
+
+  periodo       String                              // "YYYY-MM"
+  estadoBien    FriscoEstadoFisico
+  novedades     String   @db.Text
+  fotoUrl       String?                             // URL de foto subida (opcional)
+  adjuntoUrl    String?                             // URL de documento adjunto (opcional)
+  ipOrigen      String?
+
+  analisisIA    FriscoReporteAnalisisIA?
+
+  createdAt DateTime @default(now())
+
+  @@unique([depositarioId, periodo])
+  @@index([periodo])
+  @@map("frisco_reportes_depositario")
+}
+
+// ─── Análisis IA del reporte (sugiere, humano decide) ────────────────────────
+
+model FriscoReporteAnalisisIA {
+  id          String   @id @default(cuid())
+  reporteId   String   @unique
+  reporte     FriscoReporteDepositario @relation(fields: [reporteId], references: [id], onDelete: Cascade)
+
+  urgencia    FriscoReporteUrgencia
+  etiquetas   String[]                                 // ej: ["ocupacion_indebida", "deterioro_grave"]
+  resumen     String   @db.Text
+  confianza   Float                                    // 0..1
+  modelo      String                                   // ej: "llama-3.3-70b-versatile"
+  proveedor   String                                   // groq | shipu | fallback
+  promptVersion String                                 // ej: "frisco-reporte-v1"
+  raw         Json?                                    // payload bruto del modelo (auditoría)
+  tokensPrompt    Int?
+  tokensRespuesta Int?
+  errorMsg    String?  @db.Text                        // si fallback determinístico se activó
+  revisadoPor String?                                  // userId que valida/override
+  revisadoEn  DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([urgencia, createdAt])
+  @@map("frisco_reporte_analisis_ia")
+}
+
+enum FriscoReporteUrgencia {
+  NORMAL
+  ATENCION
+  CRITICA
+}
+
+// ─── Contrato sobre el bien (arrendamiento, administración, comodato) ─────────
+
+model FriscoContrato {
+  id     String              @id @default(cuid())
+  numero String              @unique
+  tipo   FriscoTipoContrato
+
+  bienId String
+  bien   FriscoBien @relation(fields: [bienId], references: [id], onDelete: Cascade)
+
+  contraparteNombre    String
+  contraparteDocumento String
+  contraparteEmail     String?
+  contraparteTelefono  String?
+
+  fechaInicio  DateTime
+  fechaFin     DateTime?
+  canon        Decimal? @db.Decimal(18, 2)
+  periodicidad FriscoPeriodicidad?
+
+  polizaNumero       String?
+  polizaVigenteHasta DateTime?
+
+  estado        FriscoEstadoContrato @default(VIGENTE)
+  observaciones String?              @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([bienId])
+  @@index([estado])
+  @@index([fechaFin])
+  @@map("frisco_contratos")
+}
+
+enum FriscoTipoContrato {
+  ARRENDAMIENTO
+  ADMINISTRACION
+  COMODATO
+  OTRO
+}
+
+enum FriscoPeriodicidad {
+  MENSUAL
+  TRIMESTRAL
+  SEMESTRAL
+  ANUAL
+}
+
+enum FriscoEstadoContrato {
+  VIGENTE
+  VENCIDO
+  TERMINADO
+  SUSPENDIDO
+}
+
+// ─── Destinación final del bien (1:1 al cerrar ciclo) ─────────────────────────
+
+model FriscoDestinacion {
+  id     String                @id @default(cuid())
+  bienId String                @unique
+  bien   FriscoBien @relation(fields: [bienId], references: [id], onDelete: Cascade)
+
+  tipo               FriscoTipoDestinacion
+  fecha              DateTime
+  beneficiario       String?                      // víctima, entidad, comprador
+  valorRealizacion   Decimal? @db.Decimal(18, 2)
+  actoAdministrativo String?                      // resolución / decreto
+  observaciones      String?  @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("frisco_destinaciones")
+}
+
+enum FriscoTipoDestinacion {
+  VICTIMAS
+  TRANSFERENCIA
+  SUBASTA
+  DONACION
+  DESTRUCCION
+  DEVOLUCION
+}
+
+// ─── Interoperabilidad externa (SNR / Fiscalía / IGAC) ────────────────────────
+
+model FriscoInteropLog {
+  id        String                 @id @default(cuid())
+  servicio  FriscoInteropServicio
+  bienId    String?
+  bien      FriscoBien? @relation(fields: [bienId], references: [id], onDelete: SetNull)
+
+  consulta  Json                                       // parámetros de entrada
+  respuesta Json?                                      // payload remoto si éxito
+  exito     Boolean
+  errorMsg  String?  @db.Text
+  latenciaMs Int?
+  usuarioId String?
+
+  createdAt DateTime @default(now())
+
+  @@index([servicio, createdAt])
+  @@index([bienId])
+  @@map("frisco_interop_logs")
+}
+
+enum FriscoInteropServicio {
+  SNR
+  FISCALIA
+  IGAC
+}
+
+// ╔════════════════════════════════════════════════════════════════════════════╗
+// ║ Módulo Contabilidad Pública (CGN / NICSP)                                  ║
+// ║ Motor de doble partida + Plan Único de Cuentas público.                    ║
+// ║ Habilita después: presupuesto, tesorería, nómina, contratación.            ║
+// ╚════════════════════════════════════════════════════════════════════════════╝
+
+// ─── Plan Único de Cuentas (jerárquico, según CGN) ───────────────────────────
+
+model CpPlanCuenta {
+  id          String   @id @default(cuid())
+  codigo      String   @unique                        // ej. "1110", "511005"
+  nombre      String
+  nivel       Int                                     // 1=clase 2=grupo 3=cuenta 4=subcuenta 5=auxiliar
+  naturaleza  CpNaturaleza                            // DEBITO o CREDITO
+  tipo        CpTipoCuenta                            // BALANCE | RESULTADO | ORDEN
+  parentId    String?
+  parent      CpPlanCuenta?  @relation("CpJerarquia", fields: [parentId], references: [id])
+  hijos       CpPlanCuenta[] @relation("CpJerarquia")
+  activa      Boolean  @default(true)
+  permiteMovimientos Boolean @default(false)          // sólo cuentas de detalle reciben asientos
+
+  asientos    CpAsiento[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([parentId])
+  @@index([nivel])
+  @@map("cp_plan_cuentas")
+}
+
+enum CpNaturaleza {
+  DEBITO
+  CREDITO
+}
+
+enum CpTipoCuenta {
+  BALANCE      // activos / pasivos / patrimonio
+  RESULTADO    // ingresos / gastos
+  ORDEN        // cuentas de orden / control
+}
+
+// ─── Periodo contable (mensual o anual) ─────────────────────────────────────
+
+model CpPeriodoContable {
+  id        String   @id @default(cuid())
+  codigo    String   @unique                          // "2026-05" o "2026"
+  anio      Int
+  mes       Int?                                      // 1..12, null si es periodo anual
+  estado    CpEstadoPeriodo @default(ABIERTO)
+  fechaInicio DateTime
+  fechaFin    DateTime
+  cerradoEn DateTime?
+  cerradoPor String?
+
+  comprobantes CpComprobante[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([anio, mes])
+  @@map("cp_periodos")
+}
+
+enum CpEstadoPeriodo {
+  ABIERTO
+  CERRADO
+  AJUSTE       // sólo SUPER_ADMIN puede registrar comprobantes
+}
+
+// ─── Tercero auxiliar (NIT/CC, proveedor, contratista, beneficiario, etc.) ───
+
+model CpAuxiliarTercero {
+  id          String   @id @default(cuid())
+  documento   String   @unique                        // NIT o CC
+  tipoDocumento CpTipoDocumento
+  razonSocial String
+  email       String?
+  telefono    String?
+  direccion   String?
+  ciudad      String?
+  activo      Boolean  @default(true)
+
+  asientos    CpAsiento[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([razonSocial])
+  @@map("cp_terceros")
+}
+
+enum CpTipoDocumento {
+  NIT
+  CC
+  CE
+  PA
+  OTRO
+}
+
+// ─── Comprobante contable (encabezado del asiento) ───────────────────────────
+
+model CpComprobante {
+  id          String   @id @default(cuid())
+  numero      String   @unique                        // consecutivo "CC-2026-000123"
+  tipo        CpTipoComprobante
+  fecha       DateTime
+  descripcion String   @db.Text
+  estado      CpEstadoComprobante @default(REGISTRADO)
+  periodoId   String
+  periodo     CpPeriodoContable @relation(fields: [periodoId], references: [id])
+  totalDebito  Decimal @db.Decimal(18, 2)
+  totalCredito Decimal @db.Decimal(18, 2)
+  asientos    CpAsiento[]
+
+  // Trazabilidad
+  fuenteModulo  String?                                // p.ej. "frisco", "presupuesto", "nomina"
+  fuenteRef     String?                                // id en el módulo origen
+  creadoPor     String?
+  anuladoEn     DateTime?
+  anuladoPor    String?
+  motivoAnulacion String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([periodoId])
+  @@index([fecha])
+  @@index([fuenteModulo, fuenteRef])
+  @@map("cp_comprobantes")
+}
+
+enum CpTipoComprobante {
+  CONTABLE        // genérico
+  EGRESO
+  INGRESO
+  AJUSTE
+  APERTURA
+  CIERRE
+}
+
+enum CpEstadoComprobante {
+  REGISTRADO
+  ANULADO
+}
+
+// ─── Asiento (línea de débito/crédito) ──────────────────────────────────────
+
+model CpAsiento {
+  id            String   @id @default(cuid())
+  comprobanteId String
+  comprobante   CpComprobante @relation(fields: [comprobanteId], references: [id], onDelete: Cascade)
+  cuentaId      String
+  cuenta        CpPlanCuenta @relation(fields: [cuentaId], references: [id])
+  terceroId     String?
+  tercero       CpAuxiliarTercero? @relation(fields: [terceroId], references: [id])
+  debito        Decimal  @db.Decimal(18, 2) @default(0)
+  credito       Decimal  @db.Decimal(18, 2) @default(0)
+  descripcion   String?
+
+  createdAt DateTime @default(now())
+
+  @@index([comprobanteId])
+  @@index([cuentaId])
+  @@index([terceroId])
+  @@map("cp_asientos")
 }

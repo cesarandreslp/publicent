@@ -11,10 +11,15 @@ import { prismaMeta } from "@/lib/prisma-meta"
 import type { Prisma } from "@/generated/meta-client"
 import {
   resolveModulosConfig,
-  MODULO_IDS,
+  MODULOS_CATALOGO,
   type ModulosConfig,
+  type ModuloId,
 } from "@/lib/modules"
 import { superadminModuloSchema, validateBody } from "@/lib/validations"
+
+const PLAN_RANK: Record<string, number> = {
+  BASICO: 0, ESTANDAR: 1, PROFESIONAL: 2, ENTERPRISE: 3,
+}
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -64,41 +69,32 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
   // Partir de la configuración actual y aplicar los cambios enviados
   const actual = resolveModulosConfig(tenant.modulosActivos)
+  const incoming = body as Partial<Record<ModuloId, { activo: boolean } & Record<string, unknown>>>
+  const nueva: ModulosConfig = { ...actual }
 
-  const nueva: ModulosConfig = {
-    sitio_web: {
-      ...actual.sitio_web,
-      ...(body.sitio_web ?? {}),
-      // Sitio web siempre activo
-      activo: true,
-    },
-    ventanilla_unica: {
-      ...actual.ventanilla_unica,
-      ...(body.ventanilla_unica ?? {}),
-    },
-    gestion_documental: {
-      ...actual.gestion_documental,
-      ...(body.gestion_documental ?? {}),
-    },
+  for (const cat of MODULOS_CATALOGO) {
+    const prev = actual[cat.id]
+    const next = incoming[cat.id]
+    if (!next) continue
+    nueva[cat.id] = { ...prev, ...next } as ModulosConfig[typeof cat.id]
+    if (cat.obligatorio) {
+      nueva[cat.id] = { ...nueva[cat.id], activo: true } as ModulosConfig[typeof cat.id]
+    }
   }
 
-  // Validar acceso por plan
-  const PLAN_RANK: Record<string, number> = {
-    BASICO: 0, ESTANDAR: 1, PROFESIONAL: 2, ENTERPRISE: 3,
-  }
+  // Validar acceso por plan: cada módulo activado debe estar disponible en el plan del tenant
   const planRank = PLAN_RANK[tenant.plan] ?? 0
-
-  if (nueva.ventanilla_unica.activo && planRank < PLAN_RANK.ESTANDAR) {
-    return NextResponse.json(
-      { error: "El módulo Ventanilla Única requiere plan ESTÁNDAR o superior" },
-      { status: 400 }
-    )
-  }
-  if (nueva.gestion_documental.activo && planRank < PLAN_RANK.PROFESIONAL) {
-    return NextResponse.json(
-      { error: "El módulo Gestión Documental requiere plan PROFESIONAL o superior" },
-      { status: 400 }
-    )
+  for (const cat of MODULOS_CATALOGO) {
+    const activoAhora = nueva[cat.id]?.activo === true
+    if (!activoAhora) continue
+    const minPlan = cat.planesDisponibles[0]
+    const minRank = PLAN_RANK[minPlan] ?? 0
+    if (planRank < minRank) {
+      return NextResponse.json(
+        { error: `El módulo "${cat.nombre}" requiere plan ${minPlan} o superior` },
+        { status: 400 }
+      )
+    }
   }
 
   const updated = await prismaMeta.tenant.update({
@@ -107,13 +103,10 @@ export async function PUT(req: NextRequest, { params }: Params) {
     select: { id: true, modulosActivos: true },
   })
 
-  // Registrar evento de auditoría
-  const modulosCambiados = Object.entries({
-    [MODULO_IDS.VENTANILLA_UNICA]:   actual.ventanilla_unica.activo !== nueva.ventanilla_unica.activo,
-    [MODULO_IDS.GESTION_DOCUMENTAL]: actual.gestion_documental.activo !== nueva.gestion_documental.activo,
-  })
-    .filter(([, changed]) => changed)
-    .map(([modulo]) => modulo)
+  // Registrar evento de auditoría — sólo los módulos cuyo `activo` cambió
+  const modulosCambiados = MODULOS_CATALOGO
+    .filter((cat) => actual[cat.id]?.activo !== nueva[cat.id]?.activo)
+    .map((cat) => cat.id)
 
   if (modulosCambiados.length > 0) {
     await prismaMeta.eventoTenant.create({

@@ -306,6 +306,32 @@ const NAV_GROUPS: Array<{
           </svg>
         ),
       },
+      {
+        title: "FRISCO — Bienes",
+        href: "/admin/frisco",
+        externo: false,
+        modulo: MODULO_IDS.FRISCO_BIENES,
+        badge: "Activo",
+        icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+              d="M3 21h18M5 21V7l7-4 7 4v14M9 9h.01M15 9h.01M9 13h.01M15 13h.01M9 17h.01M15 17h.01" />
+          </svg>
+        ),
+      },
+      {
+        title: "Contabilidad",
+        href: "/admin/contabilidad",
+        externo: false,
+        modulo: MODULO_IDS.CONTABILIDAD_PUBLICA,
+        badge: "Activo",
+        icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+              d="M3 3h18v4H3V3zm0 8h12v10H3V11zm14 0h4v4h-4v-4zm0 6h4v4h-4v-4z" />
+          </svg>
+        ),
+      },
     ],
   },]
 

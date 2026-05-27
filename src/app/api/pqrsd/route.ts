@@ -13,7 +13,7 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { getTenantPrisma, getTenantModulos, MODULO_IDS } from "@/lib/tenant"
-import { isModuleActive, getVentanillaConfig } from "@/lib/modules"
+import { isModuleActive, getVentanillaConfig, getPqrsdConfig } from "@/lib/modules"
 import { TipoPQRS, VuColorSemaforo, VuGenero, VuZona, VuCondicionVulnerabilidad, Prisma } from "@prisma/client"
 import { pqrsPublicoSchema, validateBody } from "@/lib/validations"
 
@@ -141,7 +141,11 @@ async function delegarAVentanillaUnica(
 
 // ─── Guardar en DB local del tenant ───────────────────────────────────────────
 
-async function guardarLocal(payload: PQRSPayload, tipo: TipoPQRS): Promise<string> {
+async function guardarLocal(
+  payload: PQRSPayload,
+  tipo: TipoPQRS,
+  modulos: Awaited<ReturnType<typeof getTenantModulos>>
+): Promise<string> {
   const prisma = await getTenantPrisma()
   const radicado = generarRadicado(tipo)
 
@@ -175,11 +179,26 @@ async function guardarLocal(payload: PQRSPayload, tipo: TipoPQRS): Promise<strin
   try {
     const { generarNumeroRadicado } = await import("@/lib/gd-consecutivo")
 
-    // Obtener la primera dependencia TRD activa (receptora de PQRS)
-    const depPrincipal = await prisma.gdTrdDependencia.findFirst({
-      where: { activa: true, padreId: null },
-      orderBy: { codigo: "asc" },
-    })
+    // Resolver la dependencia receptora:
+    //  1. Si el tenant la configuró explícitamente en `pqrsd.dependenciaReceptoraCodigo`
+    //     → usar esa (permite entidades sin árbol jerárquico estricto).
+    //  2. Si no, usar la primera dependencia raíz activa (compat. tenants legacy).
+    //  3. Si tampoco hay raíz, caer a cualquier dependencia activa.
+    const codigoConfigurado = getPqrsdConfig(modulos).dependenciaReceptoraCodigo?.trim()
+    const depPrincipal =
+      (codigoConfigurado
+        ? await prisma.gdTrdDependencia.findFirst({
+            where: { activa: true, codigo: codigoConfigurado },
+          })
+        : null)
+      ?? (await prisma.gdTrdDependencia.findFirst({
+            where: { activa: true, padreId: null },
+            orderBy: { codigo: "asc" },
+          }))
+      ?? (await prisma.gdTrdDependencia.findFirst({
+            where: { activa: true },
+            orderBy: { codigo: "asc" },
+          }))
 
     if (depPrincipal) {
       const numeroOficial = await generarNumeroRadicado("PQRS", depPrincipal.codigo)
@@ -245,7 +264,6 @@ async function guardarLocal(payload: PQRSPayload, tipo: TipoPQRS): Promise<strin
   // ─── Módulo VU: clasificación IA + demografía ──────────────────────────────
   // Solo si el módulo VU está activo para este tenant
   try {
-    const modulos = await getTenantModulos()
     if (isModuleActive(modulos, MODULO_IDS.VENTANILLA_UNICA)) {
       const { classifyPQRSD, calcularSemaforo, calcularFechaLimite } = await import("@/lib/groq-client")
       const { getTenantId } = await import("@/lib/tenant")
@@ -431,7 +449,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Almacenamiento local (sitio web básico o fallback) ────────────────────
-    const radicado = await guardarLocal(payload, tipo)
+    const radicado = await guardarLocal(payload, tipo, modulos)
     return NextResponse.json({ radicado })
   } catch (err) {
     console.error("[/api/pqrsd] Error al radicar PQRS:", err instanceof Error ? err.message : String(err))

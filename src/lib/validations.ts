@@ -402,11 +402,14 @@ export const superadminTenantSchema = z.object({
   configuracion: z.unknown().optional(),
 })
 
-export const superadminModuloSchema = z.object({
-  modulos: z.array(z.object({
-    nombre: z.string(),
-    activo: z.boolean(),
-  })),
+// Acepta el objeto ModulosConfig completo o parcial: cada clave es un id de
+// módulo con al menos {activo: boolean} y campos extra opcionales (apiUrl,
+// apiKey, storage, dependenciaReceptoraCodigo…).
+export const superadminModuloSchema = z.record(
+  z.string(),
+  z.object({ activo: z.boolean() }).passthrough()
+).refine((obj) => Object.keys(obj).length > 0, {
+  message: "Debe incluir al menos un módulo",
 })
 
 // ─── MIPG Evaluación ───────────────────────────────────────────────────────────
@@ -452,6 +455,172 @@ import { NextResponse } from "next/server"
  * Valida un body JSON contra un esquema Zod.
  * Retorna el dato parseado o una NextResponse de error 400.
  */
+// ─── FRISCO — Bienes en extinción de dominio ──────────────────────────────────
+
+const friscoTipoBien = z.enum([
+  "INMUEBLE_URBANO", "INMUEBLE_RURAL", "VEHICULO", "SEMOVIENTE",
+  "ESTABLECIMIENTO_COMERCIO", "EMBARCACION", "AERONAVE", "OBRA_ARTE",
+  "TITULO_VALOR", "EMPRESA", "OTRO",
+])
+
+const friscoEstadoJuridico = z.enum(["EN_PROCESO", "CAUTELAR", "EXTINTO", "DEVUELTO"])
+const friscoEstadoFisico   = z.enum(["BUENO", "REGULAR", "MALO", "PERDIDO", "DESTRUIDO", "SIN_VERIFICAR"])
+
+export const friscoBienCreateSchema = z.object({
+  codigo:         z.string().min(1).max(60),
+  folioMatricula: z.string().max(60).optional().nullable(),
+  placa:          z.string().max(20).optional().nullable(),
+  tipo:           friscoTipoBien,
+  estadoJuridico: friscoEstadoJuridico.optional(),
+  estadoFisico:   friscoEstadoFisico.optional().nullable(),
+  descripcion:    z.string().min(3).max(5000),
+  ubicacion:      z.string().max(500).optional().nullable(),
+  latitud:        z.number().min(-90).max(90).optional().nullable(),
+  longitud:       z.number().min(-180).max(180).optional().nullable(),
+  avaluoVigente:  z.number().nonnegative().optional().nullable(),
+  monedaAvaluo:   z.string().max(8).optional().nullable(),
+  fechaAvaluo:    z.string().datetime().optional().nullable(),
+  numeroProceso:  z.string().max(80).optional().nullable(),
+  juzgado:        z.string().max(200).optional().nullable(),
+  expedienteId:   z.string().cuid().optional().nullable(),
+  carpetaFisicaId:z.string().cuid().optional().nullable(),
+  observaciones:  z.string().max(5000).optional().nullable(),
+})
+
+export const friscoBienUpdateSchema = friscoBienCreateSchema.partial()
+
+const friscoTipoPersona  = z.enum(["NATURAL", "JURIDICA"])
+
+export const friscoDepositarioCreateSchema = z.object({
+  bienId:          z.string().cuid(),
+  tipoPersona:     friscoTipoPersona,
+  nombre:          z.string().min(2).max(200),
+  documento:       z.string().min(3).max(30),
+  email:           z.string().email().max(120).optional().nullable(),
+  telefono:        z.string().max(30).optional().nullable(),
+  direccion:       z.string().max(300).optional().nullable(),
+  fechaAsignacion: z.string().datetime(),
+  fechaFin:        z.string().datetime().optional().nullable(),
+  activo:          z.boolean().optional(),
+  polizaVigenteHasta: z.string().datetime().optional().nullable(),
+  observaciones:   z.string().max(2000).optional().nullable(),
+})
+
+export const friscoDepositarioUpdateSchema = friscoDepositarioCreateSchema.partial().extend({
+  ultimoReporte: z.string().datetime().optional().nullable(),
+})
+
+const friscoTipoContrato   = z.enum(["ARRENDAMIENTO", "ADMINISTRACION", "COMODATO", "OTRO"])
+const friscoPeriodicidad   = z.enum(["MENSUAL", "TRIMESTRAL", "SEMESTRAL", "ANUAL"])
+const friscoEstadoContrato = z.enum(["VIGENTE", "VENCIDO", "TERMINADO", "SUSPENDIDO"])
+
+export const friscoContratoCreateSchema = z.object({
+  bienId:               z.string().cuid(),
+  numero:               z.string().min(1).max(60),
+  tipo:                 friscoTipoContrato,
+  contraparteNombre:    z.string().min(2).max(200),
+  contraparteDocumento: z.string().min(3).max(30),
+  contraparteEmail:     z.string().email().max(120).optional().nullable(),
+  contraparteTelefono:  z.string().max(30).optional().nullable(),
+  fechaInicio:          z.string().datetime(),
+  fechaFin:             z.string().datetime().optional().nullable(),
+  canon:                z.number().nonnegative().optional().nullable(),
+  periodicidad:         friscoPeriodicidad.optional().nullable(),
+  polizaNumero:         z.string().max(60).optional().nullable(),
+  polizaVigenteHasta:   z.string().datetime().optional().nullable(),
+  estado:               friscoEstadoContrato.optional(),
+  observaciones:        z.string().max(2000).optional().nullable(),
+})
+
+export const friscoContratoUpdateSchema = friscoContratoCreateSchema.partial()
+
+const friscoTipoDestinacion = z.enum([
+  "VICTIMAS", "TRANSFERENCIA", "SUBASTA", "DONACION", "DESTRUCCION", "DEVOLUCION",
+])
+
+export const friscoDestinacionSchema = z.object({
+  bienId:             z.string().cuid(),
+  tipo:               friscoTipoDestinacion,
+  fecha:              z.string().datetime(),
+  beneficiario:       z.string().max(200).optional().nullable(),
+  valorRealizacion:   z.number().nonnegative().optional().nullable(),
+  actoAdministrativo: z.string().max(200).optional().nullable(),
+  observaciones:      z.string().max(2000).optional().nullable(),
+})
+
+// ─── Contabilidad pública (CGN) ───────────────────────────────────────────────
+
+const cpNaturaleza = z.enum(["DEBITO", "CREDITO"])
+const cpTipoCuenta = z.enum(["BALANCE", "RESULTADO", "ORDEN"])
+const cpTipoComprobante = z.enum(["CONTABLE", "EGRESO", "INGRESO", "AJUSTE", "APERTURA", "CIERRE"])
+const cpTipoDocumento = z.enum(["NIT", "CC", "CE", "PA", "OTRO"])
+const cpEstadoPeriodo = z.enum(["ABIERTO", "CERRADO", "AJUSTE"])
+
+export const cpCuentaCreateSchema = z.object({
+  codigo: z.string().min(1).max(20),
+  nombre: z.string().min(2).max(200),
+  nivel: z.number().int().min(1).max(6),
+  naturaleza: cpNaturaleza,
+  tipo: cpTipoCuenta,
+  parentId: z.string().cuid().optional().nullable(),
+  permiteMovimientos: z.boolean().optional(),
+  activa: z.boolean().optional(),
+})
+
+export const cpCuentaUpdateSchema = cpCuentaCreateSchema.partial()
+
+export const cpPeriodoCreateSchema = z.object({
+  codigo: z.string().min(1).max(20),
+  anio: z.number().int().min(2000).max(2100),
+  mes: z.number().int().min(1).max(12).optional().nullable(),
+  fechaInicio: z.string().datetime(),
+  fechaFin: z.string().datetime(),
+})
+
+export const cpPeriodoUpdateSchema = z.object({
+  estado: cpEstadoPeriodo,
+})
+
+export const cpTerceroCreateSchema = z.object({
+  documento: z.string().min(3).max(30),
+  tipoDocumento: cpTipoDocumento,
+  razonSocial: z.string().min(2).max(200),
+  email: z.string().email().max(120).optional().nullable(),
+  telefono: z.string().max(30).optional().nullable(),
+  direccion: z.string().max(300).optional().nullable(),
+  ciudad: z.string().max(120).optional().nullable(),
+  activo: z.boolean().optional(),
+})
+
+export const cpTerceroUpdateSchema = cpTerceroCreateSchema.partial()
+
+export const cpAsientoSchema = z.object({
+  cuentaId: z.string().cuid(),
+  terceroId: z.string().cuid().optional().nullable(),
+  debito: z.number().nonnegative().default(0),
+  credito: z.number().nonnegative().default(0),
+  descripcion: z.string().max(500).optional().nullable(),
+}).refine(a => (a.debito > 0) !== (a.credito > 0), {
+  message: "Cada asiento debe tener débito O crédito (no ambos ni ninguno)",
+})
+
+export const cpComprobanteCreateSchema = z.object({
+  numero: z.string().min(1).max(40),
+  tipo: cpTipoComprobante,
+  fecha: z.string().datetime(),
+  descripcion: z.string().min(3).max(2000),
+  periodoId: z.string().cuid(),
+  fuenteModulo: z.string().max(60).optional().nullable(),
+  fuenteRef: z.string().max(120).optional().nullable(),
+  asientos: z.array(cpAsientoSchema).min(2, "Un comprobante requiere al menos 2 asientos"),
+}).refine(c => {
+  const td = c.asientos.reduce((s, a) => s + a.debito, 0)
+  const tc = c.asientos.reduce((s, a) => s + a.credito, 0)
+  return Math.abs(td - tc) < 0.005
+}, { message: "El total de débitos debe igualar el total de créditos (partida doble)" })
+
+// ──────────────────────────────────────────────────────────────────────────────
+
 export function validateBody<T>(
   schema: z.ZodSchema<T>,
   data: unknown

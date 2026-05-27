@@ -1,33 +1,73 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import {
   MODULOS_CATALOGO,
+  CATEGORIA_LABEL,
+  areDepsActive,
   resolveModulosConfig,
   type ModulosConfig,
   type ModuloCatalogo,
   type ModuloId,
+  type ModuloCategoria,
 } from "@/lib/modules"
+import { BUNDLES, type BundleId } from "@/lib/module-bundles"
 
-// ─── Iconos SVG inline ────────────────────────────────────────────────────────
+// ─── Iconos por categoría (un set compacto sirve para los 29 módulos) ─────────
 
-const ICONOS: Record<ModuloId, React.ReactNode> = {
-  sitio_web: (
+const ICONO_POR_CATEGORIA: Record<ModuloCategoria, React.ReactNode> = {
+  portal: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
         d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   ),
-  ventanilla_unica: (
+  atencion: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
         d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
     </svg>
   ),
-  gestion_documental: (
+  documental: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
         d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
+    </svg>
+  ),
+  cumplimiento: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+    </svg>
+  ),
+  financiero: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  ),
+  operativo: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+    </svg>
+  ),
+  analitica: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+    </svg>
+  ),
+  vertical: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  ),
+  integracion: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
     </svg>
   ),
 }
@@ -113,19 +153,7 @@ function IntegrationField({
             className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition"
             tabIndex={-1}
           >
-            {show ? (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 4.411m0 0L21 21" />
-              </svg>
-            ) : (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-            )}
+            {show ? "🙈" : "👁"}
           </button>
         )}
       </div>
@@ -139,28 +167,34 @@ function IntegrationField({
 function ModuloCard({
   catalogo,
   config,
-  disponible,
+  disponiblePlan,
+  depsOk,
+  depsFaltantes,
   onChange,
 }: {
   catalogo: ModuloCatalogo
   config: ModulosConfig[ModuloId]
-  disponible: boolean
+  disponiblePlan: boolean
+  depsOk: boolean
+  depsFaltantes: string[]
   onChange: (updates: Partial<ModulosConfig[ModuloId]>) => void
 }) {
   const activo = config.activo
+  const bloqueado = !disponiblePlan || !depsOk || catalogo.obligatorio
 
-  // Extraer campos de integración del config actual
   const integrations = catalogo.camposIntegracion ?? []
   const configAsRecord = config as unknown as Record<string, unknown>
 
   return (
     <div
       className={`border rounded-2xl overflow-hidden transition-all ${
-        !disponible
+        !disponiblePlan
           ? "border-slate-800 opacity-60"
-          : activo
-            ? "border-blue-600/40 bg-blue-950/10"
-            : "border-slate-800 bg-[#111827]"
+          : !depsOk && !activo
+            ? "border-slate-800 opacity-70"
+            : activo
+              ? "border-blue-600/40 bg-blue-950/10"
+              : "border-slate-800 bg-[#111827]"
       }`}
     >
       {/* Cabecera */}
@@ -170,20 +204,28 @@ function ModuloCard({
             activo ? "bg-blue-600/20 text-blue-400" : "bg-slate-800 text-slate-500"
           }`}
         >
-          {ICONOS[catalogo.id]}
+          {ICONO_POR_CATEGORIA[catalogo.categoria]}
         </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="text-sm font-semibold text-white">{catalogo.nombre}</h3>
+            <span className="text-[10px] uppercase tracking-wide bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full">
+              {catalogo.tier}
+            </span>
             {catalogo.obligatorio && (
               <span className="text-xs bg-slate-700 text-slate-400 px-2 py-0.5 rounded-full">
                 Siempre activo
               </span>
             )}
-            {!disponible && (
+            {!disponiblePlan && (
               <span className="text-xs bg-amber-900/40 text-amber-400 border border-amber-800/40 px-2 py-0.5 rounded-full">
                 Plan superior requerido
+              </span>
+            )}
+            {!depsOk && depsFaltantes.length > 0 && (
+              <span className="text-xs bg-orange-900/40 text-orange-300 border border-orange-800/40 px-2 py-0.5 rounded-full">
+                Requiere: {depsFaltantes.join(", ")}
               </span>
             )}
           </div>
@@ -193,11 +235,11 @@ function ModuloCard({
         <Toggle
           checked={activo}
           onChange={(v) => onChange({ activo: v } as Partial<ModulosConfig[ModuloId]>)}
-          disabled={!disponible || catalogo.obligatorio}
+          disabled={bloqueado}
         />
       </div>
 
-      {/* Campos de integración (solo cuando activo y tiene integración) */}
+      {/* Campos de integración */}
       {activo && catalogo.tieneIntegracion && integrations.length > 0 && (
         <div className="px-5 pb-5 border-t border-slate-800/60 pt-4 space-y-3">
           <p className="text-xs text-slate-400 font-medium uppercase tracking-wide">
@@ -226,6 +268,11 @@ const PLAN_RANK: Record<string, number> = {
   BASICO: 0, ESTANDAR: 1, PROFESIONAL: 2, ENTERPRISE: 3,
 }
 
+const ORDEN_CATEGORIAS: ModuloCategoria[] = [
+  'portal', 'atencion', 'documental', 'cumplimiento',
+  'financiero', 'operativo', 'vertical', 'analitica', 'integracion',
+]
+
 export default function TenantModulos({ tenantId, plan, modulosRaw }: Props) {
   const [modulos, setModulos] = useState<ModulosConfig>(
     resolveModulosConfig(modulosRaw)
@@ -236,6 +283,14 @@ export default function TenantModulos({ tenantId, plan, modulosRaw }: Props) {
 
   const planRank = PLAN_RANK[plan] ?? 0
 
+  // Agrupar por categoría preservando el orden definido
+  const porCategoria = useMemo(() => {
+    const grupos = new Map<ModuloCategoria, ModuloCatalogo[]>()
+    for (const cat of ORDEN_CATEGORIAS) grupos.set(cat, [])
+    for (const m of MODULOS_CATALOGO) grupos.get(m.categoria)?.push(m)
+    return grupos
+  }, [])
+
   function handleChange(
     id: ModuloId,
     updates: Partial<ModulosConfig[ModuloId]>
@@ -244,6 +299,25 @@ export default function TenantModulos({ tenantId, plan, modulosRaw }: Props) {
       ...prev,
       [id]: { ...prev[id], ...updates },
     }))
+    setSuccess(false)
+    setError(null)
+  }
+
+  function aplicarBundle(bundleId: BundleId) {
+    const bundle = BUNDLES.find((b) => b.id === bundleId)
+    if (!bundle) return
+    const set = new Set<ModuloId>(bundle.modulos)
+    setModulos((prev) => {
+      const next = { ...prev }
+      for (const m of MODULOS_CATALOGO) {
+        if (m.obligatorio) continue
+        const minPlan = m.planesDisponibles[0]
+        const disponible = planRank >= (PLAN_RANK[minPlan] ?? 0)
+        const debeEstar = set.has(m.id) && disponible
+        next[m.id] = { ...next[m.id], activo: debeEstar }
+      }
+      return next
+    })
     setSuccess(false)
     setError(null)
   }
@@ -288,48 +362,82 @@ export default function TenantModulos({ tenantId, plan, modulosRaw }: Props) {
         </div>
       </div>
 
-      {/* Tarjetas de módulos */}
-      <div className="space-y-3">
-        {MODULOS_CATALOGO.map((catalogo) => {
-          const minPlan = catalogo.planesDisponibles[0]
-          const disponible = planRank >= (PLAN_RANK[minPlan] ?? 0)
-          const config = modulos[catalogo.id]
-
-          return (
-            <ModuloCard
-              key={catalogo.id}
-              catalogo={catalogo}
-              config={config}
-              disponible={disponible}
-              onChange={(updates) => handleChange(catalogo.id, updates)}
-            />
-          )
-        })}
+      {/* Bundles comerciales */}
+      <div className="border border-slate-800 bg-[#111827] rounded-2xl p-4">
+        <p className="text-xs text-slate-400 font-medium uppercase tracking-wide mb-3">
+          Aplicar bundle preconfigurado
+        </p>
+        <div className="grid sm:grid-cols-3 gap-2">
+          {BUNDLES.map((b) => (
+            <button
+              key={b.id}
+              type="button"
+              onClick={() => aplicarBundle(b.id)}
+              className="text-left px-3 py-2 rounded-xl border border-slate-700 hover:border-blue-600/60 hover:bg-blue-950/10 transition"
+              title={b.descripcion}
+            >
+              <div className="text-sm font-medium text-white">{b.nombre}</div>
+              <div className="text-xs text-slate-500 mt-0.5">{b.perfiles.join(' · ')}</div>
+            </button>
+          ))}
+        </div>
+        <p className="text-[11px] text-slate-600 mt-3">
+          Aplicar un bundle reemplaza la selección actual de módulos no obligatorios. Se respetan los límites del plan.
+        </p>
       </div>
+
+      {/* Tarjetas por categoría */}
+      {ORDEN_CATEGORIAS.map((categoria) => {
+        const modulosCat = porCategoria.get(categoria) ?? []
+        if (modulosCat.length === 0) return null
+
+        return (
+          <section key={categoria} className="space-y-3">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400 pt-2">
+              {CATEGORIA_LABEL[categoria]}
+            </h2>
+            <div className="space-y-3">
+              {modulosCat.map((catalogo) => {
+                const minPlan = catalogo.planesDisponibles[0]
+                const disponiblePlan = planRank >= (PLAN_RANK[minPlan] ?? 0)
+                const depsOk = areDepsActive(modulos, catalogo.id)
+                const depsFaltantes = (catalogo.dependeDe ?? [])
+                  .filter((dep) => !modulos[dep]?.activo)
+                  .map((dep) => MODULOS_CATALOGO.find((m) => m.id === dep)?.nombre ?? dep)
+                const config = modulos[catalogo.id]
+
+                return (
+                  <ModuloCard
+                    key={catalogo.id}
+                    catalogo={catalogo}
+                    config={config}
+                    disponiblePlan={disponiblePlan}
+                    depsOk={depsOk}
+                    depsFaltantes={depsFaltantes}
+                    onChange={(updates) => handleChange(catalogo.id, updates)}
+                  />
+                )
+              })}
+            </div>
+          </section>
+        )
+      })}
 
       {/* Feedback */}
       {error && (
         <div className="flex items-center gap-2 text-red-400 bg-red-400/10 border border-red-400/20 rounded-xl px-4 py-3 text-sm">
-          <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
           {error}
         </div>
       )}
 
       {success && (
         <div className="flex items-center gap-2 text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 rounded-xl px-4 py-3 text-sm">
-          <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M5 13l4 4L19 7" />
-          </svg>
           Configuración de módulos guardada correctamente
         </div>
       )}
 
       {/* Botón guardar */}
-      <div className="flex justify-end pt-1">
+      <div className="flex justify-end pt-1 sticky bottom-2">
         <button
           type="button"
           onClick={handleSave}
