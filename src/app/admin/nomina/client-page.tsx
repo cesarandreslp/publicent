@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { Users, Calendar, Plus, X, Loader2, Calculator } from "lucide-react"
+import { Users, Calendar, Plus, X, Loader2, Calculator, Banknote } from "lucide-react"
 
 type Empleado = {
   id: string; documento: string; nombre: string; cargo: string;
@@ -17,14 +17,18 @@ function fmt(n: number) {
   return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(n)
 }
 
+type CuentaPuc = { id: string; codigo: string; nombre: string }
+
 export default function NominaClient({
-  empleados, empleadosActivos, periodos, conceptosTotal,
+  empleados, empleadosActivos, periodos, conceptosTotal, cuentasBanco, contabilidadActiva,
 }: {
   empleados: Empleado[]; empleadosActivos: number; periodos: PeriodoRes[]; conceptosTotal: number;
+  cuentasBanco: CuentaPuc[]; contabilidadActiva: boolean;
 }) {
   const router = useRouter()
-  const [modal, setModal] = useState<null | 'empleado' | 'periodo' | 'liquidar'>(null)
-  const [liquidarPeriodoId, setLiquidarPeriodoId] = useState<string | null>(null)
+  const [modal, setModal] = useState<null | 'empleado' | 'periodo' | 'liquidar' | 'pagar'>(null)
+  const [accionPeriodoId, setAccionPeriodoId] = useState<string | null>(null)
+  const accionPeriodo = periodos.find(p => p.id === accionPeriodoId) ?? null
   const ultimo = periodos[0]
 
   return (
@@ -104,10 +108,19 @@ export default function NominaClient({
                   <td className="px-3 py-2 text-right tabular-nums text-slate-600">{fmt(p.aportes)}</td>
                   <td className="px-3 py-2">
                     {p.estado === 'ABIERTO' && (
-                      <button onClick={() => { setLiquidarPeriodoId(p.id); setModal('liquidar') }}
+                      <button onClick={() => { setAccionPeriodoId(p.id); setModal('liquidar') }}
                         className="px-2 py-1 text-xs bg-violet-600 text-white rounded flex items-center gap-1">
                         <Calculator className="w-3 h-3" /> Liquidar
                       </button>
+                    )}
+                    {p.estado === 'LIQUIDADO' && contabilidadActiva && (
+                      <button onClick={() => { setAccionPeriodoId(p.id); setModal('pagar') }}
+                        className="px-2 py-1 text-xs bg-emerald-600 text-white rounded flex items-center gap-1">
+                        <Banknote className="w-3 h-3" /> Pagar
+                      </button>
+                    )}
+                    {p.estado === 'LIQUIDADO' && !contabilidadActiva && (
+                      <span className="text-xs text-slate-400">Activa contabilidad para pagar</span>
                     )}
                   </td>
                 </tr>
@@ -158,9 +171,14 @@ export default function NominaClient({
 
       {modal === 'empleado' && <EmpleadoModal onClose={() => setModal(null)} onSaved={() => router.refresh()} />}
       {modal === 'periodo' && <PeriodoModal onClose={() => setModal(null)} onSaved={() => router.refresh()} />}
-      {modal === 'liquidar' && liquidarPeriodoId && (
-        <LiquidarModal periodoId={liquidarPeriodoId}
-          onClose={() => { setModal(null); setLiquidarPeriodoId(null) }}
+      {modal === 'liquidar' && accionPeriodo && (
+        <LiquidarModal periodoId={accionPeriodo.id}
+          onClose={() => { setModal(null); setAccionPeriodoId(null) }}
+          onSaved={() => router.refresh()} />
+      )}
+      {modal === 'pagar' && accionPeriodo && (
+        <PagarModal periodo={accionPeriodo} cuentasBanco={cuentasBanco}
+          onClose={() => { setModal(null); setAccionPeriodoId(null) }}
           onSaved={() => router.refresh()} />
       )}
     </div>
@@ -324,6 +342,86 @@ function LiquidarModal({ periodoId, onClose, onSaved }: { periodoId: string; onC
             <button type="button" onClick={onClose} className="px-3 py-2 border rounded">Cancelar</button>
             <button disabled={pending} className="px-3 py-2 bg-violet-600 text-white rounded flex items-center gap-1">
               {pending && <Loader2 className="w-4 h-4 animate-spin" />} Liquidar
+            </button>
+          </div>
+        </form>
+      )}
+    </ModalShell>
+  )
+}
+
+function PagarModal({ periodo, cuentasBanco, onClose, onSaved }: {
+  periodo: PeriodoRes; cuentasBanco: CuentaPuc[];
+  onClose: () => void; onSaved: () => void;
+}) {
+  const [pending, start] = useTransition()
+  const [err, setErr] = useState<string | null>(null)
+  const [resultado, setResultado] = useState<any>(null)
+
+  function submit(fd: FormData) {
+    start(async () => {
+      setErr(null); setResultado(null)
+      const body = {
+        periodoId: periodo.id,
+        numero: String(fd.get('numero')),
+        fecha: new Date(String(fd.get('fecha'))).toISOString(),
+        cuentaBancoId: String(fd.get('cuentaBancoId')),
+      }
+      const r = await fetch('/api/admin/nom/pagar', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+      const j = await r.json()
+      if (!r.ok) { setErr(j.error ?? 'Error'); return }
+      setResultado(j)
+      onSaved()
+    })
+  }
+
+  const hoy = new Date().toISOString().slice(0, 10)
+
+  return (
+    <ModalShell title={`Pagar nómina ${periodo.codigo}`} onClose={onClose}>
+      {resultado ? (
+        <div className="space-y-3 text-sm">
+          <p className="text-emerald-700 font-medium">✓ Comprobante {resultado.comprobante.numero} generado</p>
+          <ul className="text-xs space-y-1 text-slate-600">
+            <li>Empleados: {resultado.empleados}</li>
+            <li>Asientos: {resultado.asientos}</li>
+            <li>Total débito: {fmt(resultado.totalDebito)}</li>
+            <li>Total crédito: {fmt(resultado.totalCredito)}</li>
+            <li>Neto pagado al banco: {fmt(resultado.totalNeto)}</li>
+            <li>Deducciones a terceros: {fmt(resultado.totalDeducciones)}</li>
+          </ul>
+          <p className="text-xs text-slate-500">El periodo quedó marcado como PAGADO y cada liquidación apunta al comprobante.</p>
+          <div className="flex justify-end">
+            <button onClick={onClose} className="px-3 py-2 border rounded">Cerrar</button>
+          </div>
+        </div>
+      ) : (
+        <form action={submit} className="space-y-3 text-sm">
+          <div className="rounded-md bg-slate-50 border p-3 text-xs space-y-1">
+            <div>Empleados a pagar: <b>{periodo.liquidaciones}</b></div>
+            <div>Neto del periodo: <b>{fmt(periodo.neto)}</b></div>
+            <div>Deducciones del periodo: <b>{fmt(periodo.deducciones)}</b></div>
+          </div>
+          <label>Número del comprobante
+            <input name="numero" required defaultValue={`NOM-${periodo.codigo}`} className="w-full border rounded p-2 font-mono" />
+          </label>
+          <label>Fecha de pago
+            <input name="fecha" type="date" required defaultValue={hoy} className="w-full border rounded p-2" />
+          </label>
+          <label>Cuenta bancaria (PUC 111*)
+            <select name="cuentaBancoId" required className="w-full border rounded p-2">
+              <option value="">— Selecciona —</option>
+              {cuentasBanco.map(c => (
+                <option key={c.id} value={c.id}>{c.codigo} · {c.nombre}</option>
+              ))}
+            </select>
+          </label>
+          <p className="text-xs text-slate-500">Se generará un único comprobante de egreso agregando todas las liquidaciones del periodo. El neto se descuenta del banco; las deducciones del empleado y aportes patronales quedan como pasivos (2505/2510/2425/2436) para pagarlas en obligaciones posteriores.</p>
+          {err && <p className="text-red-600 text-sm">{err}</p>}
+          <div className="flex justify-end gap-2 pt-2">
+            <button type="button" onClick={onClose} className="px-3 py-2 border rounded">Cancelar</button>
+            <button disabled={pending} className="px-3 py-2 bg-emerald-600 text-white rounded flex items-center gap-1">
+              {pending && <Loader2 className="w-4 h-4 animate-spin" />} Pagar
             </button>
           </div>
         </form>

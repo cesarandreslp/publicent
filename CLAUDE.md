@@ -66,6 +66,43 @@ El plan se construyó en 4 acuerdos explícitos:
 - [x] UI superadmin agrupada por categoría con badges de tier y dependencias ([`src/components/admin/superadmin/tenant-modulos.tsx`](src/components/admin/superadmin/tenant-modulos.tsx)).
 - [x] `tsc --noEmit` limpio (solo legacy `ventanilla_unica_personeria_buga/` excluido).
 
+### ✅ Fase 12 — Pago de nómina → comprobante contable (cerrada)
+
+Cierra el círculo `Liquidación → Comprobante`. Cuando un periodo está `LIQUIDADO`, la entidad presiona "Pagar" y se genera **un único comprobante EGRESO** que agrega todas las liquidaciones del periodo. El periodo pasa a `PAGADO` y cada `NomLiquidacion.comprobanteId` queda apuntando al comprobante creado.
+
+**Endpoint**
+- [x] `POST /api/admin/nom/pagar { periodoId, fecha, numero, cuentaBancoId }`
+  - Valida periodo `LIQUIDADO`, módulo `contabilidad_publica` activo, periodo contable `ABIERTO`.
+  - Itera detalles de todas las liquidaciones, agrega por `cuentaContableCodigo`:
+    - **DEVENGADO** → D gasto (5101/5103/5104/5111 según concepto).
+    - **APORTE_PATRONAL** → D gasto + C pasivo 2505 (nómina por pagar).
+    - **PRESTACION_SOCIAL** → D gasto + C pasivo 2510 (cesantías por pagar).
+    - **DEDUCCION_EMPLEADO** → C pasivo (2425 / 2436 / 2510 según concepto).
+    - **Neto a empleados** → C banco (cuentaBancoId).
+  - Resuelve códigos → `cpPlanCuenta.id` con un solo query. Falla con 400 si falta alguna cuenta (típicamente porque la auto-siembra del CGC no se ejecutó).
+  - Valida partida doble con tolerancia 0.5 COP. Crea `CpComprobante` con `fuenteModulo='nomina'`, `fuenteRef=periodoId`, `tipo=EGRESO`.
+  - `$transaction`: comprobante + `nomLiquidacion.updateMany({ comprobanteId })` + `nomNominaPeriodo.update({ estado: 'PAGADO' })`.
+
+**Validaciones zod**
+- [x] `nomPagarPeriodoSchema { periodoId, fecha, numero, cuentaBancoId, cuentaSueldosPorPagarCodigo? }`.
+
+**UI**
+- [x] Botón "Pagar" en la tabla de periodos sólo aparece cuando `estado=LIQUIDADO` **y** `contabilidad_publica` está activo (caso contrario muestra hint).
+- [x] `PagarModal`: resumen del periodo (#empleados, neto, deducciones), número auto-sugerido `NOM-YYYY-MM`, fecha hoy por defecto, select de cuentas banco (PUC `111*`). Tras éxito muestra resumen del comprobante generado (asientos, totales, deducciones a terceros).
+- [x] Server `page.tsx` ahora carga `cuentasBanco` (sólo si contabilidad activa) y pasa `contabilidadActiva: boolean` al cliente.
+
+**Verificación**
+- [x] `tsc --noEmit` limpio.
+
+**Hallazgos**
+- El comprobante es **agregado** (un solo `CpComprobante` por periodo, ~10-20 asientos) en vez de uno por empleado. Razón: mantiene los libros legibles y `permiteMovimientos=true` se cumple por código de cuenta, no por empleado. El detalle empleado-a-empleado queda en `NomLiquidacionDetalle`.
+- Las cuentas de contrapartida pasivo (2505/2510) están hardcodeadas en el route — funciona porque la auto-siembra del CGC oficial (Fase 8) las garantiza. Si una entidad usa subcuentas distintas, queda como mejora exponer `cuentaSueldosPorPagarCodigo` en la UI (ya está en el schema zod).
+- Los **aportes patronales y deducciones se quedan como pasivos** en 2505/2510/2425/2436. Pagarlos a EPS/AFP/DIAN/parafiscales es otra obligación (CDP/RP/Pago vía módulo presupuesto) — esa es la próxima iteración.
+- Diferencia con `/api/admin/psu/pagos`: no genera obligación presupuestal en este corte. La nómina pública colombiana suele estar **embebida en una sola apropiación A.1.1** y la entidad maneja el devengo presupuestal mensualmente sin atomizar por empleado. Si el cliente lo pide, se añade un flag `generarObligacion: true` que crea una `PsuObligacion` contra un RP anual.
+- `fuenteRef=periodoId` permite cruzar libros: `SELECT * FROM cp_comprobantes WHERE fuente_modulo='nomina' AND fuente_ref=<periodoId>` da el comprobante; al revés desde `NomLiquidacion.comprobanteId` se navega al detalle de asientos.
+
+---
+
 ### ✅ Fase 11 — Núcleo `nomina_publica` (cerrada)
 
 Primer módulo que integra **contabilidad + presupuesto + dominio nuevo**. Maneja empleados (planta / trabajador oficial / contratistas / supernumerarios / aprendices), catálogo de conceptos (devengado, deducción empleado, aporte patronal, prestación social), liquidación mensual con motor de cálculo, novedades y enlace a `CpComprobante` + `PsuObligacion` para la fase de pago.
@@ -585,10 +622,11 @@ Avance respecto al MVP SAE de A0 (portal + plan CGN + bienes FRISCO + presupuest
 - [x] **Plan CGN + motor contable** (`contabilidad_publica` — Fase 5)
 - [x] **Presupuesto mínimo (CDP/RP/Obligación/Pago)** (`presupuesto_ejecucion` — Fase 6, con comprobante contable auto al pagar)
 - [x] **Nómina pública** (`nomina_publica` — Fase 11, motor de liquidación + 24 conceptos sembrados)
-- [ ] **Pagar nómina** — generar Obligación presupuestal por liquidación + Comprobante contable (gasto/pasivo/banco) cuando la entidad confirma el pago. Estructura ya está (NomLiquidacion.obligacionId/comprobanteId).
+- [x] **Pagar nómina → comprobante contable** (`/api/admin/nom/pagar` — Fase 12, agrega liquidaciones en un único comprobante EGRESO)
+- [ ] **Pago de pasivos de nómina** — segundo comprobante para liquidar 2425/2436/2505/2510 contra EPS/AFP/DIAN/parafiscales (vía cadena CDP/RP/Obligación/Pago del módulo presupuesto).
 - [ ] **Reporte CHIP básico** ← siguiente palanca del MVP SAE
 
-**Siguiente sugerido:** cerrar el círculo de nómina con `/api/admin/nom/pagar` (genera obligación + comprobante en `$transaction`), o saltar a `reportes_control` para entregar CHIP/FUT del MVP SAE. Decisión pendiente con el usuario.
+**Siguiente sugerido:** saltar a `reportes_control` para entregar CHIP/FUT (cierra el MVP SAE) o cerrar el ciclo de pasivos de nómina (CDP/RP automático contra EPS/AFP). Decisión pendiente con el usuario.
 
 ### Pendientes inmediatos en `presupuesto_ejecucion`
 - [ ] `npx prisma db push` por tenant para crear tablas `psu_*`.

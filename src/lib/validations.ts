@@ -738,6 +738,14 @@ export const nomLiquidarPeriodoSchema = z.object({
   diasLiquidados: z.number().int().min(1).max(31).optional(),
 })
 
+export const nomPagarPeriodoSchema = z.object({
+  periodoId: z.string().cuid(),
+  fecha: z.string().datetime(),
+  numero: z.string().min(1).max(60),
+  cuentaBancoId: z.string().cuid(),
+  cuentaSueldosPorPagarCodigo: z.string().max(20).optional(),    // default: 2505
+})
+
 // ──────────────────────────────────────────────────────────────────────────────
 
 export function validateBody<T>(

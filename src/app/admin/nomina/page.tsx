@@ -24,7 +24,9 @@ export default async function NominaPage() {
 
   const prisma = await getTenantPrisma()
 
-  const [empleados, periodos, conceptos] = await Promise.all([
+  const contabilidadActiva = await isTenantModuleActive(MODULO_IDS.CONTABILIDAD_PUBLICA)
+
+  const [empleados, periodos, conceptos, cuentasBanco] = await Promise.all([
     prisma.nomEmpleado.findMany({
       orderBy: [{ activo: 'desc' }, { primerApellido: 'asc' }],
       take: 200,
@@ -38,6 +40,13 @@ export default async function NominaPage() {
       },
     }),
     prisma.nomConcepto.count({ where: { activo: true } }),
+    contabilidadActiva
+      ? prisma.cpPlanCuenta.findMany({
+          where: { activa: true, permiteMovimientos: true, codigo: { startsWith: '111' } },
+          orderBy: { codigo: 'asc' },
+          select: { id: true, codigo: true, nombre: true },
+        })
+      : Promise.resolve([] as { id: string; codigo: string; nombre: string }[]),
   ])
 
   const periodosResumen = periodos.map((p: any) => {
@@ -72,6 +81,8 @@ export default async function NominaPage() {
       empleadosActivos={empleadosActivos}
       periodos={periodosResumen}
       conceptosTotal={conceptos}
+      cuentasBanco={cuentasBanco}
+      contabilidadActiva={contabilidadActiva}
     />
   )
 }
