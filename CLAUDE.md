@@ -66,6 +66,32 @@ El plan se construyó en 4 acuerdos explícitos:
 - [x] UI superadmin agrupada por categoría con badges de tier y dependencias ([`src/components/admin/superadmin/tenant-modulos.tsx`](src/components/admin/superadmin/tenant-modulos.tsx)).
 - [x] `tsc --noEmit` limpio (solo legacy `ventanilla_unica_personeria_buga/` excluido).
 
+### ✅ Fase 8 — CGC oficial completo desde PDF de la CGN (cerrada)
+
+Corrección a la Fase 7: el subset de ~210 cuentas era insuficiente. El usuario aportó el PDF oficial actualizado de la CGN en `docs/cgc colombia actualizado.pdf` (474 páginas, Resolución 414/2014 con modificatorias **334/2025 y 343/2025**). Se parseó automáticamente.
+
+**Pipeline de carga**
+- [x] [`scripts/parse-cgc-pdf.py`](scripts/parse-cgc-pdf.py) — extrae texto de páginas 7..142 (capítulo 1 "ESTRUCTURA"), aplica regex `^(\d{1,6})\s+(.+)$`, deriva nivel por longitud del código (1/2/4/6), determina parent por prefijo (subcuenta→cuenta→grupo→clase), e infiere naturaleza/tipo desde la clase con inversión automática en grupos "por contra" (89, 99).
+- [x] [`src/lib/seeders/cgc-cuentas.generated.ts`](src/lib/seeders/cgc-cuentas.generated.ts) — archivo TS generado, **3.745 cuentas** distribuidas así:
+  - 9 clases
+  - 44 grupos
+  - 359 cuentas
+  - 3.333 subcuentas (hojas con `permiteMovimientos=true`)
+- [x] [`src/lib/seeders/cgc-cuentas.ts`](src/lib/seeders/cgc-cuentas.ts) ahora re-exporta `CGC_CUENTAS = CGC_CUENTAS_OFICIAL` del generado. La función `seedCgc(prisma)` no cambia → la auto-siembra al activar el módulo ahora carga el catálogo completo.
+
+**Marco normativo del catálogo cargado**
+- El PDF aportado corresponde al **Marco Normativo para Empresas que no Cotizan en el Mercado de Valores y que no Captan ni Administran Ahorro del Público** (Res. 414/2014 CGN). Es el aplicable a empresas estatales como **SAE** (cliente piloto del MVP).
+- Las **entidades de gobierno territorial puras** (alcaldías, personerías, gobernaciones) aplican la **Res. 533/2015** (Marco de Entidades de Gobierno). Documentado como pendiente: cargar este segundo marco como catálogo opcional cuando un tenant lo requiera. La estructura es similar pero los códigos y nombres varían (especialmente clase 7).
+
+**Hallazgos técnicos**
+- TypeScript reventaba con `TS2590 "Expression produces a union type that is too complex"` al intentar inferir el tipo unión literal de 3.745 objetos. **Fix:** el archivo generado declara el array como `const _CGC_RAW: any[] = [...]` y exporta `CGC_CUENTAS_OFICIAL = _CGC_RAW as CuentaCgc[]`. El cast omite la inferencia y mantiene tipado en uso. Patrón documentado en el header.
+- La verificación con `tsc --noEmit` queda limpia (EXIT=0).
+- Las modificatorias 334 y 343 de **2025** indican que la CGN actualizó el catálogo recientemente; al volver a publicar futura resolución basta reemplazar el PDF y correr `python scripts/parse-cgc-pdf.py`.
+- El parser detecta automáticamente la flag `(CR)` o `(DB)` en el nombre, pero el cambio efectivo de naturaleza se hace **sólo** por grupo "por contra" (89/99). Esto evita doble inversión cuando el grupo ya es contra y el nombre contiene la marca informativa.
+- ⚠ Migración pendiente: para los tenants que ya activaron el módulo con el subset de Fase 7 (210 cuentas), al volver a guardar la activación desde Superadmin se disparará el seeder y sembrará las ~3.500 cuentas faltantes (idempotente, no toca asientos existentes).
+
+---
+
 ### ✅ Fase 7 — Catálogos públicos completos + auto-siembra al activar (cerrada)
 
 Corrección importante traída por el usuario: **el plan de cuentas y el catálogo presupuestal del sector público son distintos a los del sector privado**, y **no pueden quedar como tablas vacías** cuando se activa el módulo. Se reemplaza el JSON mínimo de la Fase 5 por dos catálogos canónicos completos y se conecta su carga a la activación del módulo desde Superadmin.
