@@ -66,6 +66,35 @@ El plan se construyó en 4 acuerdos explícitos:
 - [x] UI superadmin agrupada por categoría con badges de tier y dependencias ([`src/components/admin/superadmin/tenant-modulos.tsx`](src/components/admin/superadmin/tenant-modulos.tsx)).
 - [x] `tsc --noEmit` limpio (solo legacy `ventanilla_unica_personeria_buga/` excluido).
 
+### ✅ Fase 14 — Exportador XLSX para reportes de control (cerrada)
+
+Conversión de los snapshots JSON de Fase 13 a archivos XLSX descargables, listos para que el contador los entregue al ente (o copie/pegue al template oficial).
+
+**Implementación**
+- [x] [`src/lib/reportes-control/xlsx.ts`](src/lib/reportes-control/xlsx.ts) — usa `exceljs` (ya en deps). Función única `exportarReporteXlsx(tipo, datos, observacion)` con dispatch por tipo:
+  - **CHIP_BALANCE / CHIP_ACTIVIDAD** → hoja con columnas Cuenta · Nombre · Naturaleza · Débitos · Créditos · Saldo + totales en negrita.
+  - **FUT_GASTOS** → hoja con 10 columnas (Código · Nombre · Nivel · Apropiación inicial · Adiciones · Reducciones · Definitiva · Comprometido · Obligado · Pagado) + fila TOTAL.
+  - **FUT_INGRESOS** → 7 columnas (Código · Nombre · Nivel · Aforado inicial · Adiciones · Reducciones · Aforado definitivo) + TOTAL.
+  - **LEY_617** → tabla vertical con indicador / ICLD / tope / cumple / holgura + fila roja si excede.
+  - Todas las columnas monetarias usan formato COP `"$"#,##0;[Red]-"$"#,##0`.
+  - Encabezado azul (#1E40AF) en negrita blanca; ancho de columnas auto-ajustado capeado a 60.
+
+**Endpoint**
+- [x] `GET /api/admin/rc/reportes/[id]/xlsx` — recupera el snapshot, ejecuta el builder, devuelve `Response` con `Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` y `Content-Disposition: attachment; filename="<TIPO>_<clave>_<fecha>.xlsx"`.
+
+**UI**
+- [x] Botón XLSX (verde, ícono `FileSpreadsheet`) al lado del JSON en cada fila de la bitácora de `/admin/reportes-control`. Es un `<a href>` directo al endpoint — descarga nativa sin JS adicional.
+
+**Verificación**
+- [x] `tsc --noEmit` limpio.
+
+**Hallazgos**
+- `exceljs.writeBuffer()` devuelve `ArrayBuffer | Buffer` según la versión. Lo casteamos a `Uint8Array` y luego a `any` en `new Response()` porque TypeScript de Next.js no acepta `Uint8Array` directo en `BodyInit` sin lib.dom estándar. Funciona en Node runtime de Vercel sin problemas.
+- El layout NO es el oficial CGN/DNP — esos templates cambian por trimestre y por categoría municipal y exigen filas/columnas en posiciones exactas. La estrategia es: el XLSX exportado es **navegable y agrupado** (un contador lo lee bien), y desde ahí el contador copia/pega al template oficial bajado del portal. Mapeo 1:1 queda como mejora futura cuando se tenga el .xlsx oficial de referencia para diff.
+- El archivo se llama `<TIPO>_<vigencia|periodoId>_<fechaISO>.xlsx` — fácil de archivar en la carpeta de la entidad.
+
+---
+
 ### ✅ Fase 13 — Módulo `reportes_control` (cerrada)
 
 Cierra la última pieza del MVP SAE original (A0): reportes a entes de control (CHIP / FUT / Ley 617). Implementación como snapshots JSON persistidos en `RcReporteGenerado`, mapeo al layout XLS oficial queda pendiente.
@@ -661,9 +690,10 @@ Avance respecto al MVP SAE de A0 (portal + plan CGN + bienes FRISCO + presupuest
 - [x] **Pagar nómina → comprobante contable** (`/api/admin/nom/pagar` — Fase 12, agrega liquidaciones en un único comprobante EGRESO)
 - [ ] **Pago de pasivos de nómina** — segundo comprobante para liquidar 2425/2436/2505/2510 contra EPS/AFP/DIAN/parafiscales (vía cadena CDP/RP/Obligación/Pago del módulo presupuesto).
 - [x] **Reportes a entes de control** (`reportes_control` — Fase 13: CHIP Balance + Actividad, FUT Ingresos + Gastos, Ley 617) — **MVP SAE cerrado en feature core**
-- [ ] **Mapeo a plantillas oficiales** del CHIP/FUT (hoy se descarga JSON; falta exportador XLS con el layout exacto del CGN/DNP).
+- [x] **Exportador XLSX** de los 5 tipos de reporte con formato moneda COP y totales (Fase 14, `exceljs`). El contador descarga el XLSX, lo revisa y lo copia/pega al template oficial CGN/DNP.
+- [ ] **Mapeo 1:1 al template oficial** del CHIP/FUT (layout exacto del periodo de reporte). Hoy el XLSX es navegable y agrupado por tipo pero no respeta filas/columnas oficiales — pendiente cuando se tenga el .xlsx oficial de referencia.
 
-**Siguiente sugerido:** exportador XLS con el layout oficial de CHIP/FUT (lo que un contador entrega físicamente), o ciclo de pasivos de nómina (CDP/RP automático contra EPS/AFP/DIAN), o avanzar a `tesoreria`. Decisión pendiente con el usuario.
+**Siguiente sugerido:** ciclo de pasivos de nómina (CDP/RP automático contra EPS/AFP/DIAN), o avanzar a `tesoreria` (gestión de cuentas bancarias + conciliación), o el mapeo 1:1 al template CHIP oficial. Decisión pendiente con el usuario.
 
 ### Pendientes inmediatos en `presupuesto_ejecucion`
 - [ ] `npx prisma db push` por tenant para crear tablas `psu_*`.

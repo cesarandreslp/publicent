@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { FileText, Download, Loader2, X, Trash2 } from "lucide-react"
+import { FileText, Download, Loader2, X, Trash2, FileSpreadsheet } from "lucide-react"
 
 type Periodo = { id: string; codigo: string; anio: number; mes: number; estado: string }
 type Reporte = {
@@ -101,6 +101,10 @@ export default function ReportesControlClient({
                     <td className="px-3 py-2 text-xs text-slate-500">{new Date(r.generadoEn).toLocaleString('es-CO')}</td>
                     <td className="px-3 py-2 text-right">
                       <div className="flex justify-end gap-1">
+                        <a href={`/api/admin/rc/reportes/${r.id}/xlsx`}
+                          className="px-2 py-1 text-xs border rounded flex items-center gap-1 bg-emerald-50 text-emerald-700 border-emerald-200">
+                          <FileSpreadsheet className="w-3 h-3" /> XLSX
+                        </a>
                         <button onClick={() => descargar(r)} className="px-2 py-1 text-xs border rounded flex items-center gap-1">
                           <Download className="w-3 h-3" /> JSON
                         </button>
