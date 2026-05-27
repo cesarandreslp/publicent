@@ -625,10 +625,10 @@ const psuTipoRubro = z.enum(["GASTO", "INGRESO"])
 const psuMedioPago = z.enum(["TRANSFERENCIA", "CHEQUE", "EFECTIVO", "OTRO"])
 
 export const psuRubroCreateSchema = z.object({
-  codigo: z.string().min(1).max(40),
-  nombre: z.string().min(2).max(200),
+  codigo: z.string().min(1).max(60),
+  nombre: z.string().min(2).max(300),
   tipo: psuTipoRubro,
-  nivel: z.number().int().min(1).max(6),
+  nivel: z.number().int().min(1).max(10),
   fuente: z.string().max(80).optional().nullable(),
   programa: z.string().max(120).optional().nullable(),
   proyecto: z.string().max(120).optional().nullable(),

@@ -66,6 +66,50 @@ El plan se construyó en 4 acuerdos explícitos:
 - [x] UI superadmin agrupada por categoría con badges de tier y dependencias ([`src/components/admin/superadmin/tenant-modulos.tsx`](src/components/admin/superadmin/tenant-modulos.tsx)).
 - [x] `tsc --noEmit` limpio (solo legacy `ventanilla_unica_personeria_buga/` excluido).
 
+### ✅ Fase 9 — CCPET ingresos cargado desde MinHacienda (parcial: faltan gastos)
+
+Expansión del CCP de ~85 rubros operativos a **512 rubros oficiales de ingresos** del CCPET (Catálogo de Clasificación Presupuestal para Entidades Territoriales y sus Descentralizadas) emitido por MinHacienda / Dirección General de Apoyo Fiscal Territorial.
+
+**Fuente y normativa**
+- Resolución 3832/2019 + 2662/2023 y modificatorias. **Versión 8** (vigente).
+- URL oficial: `https://www.minhacienda.gov.co/apoyo-fiscal-territorial/estadisticas-de-finanzas-publicas-territoriales/ccpet-cuipo`
+- Anexos descargables:
+  - 1A: ingresos territoriales (✅ descargado)
+  - 2A: gastos territoriales (❌ **bloqueado por Radware Bot Manager** tras la primera petición; requiere descarga manual humana)
+  - 1B/2B: empresas industriales y comerciales del Estado (omitidos en este corte)
+
+**Pipeline**
+- [x] [`scripts/parse-ccpet-xlsx.py`](scripts/parse-ccpet-xlsx.py) — lee los XLSX desde `docs/ccpet/` y emite TS con tipos casteados (`any[]` + cast a `RubroCcp[]` para evitar TS2590).
+- [x] [`src/lib/seeders/ccp-rubros.generated.ts`](src/lib/seeders/ccp-rubros.generated.ts) — generado, 512 rubros de ingresos, niveles 1..10.
+- [x] [`src/lib/seeders/ccp-rubros.ts`](src/lib/seeders/ccp-rubros.ts) reescrito: re-exporta `CCP_RUBROS = CCP_RUBROS_OFICIAL`, tipo `RubroCcp.nivel` ampliado a `number` (era `1|2|3|4|5`) para soportar la jerarquía profunda del CCPET tributario.
+- [x] [`src/lib/validations.ts`](src/lib/validations.ts) — `psuRubroCreateSchema`: `nivel.max(6)` → `nivel.max(10)`, `codigo.max(40)` → `60`, `nombre.max(200)` → `300`.
+
+**Distribución de rubros de ingresos**
+| Nivel | Cantidad |
+|---|---|
+| 1 (Agregado) | 1 |
+| 2 (Grupo) | 2 |
+| 3 (Subgrupo) | 14 |
+| 4 (Concepto) | 53 |
+| 5 (Subconcepto) | 147 |
+| 6 (Item) | 201 |
+| 7 | 58 |
+| 8 | 32 |
+| 9-10 (rubros tributarios profundos) | 4 |
+| **Total ingresos** | **512** |
+
+**Hallazgos**
+- El XLSX usa el formato "staircased": el nombre aparece en la columna `4 + nivel`, no en una columna fija. El parser detecta automáticamente la primera columna no vacía a la derecha de la columna de tipo.
+- Los rubros tributarios tienen **hasta 10 niveles** (ej. `1.1.02.07.002.01.03.02.02.01`) — mucho más profundo que los típicos 5 niveles. Hubo que ampliar el tipo y la validación zod en consecuencia.
+- **Radware Bot Manager** del sitio de MinHacienda bloquea la segunda descarga inmediata desde la misma IP. El primer anexo (1A ingresos) pasó, pero al pedir 2A inmediatamente devuelve HTML con captcha hCaptcha. Soluciones probadas que **no funcionaron**: User-Agent realista, Referer correcto, cookies persistentes, headers Sec-Fetch-*. Camino seguro documentado: el usuario lo baja desde el navegador y lo deja en `docs/ccpet/ccpet_gastos_territoriales.xlsx`.
+- Sin huérfanos ni duplicados en los 512 rubros. Niveles 1-10 con `permiteMovimientos=true` sólo en hojas (no aparecen como parent de ninguno).
+
+**Pendiente operativo (próxima sesión)**
+- [ ] Bajar manualmente el Anexo 2A de Gastos desde [el portal MinHacienda](https://www.minhacienda.gov.co/apoyo-fiscal-territorial/estadisticas-de-finanzas-publicas-territoriales/ccpet-cuipo) → guardar como `docs/ccpet/ccpet_gastos_territoriales.xlsx` → correr `python scripts/parse-ccpet-xlsx.py` (el script ya está preparado para ambos, sólo saltó el de gastos por archivo inexistente).
+- [ ] Eventualmente: cargar también CCPET 1B/2B para empresas industriales y comerciales (aplicaría a SAE, EICs municipales).
+
+---
+
 ### ✅ Fase 8 — CGC oficial completo desde PDF de la CGN (cerrada)
 
 Corrección a la Fase 7: el subset de ~210 cuentas era insuficiente. El usuario aportó el PDF oficial actualizado de la CGN en `docs/cgc colombia actualizado.pdf` (474 páginas, Resolución 414/2014 con modificatorias **334/2025 y 343/2025**). Se parseó automáticamente.
