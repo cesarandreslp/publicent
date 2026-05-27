@@ -2923,6 +2923,7 @@ model NomNominaPeriodo {
   liquidadoPor String?
 
   liquidaciones NomLiquidacion[]
+  pagosPasivos  NomPagoPasivo[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3020,6 +3021,30 @@ enum NomTipoNovedad {
   AUSENCIA                 // descontable
   COMISION_SERVICIOS
   PERMISO
+}
+
+// ─── Pago de pasivos de nómina (EPS/AFP/DIAN/parafiscales) ───────────────────
+
+model NomPagoPasivo {
+  id              String   @id @default(cuid())
+  periodoId       String
+  periodo         NomNominaPeriodo @relation(fields: [periodoId], references: [id])
+  cuentaCodigo    String                                         // 2505, 2510, 2425, 2436...
+  cuentaNombre    String                                         // copia para historial sin join
+  tercero         String                                         // "EPS Sanitas", "DIAN", "Colpensiones"...
+  terceroNit      String?
+  valor           Decimal  @db.Decimal(18, 2)
+  fecha           DateTime
+  cuentaBancoCodigo String                                       // banco que pagó
+  comprobanteId   String?                                        // CpComprobante creado
+  observacion     String?
+  creadoPor       String?
+
+  createdAt DateTime @default(now())
+
+  @@index([periodoId])
+  @@index([cuentaCodigo])
+  @@map("nom_pagos_pasivos")
 }
 
 // ╔════════════════════════════════════════════════════════════════════════════╗

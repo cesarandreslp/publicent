@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useEffect, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { Users, Calendar, Plus, X, Loader2, Calculator, Banknote } from "lucide-react"
+import { Users, Calendar, Plus, X, Loader2, Calculator, Banknote, ListChecks } from "lucide-react"
 
 type Empleado = {
   id: string; documento: string; nombre: string; cargo: string;
@@ -26,7 +26,7 @@ export default function NominaClient({
   cuentasBanco: CuentaPuc[]; contabilidadActiva: boolean;
 }) {
   const router = useRouter()
-  const [modal, setModal] = useState<null | 'empleado' | 'periodo' | 'liquidar' | 'pagar'>(null)
+  const [modal, setModal] = useState<null | 'empleado' | 'periodo' | 'liquidar' | 'pagar' | 'pasivos'>(null)
   const [accionPeriodoId, setAccionPeriodoId] = useState<string | null>(null)
   const accionPeriodo = periodos.find(p => p.id === accionPeriodoId) ?? null
   const ultimo = periodos[0]
@@ -119,6 +119,12 @@ export default function NominaClient({
                         <Banknote className="w-3 h-3" /> Pagar
                       </button>
                     )}
+                    {(p.estado === 'PAGADO' || p.estado === 'CERRADO') && contabilidadActiva && (
+                      <button onClick={() => { setAccionPeriodoId(p.id); setModal('pasivos') }}
+                        className="px-2 py-1 text-xs bg-amber-600 text-white rounded flex items-center gap-1">
+                        <ListChecks className="w-3 h-3" /> Pasivos
+                      </button>
+                    )}
                     {p.estado === 'LIQUIDADO' && !contabilidadActiva && (
                       <span className="text-xs text-slate-400">Activa contabilidad para pagar</span>
                     )}
@@ -178,6 +184,11 @@ export default function NominaClient({
       )}
       {modal === 'pagar' && accionPeriodo && (
         <PagarModal periodo={accionPeriodo} cuentasBanco={cuentasBanco}
+          onClose={() => { setModal(null); setAccionPeriodoId(null) }}
+          onSaved={() => router.refresh()} />
+      )}
+      {modal === 'pasivos' && accionPeriodo && (
+        <PasivosModal periodo={accionPeriodo} cuentasBanco={cuentasBanco}
           onClose={() => { setModal(null); setAccionPeriodoId(null) }}
           onSaved={() => router.refresh()} />
       )}
@@ -427,5 +438,192 @@ function PagarModal({ periodo, cuentasBanco, onClose, onSaved }: {
         </form>
       )}
     </ModalShell>
+  )
+}
+
+// ─── Pasivos del periodo ─────────────────────────────────────────────────────
+
+type PasivoFila = { cuentaCodigo: string; cuentaNombre: string; generado: number; pagado: number; saldo: number }
+type PagoPasivo = { id: string; cuentaCodigo: string; tercero: string; terceroNit: string | null; valor: number; fecha: string; comprobanteId: string | null; observacion: string | null }
+
+function PasivosModal({ periodo, cuentasBanco, onClose, onSaved }: {
+  periodo: PeriodoRes; cuentasBanco: CuentaPuc[];
+  onClose: () => void; onSaved: () => void;
+}) {
+  const [filas, setFilas] = useState<PasivoFila[]>([])
+  const [pagos, setPagos] = useState<PagoPasivo[]>([])
+  const [totalSaldo, setTotalSaldo] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [pagarFila, setPagarFila] = useState<PasivoFila | null>(null)
+
+  async function cargar() {
+    setLoading(true)
+    const r = await fetch(`/api/admin/nom/pasivos-pendientes?periodoId=${periodo.id}`)
+    const j = await r.json()
+    if (r.ok) {
+      setFilas(j.filas ?? [])
+      setPagos(j.pagos ?? [])
+      setTotalSaldo(j.totalSaldo ?? 0)
+    }
+    setLoading(false)
+  }
+
+  useEffect(() => { void cargar() }, [periodo.id])
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-start justify-center pt-12 p-4 z-50" onClick={onClose}>
+      <div className="bg-white rounded-lg max-w-3xl w-full shadow-xl" onClick={e => e.stopPropagation()}>
+        <header className="px-4 py-3 border-b flex items-center">
+          <h3 className="font-semibold">Pasivos de nómina — {periodo.codigo}</h3>
+          <button onClick={cargar} className="ml-auto mr-2 text-xs px-2 py-1 border rounded">Refrescar</button>
+          <button onClick={onClose} className="text-slate-500"><X className="w-4 h-4" /></button>
+        </header>
+        <div className="p-4 space-y-4 text-sm">
+          {pagarFila ? (
+            <PagarPasivoForm fila={pagarFila} periodo={periodo} cuentasBanco={cuentasBanco}
+              onCancel={() => setPagarFila(null)}
+              onSaved={async () => { setPagarFila(null); await cargar(); onSaved() }}
+            />
+          ) : (
+            <>
+              <div className="rounded-md bg-amber-50 border border-amber-200 p-3 text-xs">
+                <b>Saldo total pendiente:</b> {fmt(totalSaldo)} · Cancela cada pasivo eligiendo el tercero receptor (EPS, AFP, ARL, DIAN, parafiscales).
+              </div>
+              {loading && <p className="text-xs text-slate-500">Cargando…</p>}
+              <table className="min-w-full text-sm">
+                <thead className="bg-slate-50 text-xs text-slate-600">
+                  <tr>
+                    <th className="px-2 py-1 text-left">Cuenta</th>
+                    <th className="px-2 py-1 text-left">Nombre</th>
+                    <th className="px-2 py-1 text-right">Generado</th>
+                    <th className="px-2 py-1 text-right">Pagado</th>
+                    <th className="px-2 py-1 text-right">Saldo</th>
+                    <th className="px-2 py-1"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filas.length === 0 && !loading && (
+                    <tr><td colSpan={6} className="p-3 text-center text-slate-500">No hay pasivos generados. ¿El periodo ya se pagó?</td></tr>
+                  )}
+                  {filas.map(f => (
+                    <tr key={f.cuentaCodigo} className="border-t">
+                      <td className="px-2 py-1 font-mono">{f.cuentaCodigo}</td>
+                      <td className="px-2 py-1">{f.cuentaNombre}</td>
+                      <td className="px-2 py-1 text-right tabular-nums">{fmt(f.generado)}</td>
+                      <td className="px-2 py-1 text-right tabular-nums text-emerald-700">{fmt(f.pagado)}</td>
+                      <td className="px-2 py-1 text-right tabular-nums font-semibold">{fmt(f.saldo)}</td>
+                      <td className="px-2 py-1 text-right">
+                        {f.saldo > 0.5 ? (
+                          <button onClick={() => setPagarFila(f)} className="px-2 py-1 text-xs bg-emerald-600 text-white rounded">Pagar</button>
+                        ) : (
+                          <span className="text-xs text-slate-400">✓</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {pagos.length > 0 && (
+                <section>
+                  <h4 className="font-semibold text-xs text-slate-700 mb-1">Pagos registrados</h4>
+                  <table className="min-w-full text-xs">
+                    <thead className="bg-slate-50 text-slate-600">
+                      <tr>
+                        <th className="px-2 py-1 text-left">Cuenta</th>
+                        <th className="px-2 py-1 text-left">Tercero</th>
+                        <th className="px-2 py-1 text-left">Fecha</th>
+                        <th className="px-2 py-1 text-right">Valor</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pagos.map(p => (
+                        <tr key={p.id} className="border-t">
+                          <td className="px-2 py-1 font-mono">{p.cuentaCodigo}</td>
+                          <td className="px-2 py-1">{p.tercero}{p.terceroNit ? ` · NIT ${p.terceroNit}` : ''}</td>
+                          <td className="px-2 py-1">{new Date(p.fecha).toLocaleDateString('es-CO')}</td>
+                          <td className="px-2 py-1 text-right tabular-nums">{fmt(Number(p.valor))}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </section>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function PagarPasivoForm({ fila, periodo, cuentasBanco, onCancel, onSaved }: {
+  fila: PasivoFila; periodo: PeriodoRes; cuentasBanco: CuentaPuc[];
+  onCancel: () => void; onSaved: () => void;
+}) {
+  const [pending, start] = useTransition()
+  const [err, setErr] = useState<string | null>(null)
+  const hoy = new Date().toISOString().slice(0, 10)
+
+  function submit(fd: FormData) {
+    start(async () => {
+      setErr(null)
+      const body = {
+        periodoId: periodo.id,
+        cuentaCodigo: fila.cuentaCodigo,
+        tercero: String(fd.get('tercero')),
+        terceroNit: fd.get('terceroNit') ? String(fd.get('terceroNit')) : null,
+        valor: Number(fd.get('valor')),
+        fecha: new Date(String(fd.get('fecha'))).toISOString(),
+        cuentaBancoId: String(fd.get('cuentaBancoId')),
+        numero: String(fd.get('numero')),
+        observacion: fd.get('observacion') ? String(fd.get('observacion')) : null,
+      }
+      const r = await fetch('/api/admin/nom/pagar-pasivo', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+      if (!r.ok) { setErr((await r.json()).error ?? 'Error'); return }
+      onSaved()
+    })
+  }
+
+  return (
+    <form action={submit} className="space-y-3 text-sm">
+      <div className="rounded-md bg-slate-50 border p-3 text-xs">
+        <div>Cuenta: <b>{fila.cuentaCodigo}</b> · {fila.cuentaNombre}</div>
+        <div>Saldo disponible: <b>{fmt(fila.saldo)}</b></div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <label className="col-span-2">Tercero (EPS / AFP / DIAN / …)
+          <input name="tercero" required className="w-full border rounded p-2" />
+        </label>
+        <label>NIT (opcional)
+          <input name="terceroNit" className="w-full border rounded p-2" />
+        </label>
+        <label>Fecha
+          <input name="fecha" type="date" required defaultValue={hoy} className="w-full border rounded p-2" />
+        </label>
+        <label>Valor a pagar
+          <input name="valor" type="number" step={1} min={1} max={fila.saldo} required defaultValue={fila.saldo} className="w-full border rounded p-2" />
+        </label>
+        <label>Número del comprobante
+          <input name="numero" required defaultValue={`PP-${periodo.codigo}-${fila.cuentaCodigo}`} className="w-full border rounded p-2 font-mono text-xs" />
+        </label>
+        <label className="col-span-2">Cuenta banco (PUC 111*)
+          <select name="cuentaBancoId" required className="w-full border rounded p-2">
+            <option value="">— Selecciona —</option>
+            {cuentasBanco.map(c => <option key={c.id} value={c.id}>{c.codigo} · {c.nombre}</option>)}
+          </select>
+        </label>
+        <label className="col-span-2">Observación
+          <input name="observacion" className="w-full border rounded p-2" />
+        </label>
+      </div>
+      {err && <p className="text-red-600 text-sm">{err}</p>}
+      <div className="flex justify-end gap-2">
+        <button type="button" onClick={onCancel} className="px-3 py-2 border rounded">Cancelar</button>
+        <button disabled={pending} className="px-3 py-2 bg-emerald-600 text-white rounded flex items-center gap-1">
+          {pending && <Loader2 className="w-4 h-4 animate-spin" />} Pagar
+        </button>
+      </div>
+    </form>
   )
 }

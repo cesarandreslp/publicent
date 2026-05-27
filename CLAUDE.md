@@ -66,6 +66,41 @@ El plan se construyó en 4 acuerdos explícitos:
 - [x] UI superadmin agrupada por categoría con badges de tier y dependencias ([`src/components/admin/superadmin/tenant-modulos.tsx`](src/components/admin/superadmin/tenant-modulos.tsx)).
 - [x] `tsc --noEmit` limpio (solo legacy `ventanilla_unica_personeria_buga/` excluido).
 
+### ✅ Fase 15 — Pasivos de nómina (cerrada)
+
+Segunda mitad del ciclo de pago de nómina: liquidar a EPS/AFP/ARL/DIAN/parafiscales los pasivos generados como crédito por el comprobante de Fase 12. Cada pago a tercero genera un `CpComprobante` independiente con D `<cuenta_pasivo>` / C `<banco>` y se registra en una nueva tabla de control para descontar saldos.
+
+**Datos**
+- [x] Modelo `NomPagoPasivo` (campos: periodoId, cuentaCodigo/cuentaNombre, tercero/terceroNit, valor, fecha, cuentaBancoCodigo, comprobanteId, observacion, creadoPor). Indexado por `[periodoId]` y `[cuentaCodigo]`.
+- [x] Relación inversa `NomNominaPeriodo.pagosPasivos`.
+
+**Endpoints**
+- [x] `GET /api/admin/nom/pasivos-pendientes?periodoId=` — agrega créditos en cuentas clase 2 del comprobante de nómina (`fuenteModulo='nomina'`, `fuenteRef=periodoId`) y descuenta lo ya pagado. Devuelve filas `{ cuentaCodigo, cuentaNombre, generado, pagado, saldo }` + historial de pagos.
+- [x] `POST /api/admin/nom/pagar-pasivo { periodoId, cuentaCodigo, tercero, terceroNit?, valor, fecha, cuentaBancoId, numero, observacion? }`:
+  - Valida periodo `PAGADO|CERRADO`, contabilidad activa, cuenta pasivo clase 2 + permite movimiento, cuenta banco clase 111*, periodo contable ABIERTO.
+  - Calcula saldo disponible y valida `valor ≤ saldo`.
+  - `$transaction`: crea `CpComprobante` EGRESO con 2 asientos (D pasivo / C banco), `fuenteModulo='nomina-pasivo'`, `fuenteRef=periodoId`. Inserta `NomPagoPasivo` apuntando al comprobante.
+
+**Validaciones zod**
+- [x] `nomPagarPasivoSchema` (10 campos).
+
+**UI**
+- [x] Botón "Pasivos" (ámbar) en la tabla de periodos `PAGADO|CERRADO` cuando contabilidad está activa.
+- [x] `PasivosModal` carga vía fetch al abrir (`useEffect`), muestra tabla de pasivos con generado/pagado/saldo, botón "Pagar" por fila habilitado sólo si `saldo > 0.5`, sección "Pagos registrados" con histórico.
+- [x] `PagarPasivoForm` inline (no anidamos modal sobre modal): tercero + NIT + fecha + valor + número (auto-sugerido `PP-<periodo>-<cuenta>`) + cuenta banco + observación.
+
+**Verificación**
+- [x] `prisma generate` + `tsc --noEmit` limpios.
+
+**Hallazgos**
+- El saldo del pasivo se calcula **al vuelo** desde los asientos contables — no se duplica un campo "saldo" en `NomPagoPasivo`. Razón: la fuente de verdad es el libro contable; si se anula un asiento de nómina, el saldo recalcula automáticamente.
+- `fuenteModulo='nomina-pasivo'` (no `'nomina'` simple) para diferenciar del comprobante original al consultar libros. Los pagos a terceros NO se cuentan como "pasivo generado" en `pasivos-pendientes` (sólo créditos del comprobante origen).
+- Un mismo pasivo (ej. salud 4%+8.5%) puede pagarse en varios pagos parciales a la misma EPS, o partirse entre varias EPS si los empleados tienen EPS distintas. La UI permite pagar `valor < saldo` y deja el resto como saldo para otro pago.
+- ⚠ Migración pendiente: `npx prisma db push` para crear `nom_pagos_pasivos`.
+- Limitación conocida: la lista de pasivos hoy agrega TODO crédito de clase 2 del comprobante. Si el comprobante de nómina tuviera créditos a 2505 por aportes patronales (que pagamos a EPS/AFP) **mezclados** con créditos a 2505 por sueldos por pagar al empleado (que ya pagamos al banco), no los distingue — pero el comprobante actual de Fase 12 ya envía el neto directamente al banco (no usa 2505 para sueldos), así que no hay colisión.
+
+---
+
 ### ✅ Fase 14 — Exportador XLSX para reportes de control (cerrada)
 
 Conversión de los snapshots JSON de Fase 13 a archivos XLSX descargables, listos para que el contador los entregue al ente (o copie/pegue al template oficial).
@@ -691,9 +726,10 @@ Avance respecto al MVP SAE de A0 (portal + plan CGN + bienes FRISCO + presupuest
 - [ ] **Pago de pasivos de nómina** — segundo comprobante para liquidar 2425/2436/2505/2510 contra EPS/AFP/DIAN/parafiscales (vía cadena CDP/RP/Obligación/Pago del módulo presupuesto).
 - [x] **Reportes a entes de control** (`reportes_control` — Fase 13: CHIP Balance + Actividad, FUT Ingresos + Gastos, Ley 617) — **MVP SAE cerrado en feature core**
 - [x] **Exportador XLSX** de los 5 tipos de reporte con formato moneda COP y totales (Fase 14, `exceljs`). El contador descarga el XLSX, lo revisa y lo copia/pega al template oficial CGN/DNP.
-- [ ] **Mapeo 1:1 al template oficial** del CHIP/FUT (layout exacto del periodo de reporte). Hoy el XLSX es navegable y agrupado por tipo pero no respeta filas/columnas oficiales — pendiente cuando se tenga el .xlsx oficial de referencia.
+- [x] **Pasivos de nómina** (Fase 15: cierra el ciclo nómina → EPS/AFP/DIAN/parafiscales con un comprobante D pasivo / C banco por tercero).
+- [ ] **Mapeo 1:1 al template oficial** del CHIP/FUT (layout exacto del periodo de reporte).
 
-**Siguiente sugerido:** ciclo de pasivos de nómina (CDP/RP automático contra EPS/AFP/DIAN), o avanzar a `tesoreria` (gestión de cuentas bancarias + conciliación), o el mapeo 1:1 al template CHIP oficial. Decisión pendiente con el usuario.
+**Siguiente sugerido:** `tesoreria` (saldos bancarios + conciliación con extractos), `contratacion` (SECOP II + minutas con IA), o el mapeo 1:1 al template CHIP oficial. Decisión pendiente con el usuario.
 
 ### Pendientes inmediatos en `presupuesto_ejecucion`
 - [ ] `npx prisma db push` por tenant para crear tablas `psu_*`.
