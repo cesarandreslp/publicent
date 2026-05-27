@@ -55,3 +55,8 @@ export function requirePortalExterno(roles: Role[]) {
 export function requireContabilidad(roles: Role[]) {
   return requireModule(MODULO_IDS.CONTABILIDAD_PUBLICA, "Contabilidad pública", roles)
 }
+
+/** Gate para endpoints admin de ejecución presupuestal (módulo `presupuesto_ejecucion`). */
+export function requirePresupuesto(roles: Role[]) {
+  return requireModule(MODULO_IDS.PRESUPUESTO_EJECUCION, "Ejecución presupuestal", roles)
+}

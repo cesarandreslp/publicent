@@ -2538,6 +2538,7 @@ model CpAuxiliarTercero {
   activo      Boolean  @default(true)
 
   asientos    CpAsiento[]
+  rps         PsuRp[]    @relation("PsuRpTercero")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2620,4 +2621,186 @@ model CpAsiento {
   @@index([cuentaId])
   @@index([terceroId])
   @@map("cp_asientos")
+}
+
+// ╔════════════════════════════════════════════════════════════════════════════╗
+// ║ MÓDULO: Ejecución presupuestal (presupuesto_ejecucion)                     ║
+// ║ Cadena clásica del gasto público: CDP → RP → Obligación → Pago.            ║
+// ║ Cada paso afecta saldos del rubro. El Pago genera el comprobante contable. ║
+// ╚════════════════════════════════════════════════════════════════════════════╝
+
+// ─── Rubro presupuestal (jerárquico, gastos/ingresos por fuente) ─────────────
+
+model PsuRubro {
+  id          String   @id @default(cuid())
+  codigo      String   @unique                            // ej. "A.1.1.01.01"
+  nombre      String
+  tipo        PsuTipoRubro                                // GASTO | INGRESO
+  nivel       Int                                         // 1=clase 2=grupo 3=cuenta 4=auxiliar
+  fuente      String?                                     // SGP, propios, regalías, etc.
+  programa    String?
+  proyecto    String?
+  parentId    String?
+  parent      PsuRubro?  @relation("PsuJerarquia", fields: [parentId], references: [id])
+  hijos       PsuRubro[] @relation("PsuJerarquia")
+  permiteMovimientos Boolean @default(false)              // sólo hojas
+  activa      Boolean  @default(true)
+
+  apropiaciones PsuApropiacion[]
+  cdps          PsuCdp[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([parentId])
+  @@index([nivel])
+  @@map("psu_rubros")
+}
+
+enum PsuTipoRubro {
+  GASTO
+  INGRESO
+}
+
+// ─── Apropiación: techo presupuestal por rubro y vigencia ────────────────────
+
+model PsuApropiacion {
+  id          String   @id @default(cuid())
+  rubroId     String
+  rubro       PsuRubro @relation(fields: [rubroId], references: [id])
+  vigencia    Int                                         // año
+  apropiacionInicial Decimal @db.Decimal(18, 2) @default(0)
+  adiciones          Decimal @db.Decimal(18, 2) @default(0)
+  reducciones        Decimal @db.Decimal(18, 2) @default(0)
+  // saldo disponible = apropiacionInicial + adiciones - reducciones - comprometido
+  // (el comprometido se calcula desde los CDP activos del mismo rubro+vigencia)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([rubroId, vigencia])
+  @@index([vigencia])
+  @@map("psu_apropiaciones")
+}
+
+// ─── CDP: Certificado de Disponibilidad Presupuestal ─────────────────────────
+
+model PsuCdp {
+  id          String   @id @default(cuid())
+  numero      String   @unique                            // "CDP-2026-000123"
+  fecha       DateTime
+  vigencia    Int
+  rubroId     String
+  rubro       PsuRubro @relation(fields: [rubroId], references: [id])
+  valor       Decimal  @db.Decimal(18, 2)
+  objeto      String   @db.Text                           // descripción del gasto
+  estado      PsuEstadoDoc @default(VIGENTE)
+  creadoPor   String?
+  anuladoEn   DateTime?
+  anuladoPor  String?
+  motivoAnulacion String? @db.Text
+
+  rps         PsuRp[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([vigencia])
+  @@index([rubroId])
+  @@map("psu_cdps")
+}
+
+enum PsuEstadoDoc {
+  VIGENTE
+  ANULADO
+  AGOTADO        // todo el valor está comprometido en pasos siguientes
+}
+
+// ─── RP: Registro Presupuestal (compromiso) — afecta a un CDP ────────────────
+
+model PsuRp {
+  id          String   @id @default(cuid())
+  numero      String   @unique                            // "RP-2026-000123"
+  fecha       DateTime
+  cdpId       String
+  cdp         PsuCdp   @relation(fields: [cdpId], references: [id])
+  terceroId   String?                                     // contratista / beneficiario
+  tercero     CpAuxiliarTercero? @relation("PsuRpTercero", fields: [terceroId], references: [id])
+  valor       Decimal  @db.Decimal(18, 2)
+  objeto      String   @db.Text
+  estado      PsuEstadoDoc @default(VIGENTE)
+  creadoPor   String?
+  anuladoEn   DateTime?
+  anuladoPor  String?
+  motivoAnulacion String? @db.Text
+
+  obligaciones PsuObligacion[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([cdpId])
+  @@index([terceroId])
+  @@map("psu_rps")
+}
+
+// ─── Obligación: cuenta por pagar reconocida — afecta a un RP ────────────────
+
+model PsuObligacion {
+  id          String   @id @default(cuid())
+  numero      String   @unique                            // "OBL-2026-000123"
+  fecha       DateTime
+  rpId        String
+  rp          PsuRp    @relation(fields: [rpId], references: [id])
+  valor       Decimal  @db.Decimal(18, 2)
+  concepto    String   @db.Text
+  estado      PsuEstadoDoc @default(VIGENTE)
+  creadoPor   String?
+  anuladoEn   DateTime?
+  anuladoPor  String?
+  motivoAnulacion String? @db.Text
+
+  pagos       PsuPago[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([rpId])
+  @@map("psu_obligaciones")
+}
+
+// ─── Pago: ejecución del pago — genera comprobante contable ──────────────────
+
+model PsuPago {
+  id          String   @id @default(cuid())
+  numero      String   @unique                            // "PG-2026-000123"
+  fecha       DateTime
+  obligacionId String
+  obligacion  PsuObligacion @relation(fields: [obligacionId], references: [id])
+  valor       Decimal  @db.Decimal(18, 2)
+  medioPago   PsuMedioPago
+  referencia  String?                                     // egreso, transferencia, cheque
+  estado      PsuEstadoDoc @default(VIGENTE)
+
+  // Vínculo a contabilidad (CpComprobante generado automáticamente)
+  comprobanteId String?
+  cuentaBancoId String?                                   // cuenta CP del débito de banco/caja
+
+  creadoPor   String?
+  anuladoEn   DateTime?
+  anuladoPor  String?
+  motivoAnulacion String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([obligacionId])
+  @@map("psu_pagos")
+}
+
+enum PsuMedioPago {
+  TRANSFERENCIA
+  CHEQUE
+  EFECTIVO
+  OTRO
 }

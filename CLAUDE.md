@@ -66,6 +66,50 @@ El plan se construyó en 4 acuerdos explícitos:
 - [x] UI superadmin agrupada por categoría con badges de tier y dependencias ([`src/components/admin/superadmin/tenant-modulos.tsx`](src/components/admin/superadmin/tenant-modulos.tsx)).
 - [x] `tsc --noEmit` limpio (solo legacy `ventanilla_unica_personeria_buga/` excluido).
 
+### ✅ Fase 6 — Núcleo `presupuesto_ejecucion` (cerrada)
+
+Cadena clásica del gasto público colombiano: **CDP → RP → Obligación → Pago**, con validación de saldos disponibles en cada paso y generación automática del comprobante contable al confirmar el pago.
+
+**Datos** (nuevo bloque al final de `prisma/schema.prisma`)
+- [x] `PsuRubro` — jerárquico (parent/hijos), tipo GASTO/INGRESO, niveles 1..6, `permiteMovimientos` (sólo hojas).
+- [x] `PsuApropiacion` — única por (rubro, vigencia). Campos: `apropiacionInicial`, `adiciones`, `reducciones`. Saldo apropiación se calcula como `inicial + adiciones - reducciones - Σ(CDP vigentes)`.
+- [x] `PsuCdp`, `PsuRp`, `PsuObligacion`, `PsuPago` — cada uno con `numero @unique`, `valor`, `estado` enum `PsuEstadoDoc {VIGENTE, ANULADO, AGOTADO}`, trazabilidad (`creadoPor/anuladoEn/anuladoPor/motivoAnulacion`).
+- [x] `PsuPago` enlaza opcionalmente a `CpComprobante` vía `comprobanteId` y al PUC vía `cuentaBancoId`. Enum `PsuMedioPago {TRANSFERENCIA, CHEQUE, EFECTIVO, OTRO}`.
+- [x] Relación inversa nueva en `CpAuxiliarTercero.rps PsuRp[]` (named "PsuRpTercero").
+
+**Núcleo**
+- [x] [`src/lib/presupuesto-saldos.ts`](src/lib/presupuesto-saldos.ts) — 4 helpers `saldoApropiacion`, `saldoCdp`, `saldoRp`, `saldoObligacion`. Cada uno suma documentos hijos no-anulados y retorna `{ total, comprometido/obligado/pagado, disponible }`.
+- [x] [`src/lib/frisco-guard.ts`](src/lib/frisco-guard.ts) — añadido `requirePresupuesto(roles)`.
+- [x] [`src/lib/validations.ts`](src/lib/validations.ts) — 6 schemas zod nuevos (`psuRubroCreate`, `psuApropiacionCreate`, `psuCdpCreate`, `psuRpCreate`, `psuObligacionCreate`, `psuPagoCreate`).
+
+**Endpoints admin**
+- [x] `POST/GET /api/admin/psu/rubros`
+- [x] `POST/GET /api/admin/psu/apropiaciones` (upsert por `[rubroId, vigencia]`)
+- [x] `POST/GET /api/admin/psu/cdp` — valida `valor ≤ saldo apropiación`.
+- [x] `POST/GET /api/admin/psu/rp` — valida `valor ≤ saldo CDP` y CDP no anulado.
+- [x] `POST/GET /api/admin/psu/obligaciones` — valida `valor ≤ saldo RP`.
+- [x] `POST/GET /api/admin/psu/pagos` — valida `valor ≤ saldo obligación` y, si `contabilidad_publica` está activo + `cuentaBancoId` provista, **genera `CpComprobante` tipo EGRESO en la misma `$transaction`**:
+  - Cabecera con `fuenteModulo='presupuesto'`, `fuenteRef=<pagoId>` (post-update para cerrar el círculo).
+  - 2 asientos: D cuenta de gasto (default: primera `5111*` activa si no se pasa `cuentaGastoId`) / C cuenta de banco.
+  - Usa el periodo contable ABIERTO actual del tenant; falla si no hay ninguno.
+- [x] `GET /api/admin/psu/ejecucion?vigencia=YYYY` — vista consolidada con apropiado, comprometido (Σ CDP), obligado (Σ Obligaciones), pagado (Σ Pagos), disponible y % ejecución. Incluye totales.
+
+**UI**
+- [x] [`/admin/presupuesto`](src/app/admin/presupuesto/page.tsx) — server component, carga vigencia desde query string (default año actual), tabla por rubro, recientes (CDP/RP), terceros y cuentas bancarias del PUC (filtra `111*`).
+- [x] [`client-page.tsx`](src/app/admin/presupuesto/client-page.tsx) — KPIs apropiado/comprometido/obligado/pagado, tabla detallada por rubro con % ejecución, 6 modales independientes (Rubro, Apropiación, CDP, RP, Obligación, Pago) — el de Pago marca opción "Generar comprobante contable automáticamente".
+- [x] Entrada "Presupuesto" en sidebar gateada por `MODULO_IDS.PRESUPUESTO_EJECUCION`.
+
+**Verificación**
+- [x] `prisma generate` OK + `tsc --noEmit` limpio.
+
+**Hallazgos**
+- El campo `fuenteRef` del `CpComprobante` se actualiza **post-create** dentro de la misma transacción porque necesita el `pago.id` que sólo existe después de crear el pago. Sin esto, el comprobante quedaba apuntando a `'<pendiente>'`. Patrón a replicar en otros módulos que generen comprobantes.
+- El selector de obligación en el modal de Pago todavía pide pegar el `cuid` (no hay tabla de obligaciones recientes en este snapshot). Mejora obvia para iteración 2: traer las últimas obligaciones VIGENTES y mostrarlas como `<select>`. Aceptable para MVP porque el flujo intencional es Obligación → Pago en la misma sesión.
+- Cuando se quiera **anular** un documento de la cadena, los hijos vigentes deben anularse primero (no implementado aún — pendiente para iteración 2: validar `_count` de hijos vigentes antes de pasar a ANULADO).
+- ⚠ Migración pendiente: `npx prisma db push` para crear las 6 tablas `psu_*` y la nueva columna de relación en `cp_terceros`.
+
+---
+
 ### ✅ Fase 5 — Núcleo `contabilidad_publica` (cerrada)
 
 Siguiente palanca grande del MVP SAE. Motor de doble partida con PUC CGN, primer corte fino.
@@ -331,22 +375,20 @@ Avance respecto al MVP SAE de A0 (portal + plan CGN + bienes FRISCO + presupuest
 - [x] Bienes FRISCO (`frisco_bienes`)
 - [x] Interoperabilidad SNR/Fiscalía/IGAC (`frisco_interop`)
 - [x] Portal externo del depositario (`portal_externo`)
-- [x] **Plan CGN + motor contable** (`contabilidad_publica` — primera iteración Fase 5)
-- [ ] **Presupuesto mínimo (CDP/RP/Obligación/Pago)** ← siguiente (`presupuesto_ejecucion`)
-- [ ] Reporte CHIP básico
+- [x] **Plan CGN + motor contable** (`contabilidad_publica` — Fase 5)
+- [x] **Presupuesto mínimo (CDP/RP/Obligación/Pago)** (`presupuesto_ejecucion` — Fase 6, con comprobante contable auto al pagar)
+- [ ] **Reporte CHIP básico** ← siguiente palanca del MVP SAE
 
-**Siguiente: `presupuesto_ejecucion`** — depende ya de `contabilidad_publica` (cuentas del PUC) y completa la columna vertebral del MVP SAE.
+**Siguiente: `reportes_control`** o `tesoreria` (a definir). Con el motor contable + cadena presupuestal vivos, el MVP SAE necesita los reportes a entes (CHIP/FUT) para cerrar el círculo de venta.
 
-Alcance propuesto para la primera iteración:
-1. **Modelos Prisma**: `PsuRubro` (rubros presupuestales jerárquicos por fuente/programa/proyecto), `PsuApropiacion` (apropiación inicial + modificaciones por periodo), `PsuCdp` (Certificado de Disponibilidad Presupuestal), `PsuRp` (Registro Presupuestal — afecta CDP), `PsuObligacion`, `PsuPago` (con vínculo a comprobante contable `CpComprobante` vía `fuenteModulo='presupuesto'`).
-2. **Endpoints**: cadena `CDP → RP → Obligación → Pago` con validación de saldos disponibles en cada paso.
-3. **UI**: `/admin/presupuesto` con tabla de ejecución por rubro (apropiado / comprometido / obligado / pagado).
-4. **Generación automática del comprobante contable** al confirmar Pago (cruza al motor de doble partida).
+Alternativa razonable: `nomina_publica` (también depende del PUC; usa terceros, comprobantes y cuentas 2505/2510/5101/5103 ya sembradas). Decisión pendiente con el usuario.
 
-Lo que NO entra en esta primera iteración:
-- Formulación presupuestal (es el módulo `presupuesto_formulacion`, separado).
-- Modificaciones complejas (traslados entre rubros) — sólo apropiación inicial y adiciones.
-- Tesorería (programación de PAC) — irá en `tesoreria`.
+### Pendientes inmediatos en `presupuesto_ejecucion`
+- [ ] `npx prisma db push` por tenant para crear tablas `psu_*`.
+- [ ] Endpoint DELETE/PATCH para **anular** documentos de la cadena, con validación de que no haya hijos vigentes (CDP no se puede anular si tiene RPs activos, etc.).
+- [ ] Selector de obligación en el modal de Pago (hoy se pega cuid manualmente).
+- [ ] **IA retroactiva**: sugerencia de rubro a partir de la descripción del CDP; detector de gastos atípicos vs. apropiación; resumen de ejecución mensual.
+- [ ] Generación del comprobante también en el paso de **Obligación** (devengo) si CGN lo exige formalmente — hoy sólo en Pago.
 
 ### Pendientes inmediatos en `contabilidad_publica`
 - [ ] Correr `prisma db push` + `npx tsx scripts/seed-puc.ts` en el tenant SAE.

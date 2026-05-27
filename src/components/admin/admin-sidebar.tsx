@@ -332,6 +332,19 @@ const NAV_GROUPS: Array<{
           </svg>
         ),
       },
+      {
+        title: "Presupuesto",
+        href: "/admin/presupuesto",
+        externo: false,
+        modulo: MODULO_IDS.PRESUPUESTO_EJECUCION,
+        badge: "Activo",
+        icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+              d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8v8m0 0v2m0-10V6m9 6a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        ),
+      },
     ],
   },]
 

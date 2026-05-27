@@ -619,6 +619,72 @@ export const cpComprobanteCreateSchema = z.object({
   return Math.abs(td - tc) < 0.005
 }, { message: "El total de débitos debe igualar el total de créditos (partida doble)" })
 
+// ─── Presupuesto público — ejecución (CDP/RP/Obligación/Pago) ────────────────
+
+const psuTipoRubro = z.enum(["GASTO", "INGRESO"])
+const psuMedioPago = z.enum(["TRANSFERENCIA", "CHEQUE", "EFECTIVO", "OTRO"])
+
+export const psuRubroCreateSchema = z.object({
+  codigo: z.string().min(1).max(40),
+  nombre: z.string().min(2).max(200),
+  tipo: psuTipoRubro,
+  nivel: z.number().int().min(1).max(6),
+  fuente: z.string().max(80).optional().nullable(),
+  programa: z.string().max(120).optional().nullable(),
+  proyecto: z.string().max(120).optional().nullable(),
+  parentId: z.string().cuid().optional().nullable(),
+  permiteMovimientos: z.boolean().optional(),
+  activa: z.boolean().optional(),
+})
+
+export const psuApropiacionCreateSchema = z.object({
+  rubroId: z.string().cuid(),
+  vigencia: z.number().int().min(2000).max(2100),
+  apropiacionInicial: z.number().nonnegative(),
+  adiciones: z.number().nonnegative().optional(),
+  reducciones: z.number().nonnegative().optional(),
+})
+
+export const psuApropiacionUpdateSchema = psuApropiacionCreateSchema.partial().omit({ rubroId: true, vigencia: true })
+
+export const psuCdpCreateSchema = z.object({
+  numero: z.string().min(1).max(40),
+  fecha: z.string().datetime(),
+  vigencia: z.number().int().min(2000).max(2100),
+  rubroId: z.string().cuid(),
+  valor: z.number().positive(),
+  objeto: z.string().min(3).max(2000),
+})
+
+export const psuRpCreateSchema = z.object({
+  numero: z.string().min(1).max(40),
+  fecha: z.string().datetime(),
+  cdpId: z.string().cuid(),
+  terceroId: z.string().cuid().optional().nullable(),
+  valor: z.number().positive(),
+  objeto: z.string().min(3).max(2000),
+})
+
+export const psuObligacionCreateSchema = z.object({
+  numero: z.string().min(1).max(40),
+  fecha: z.string().datetime(),
+  rpId: z.string().cuid(),
+  valor: z.number().positive(),
+  concepto: z.string().min(3).max(2000),
+})
+
+export const psuPagoCreateSchema = z.object({
+  numero: z.string().min(1).max(40),
+  fecha: z.string().datetime(),
+  obligacionId: z.string().cuid(),
+  valor: z.number().positive(),
+  medioPago: psuMedioPago,
+  referencia: z.string().max(120).optional().nullable(),
+  cuentaBancoId: z.string().cuid().optional().nullable(),       // cuenta del PUC (banco/caja)
+  cuentaGastoId: z.string().cuid().optional().nullable(),       // cuenta del PUC (gasto) — opcional, infiere si no se pasa
+  generarComprobante: z.boolean().optional(),                   // default true
+})
+
 // ──────────────────────────────────────────────────────────────────────────────
 
 export function validateBody<T>(
