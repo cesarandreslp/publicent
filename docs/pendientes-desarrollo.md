@@ -347,7 +347,17 @@ El `tsconfig.json` ya lo excluye del compilador — esta es solo limpieza visual
 - Protegido con `Authorization: Bearer ${CRON_SECRET}`.
 - `vercel.json` → `schedule: "0 8 * * *"`. Cabe en el plan gratis (1 de 2 crons, diario).
 - Lógica reutilizable en `src/lib/alertas.ts` (compartida por crons y endpoints on-demand).
-- ⚠️ Configurar `CRON_SECRET` en variables de entorno de Vercel antes de desplegar.
+- ✅ `CRON_SECRET` ya configurada en Vercel (Production/Preview/Development) vía CLI.
+- ⚠️ Los crons de Vercel solo corren en Producción → activar tras merge a la rama de producción.
+
+**Correo electrónico — migrado de Resend a SMTP (Nodemailer):**
+- `src/lib/mail.ts` reescrito con Nodemailer (provider-agnóstico). Funciona con el
+  correo institucional existente (Google Workspace / Microsoft 365) o cualquier SMTP.
+- Variables a configurar en Vercel: `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`,
+  `SMTP_PORT` (opcional, 587 por defecto), `EMAIL_FROM` (opcional, usa SMTP_USER si falta).
+- `RESEND_API_KEY` ya NO es necesaria. La dependencia `resend` quedó sin usar en package.json.
+- ⚠️ Con Gmail/Workspace, `EMAIL_FROM` debe coincidir con `SMTP_USER` (o un alias verificado),
+  y `SMTP_PASS` debe ser una "app password" (no la contraseña normal).
 
 ### Pendiente único (bloqueado por insumo externo):
 - Ítem 5 (Mapeo 1:1 CHIP/FUT — requiere los templates oficiales XLSX del cliente)

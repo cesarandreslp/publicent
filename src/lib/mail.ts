@@ -1,21 +1,40 @@
-import { Resend } from "resend"
+import nodemailer, { type Transporter } from "nodemailer"
 import { getIdentidadPublica } from "./identidad-publica"
 
-// Inicialización diferida de Resend para evitar errores en build
-let resendInstance: Resend | null = null
+// Inicialización diferida del transporte SMTP para evitar errores en build.
+let transporter: Transporter | null = null
 
-function getResend(): Resend {
-  if (!resendInstance) {
-    const apiKey = process.env.RESEND_API_KEY
-    if (!apiKey) {
-      throw new Error("RESEND_API_KEY no está configurada en las variables de entorno")
+/**
+ * Transporte SMTP genérico (Nodemailer). Funciona con cualquier proveedor:
+ * correo institucional (Google Workspace / Microsoft 365), Brevo, SES SMTP, etc.
+ *
+ * Variables requeridas:
+ *  - SMTP_HOST   (ej. smtp.gmail.com, smtp.office365.com)
+ *  - SMTP_USER   (cuenta autenticada)
+ *  - SMTP_PASS   (contraseña o app password)
+ *  - SMTP_PORT   (opcional; 587 STARTTLS por defecto, 465 SSL)
+ */
+function getTransport(): Transporter {
+  if (!transporter) {
+    const host = process.env.SMTP_HOST
+    const user = process.env.SMTP_USER
+    const pass = process.env.SMTP_PASS
+    const port = Number(process.env.SMTP_PORT || 587)
+    if (!host || !user || !pass) {
+      throw new Error("SMTP no configurado: faltan SMTP_HOST, SMTP_USER y/o SMTP_PASS")
     }
-    resendInstance = new Resend(apiKey)
+    transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465, // 465 = SSL; 587 = STARTTLS
+      auth: { user, pass },
+    })
   }
-  return resendInstance
+  return transporter
 }
 
-const defaultEmailFrom = process.env.EMAIL_FROM || "noreply@example.gov.co"
+// Remitente por defecto: EMAIL_FROM → la propia cuenta SMTP → genérico.
+const defaultEmailFrom = process.env.EMAIL_FROM || process.env.SMTP_USER || "noreply@example.gov.co"
 const appUrl = process.env.NEXTAUTH_URL || "http://localhost:3000"
 
 /** Escapa caracteres HTML para prevenir inyección en emails */
@@ -43,7 +62,7 @@ export async function sendPasswordResetEmail(email: string, token: string, nombr
   const safeNombre = escapeHtml(nombre)
   const safeToken = encodeURIComponent(token)
   const resetLink = `${appUrl}/restablecer-contrasena?token=${safeToken}`
-  const resend = getResend()
+  const transport = getTransport()
 
   const safeNombreCompleto = escapeHtml(id.nombreCompleto)
   const safeNombreCorto = escapeHtml(id.nombreCorto)
@@ -52,7 +71,7 @@ export async function sendPasswordResetEmail(email: string, token: string, nombr
   const safeTelefono = id.telefonoConmutador ? escapeHtml(id.telefonoConmutador) : null
 
   try {
-    const { data, error } = await resend.emails.send({
+    const data = await transport.sendMail({
       from: buildFrom(id),
       to: email,
       subject: `Recuperación de contraseña - ${id.nombreCompleto}`,
@@ -112,29 +131,24 @@ export async function sendPasswordResetEmail(email: string, token: string, nombr
       `,
     })
 
-    if (error) {
-      console.error("Error enviando email:", error)
-      return { success: false, error: error.message }
-    }
-
     return { success: true, data }
   } catch (error) {
     console.error("Error enviando email:", error)
-    return { success: false, error: "Error al enviar el email" }
+    return { success: false, error: error instanceof Error ? error.message : "Error al enviar el email" }
   }
 }
 
 export async function sendWelcomeEmail(email: string, nombreRaw: string) {
   const id = await getIdentidadPublica()
   const nombre = escapeHtml(nombreRaw)
-  const resend = getResend()
+  const transport = getTransport()
 
   const safeNombreCompleto = escapeHtml(id.nombreCompleto)
   const safeNombreCorto = escapeHtml(id.nombreCorto)
   const safeCiudadDepto = id.ciudadDepto ? escapeHtml(id.ciudadDepto) : null
 
   try {
-    const { data, error } = await resend.emails.send({
+    const data = await transport.sendMail({
       from: buildFrom(id),
       to: email,
       subject: `Bienvenido al Sistema - ${id.nombreCompleto}`,
@@ -176,29 +190,24 @@ export async function sendWelcomeEmail(email: string, nombreRaw: string) {
       `,
     })
 
-    if (error) {
-      return { success: false, error: error.message }
-    }
-
     return { success: true, data }
-  } catch {
-    return { success: false, error: "Error al enviar el email" }
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : "Error al enviar el email" }
   }
 }
 
 export async function sendMail(opts: { to: string | string[]; subject: string; html: string; from?: string }) {
-  const resend = getResend()
+  const transport = getTransport()
   let from = opts.from
   if (!from) {
     const id = await getIdentidadPublica()
     from = buildFrom(id)
   }
-  const { data, error } = await resend.emails.send({
+  const info = await transport.sendMail({
     from,
     to:   opts.to,
     subject: opts.subject,
     html:    opts.html,
   })
-  if (error) throw new Error(error.message)
-  return data
+  return info
 }

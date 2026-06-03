@@ -50,6 +50,7 @@
     "@radix-ui/react-slot": "^1.2.4",
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-toast": "^1.2.15",
+    "@tailwindcss/postcss": "^4",
     "@tanstack/react-table": "^8.21.3",
     "@tiptap/extension-color": "^3.20.5",
     "@tiptap/extension-drag-handle-react": "^3.20.5",
@@ -79,6 +80,7 @@
     "lucide-react": "^0.562.0",
     "next": "16.1.1",
     "next-auth": "5.0.0-beta.30",
+    "nodemailer": "^7.0.13",
     "pg": "^8.16.3",
     "prisma": "^7.2.0",
     "qrcode": "^1.5.4",
@@ -92,17 +94,18 @@
     "ssh2-sftp-client": "^12.1.1",
     "tailwind-merge": "^3.4.0",
     "tailwindcss": "^4",
-    "@tailwindcss/postcss": "^4",
     "tippy.js": "^6.3.7",
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.49.0",
     "@tailwindcss/typography": "^0.5.19",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.1",
     "@testing-library/user-event": "^14.6.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
+    "@types/nodemailer": "^8.0.0",
     "@types/pg": "^8.16.0",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
@@ -114,7 +117,6 @@
     "jsdom": "^27.4.0",
     "tsx": "^4.21.0",
     "typescript": "^5",
-    "vitest": "^4.0.17",
-    "@playwright/test": "^1.49.0"
+    "vitest": "^4.0.17"
   }
 }
