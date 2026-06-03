@@ -105,6 +105,11 @@ export async function POST(req: NextRequest) {
       modulosActivos,
       groqApiKey,
       shipuApiKey,
+      smtpHost,
+      smtpPort,
+      smtpUser,
+      smtpPass,
+      smtpFrom,
     } = body
 
     // Validaciones mínimas
@@ -140,9 +145,15 @@ export async function POST(req: NextRequest) {
         fechaActivacion: fechaActivacion ? new Date(fechaActivacion) : null,
         fechaVencimiento: fechaVencimiento ? new Date(fechaVencimiento) : null,
         modulosActivos: modulosActivos ?? { pqrsd: false, gestionDocumental: false, ventanillaUnica: false },
-        // Cifrar API keys del tenant antes de guardar
-        secretosEncriptados: (groqApiKey || shipuApiKey)
-          ? encryptSecretos({ groqApiKey: groqApiKey ?? undefined, shipuApiKey: shipuApiKey ?? undefined })
+        // Cifrar secretos del tenant (API keys IA + SMTP) antes de guardar
+        secretosEncriptados: (groqApiKey || shipuApiKey || (smtpHost && smtpUser))
+          ? encryptSecretos({
+              groqApiKey: groqApiKey ?? undefined,
+              shipuApiKey: shipuApiKey ?? undefined,
+              smtp: (smtpHost && smtpUser)
+                ? { host: String(smtpHost).trim(), port: smtpPort ? Number(smtpPort) : 587, user: String(smtpUser).trim(), pass: String(smtpPass ?? ""), from: smtpFrom ? String(smtpFrom).trim() : undefined }
+                : undefined,
+            })
           : undefined,
         creadoPor: session.id,
       },

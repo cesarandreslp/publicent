@@ -74,9 +74,17 @@ export function decrypt(ciphertext: string): string {
 export interface TenantSecretos {
   groqApiKey?:     string  // Groq — clasificación PQRSD y funcionalidades IA del tenant
   shipuApiKey?:    string  // Shipu z.ai — proveedor de respaldo si Groq no responde
-  smtpPassword?:   string
+  smtpPassword?:   string  // (legacy) — usar el bloque `smtp` para nuevas configuraciones
   sftpPassword?:   string
   r2SecretKey?:    string
+  /** Configuración de correo SMTP propia del tenant (correo institucional). */
+  smtp?: {
+    host: string
+    port: number
+    user: string
+    pass: string
+    from?: string  // remitente; si falta se usa `user`
+  }
 }
 
 /**

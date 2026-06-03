@@ -69,6 +69,11 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       modulosActivos,
       groqApiKey,
       shipuApiKey,
+      smtpHost,
+      smtpPort,
+      smtpUser,
+      smtpPass,
+      smtpFrom,
     } = body
 
     const data: Record<string, unknown> = {}
@@ -96,17 +101,32 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     if (fechaVencimiento   !== undefined) data.fechaVencimiento   = fechaVencimiento ? new Date(fechaVencimiento) : null
     if (modulosActivos     !== undefined) data.modulosActivos     = modulosActivos
 
-    // Actualizar API keys cifradas: merge con secretos existentes para no borrar otros campos
-    if (groqApiKey !== undefined || shipuApiKey !== undefined) {
+    // Actualizar secretos cifrados (API keys IA + SMTP): merge para no borrar otros campos
+    const tocaSmtp = smtpHost !== undefined || smtpUser !== undefined || smtpPass !== undefined || smtpFrom !== undefined || smtpPort !== undefined
+    if (groqApiKey !== undefined || shipuApiKey !== undefined || tocaSmtp) {
       const tenantActual = await prismaMeta.tenant.findUnique({
         where: { id },
         select: { secretosEncriptados: true },
       })
       const secretosActuales = decryptSecretos(tenantActual?.secretosEncriptados)
+
+      let smtp = secretosActuales.smtp
+      if (tocaSmtp) {
+        const host = smtpHost !== undefined ? String(smtpHost).trim() : smtp?.host ?? ""
+        const user = smtpUser !== undefined ? String(smtpUser).trim() : smtp?.user ?? ""
+        // password en blanco en edición = conservar la actual
+        const pass = (smtpPass !== undefined && String(smtpPass).length > 0) ? String(smtpPass) : smtp?.pass ?? ""
+        const port = smtpPort !== undefined && smtpPort !== "" ? Number(smtpPort) : smtp?.port ?? 587
+        const from = smtpFrom !== undefined ? (String(smtpFrom).trim() || undefined) : smtp?.from
+        // Si limpian host y user, se elimina la config SMTP del tenant
+        smtp = host && user ? { host, port, user, pass, from } : undefined
+      }
+
       const secretosNuevos = {
         ...secretosActuales,
         ...(groqApiKey  !== undefined ? { groqApiKey:  groqApiKey  || undefined } : {}),
         ...(shipuApiKey !== undefined ? { shipuApiKey: shipuApiKey || undefined } : {}),
+        ...(tocaSmtp ? { smtp } : {}),
       }
       data.secretosEncriptados = encryptSecretos(secretosNuevos)
     }

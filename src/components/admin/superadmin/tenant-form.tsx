@@ -29,6 +29,11 @@ interface TenantFormData {
   fechaVencimiento?: string
   groqApiKey?: string
   shipuApiKey?: string
+  smtpHost?: string
+  smtpPort?: string
+  smtpUser?: string
+  smtpPass?: string
+  smtpFrom?: string
   modulosActivos?: {
     pqrsd?: boolean
     gestionDocumental?: boolean
@@ -139,6 +144,11 @@ export default function TenantForm({ initial = {} }: { initial?: TenantFormData 
       : "",
     groqApiKey:      "",
     shipuApiKey:     "",
+    smtpHost:        initial.smtpHost ?? "",
+    smtpPort:        initial.smtpPort ?? "587",
+    smtpUser:        initial.smtpUser ?? "",
+    smtpPass:        "",
+    smtpFrom:        initial.smtpFrom ?? "",
     modulosActivos: initial.modulosActivos ?? {
       pqrsd: true,
       gestionDocumental: false,
@@ -373,6 +383,67 @@ export default function TenantForm({ initial = {} }: { initial?: TenantFormData 
             <p className="text-xs text-amber-400/80 bg-amber-400/5 border border-amber-400/20 rounded-lg px-4 py-2.5">
               ⚠ En modo edición, deja los campos en blanco para conservar las API keys actuales.
               Ingresa una nueva clave solo si deseas reemplazarla.
+            </p>
+          </div>
+        )}
+      </>)}
+
+      {section("Configuración de correo (SMTP)", <>
+        <div className="sm:col-span-2">
+          <p className="text-xs text-slate-500 mb-4 leading-relaxed">
+            Cada entidad usa su propio correo institucional (Google Workspace, Microsoft 365 u
+            hosting propio). Se usa para PQRSD, recuperación de contraseña y alertas automáticas.
+            Si no se configura, no se enviarán correos para este tenant.
+          </p>
+        </div>
+        <Field
+          label="Servidor SMTP (host)"
+          name="smtpHost"
+          value={f.smtpHost!}
+          onChange={set("smtpHost")}
+          placeholder="smtp.gmail.com / smtp.office365.com"
+          hint="Host del proveedor de correo de la entidad."
+        />
+        <Field
+          label="Puerto"
+          name="smtpPort"
+          value={f.smtpPort!}
+          onChange={set("smtpPort")}
+          placeholder="587"
+          hint="587 (STARTTLS) o 465 (SSL)."
+        />
+        <Field
+          label="Usuario SMTP"
+          name="smtpUser"
+          value={f.smtpUser!}
+          onChange={set("smtpUser")}
+          placeholder="notificaciones@entidad.gov.co"
+          hint="Cuenta que autentica el envío."
+        />
+        <Field
+          label="Contraseña SMTP"
+          name="smtpPass"
+          type="password"
+          value={f.smtpPass!}
+          onChange={set("smtpPass")}
+          placeholder="••••••••"
+          hint="Con Gmail/Workspace usa una 'app password' (requiere 2FA)."
+        />
+        <div className="sm:col-span-2">
+          <Field
+            label="Remitente (From)"
+            name="smtpFrom"
+            value={f.smtpFrom!}
+            onChange={set("smtpFrom")}
+            placeholder="notificaciones@entidad.gov.co"
+            hint="Opcional. Si se omite, se usa el usuario SMTP. En Gmail debe coincidir con el usuario o ser un alias verificado."
+          />
+        </div>
+        {isEdit && (
+          <div className="sm:col-span-2">
+            <p className="text-xs text-amber-400/80 bg-amber-400/5 border border-amber-400/20 rounded-lg px-4 py-2.5">
+              ⚠ En modo edición, deja la contraseña en blanco para conservar la actual.
+              Para eliminar el SMTP del tenant, borra el host y el usuario.
             </p>
           </div>
         )}

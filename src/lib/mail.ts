@@ -1,40 +1,80 @@
 import nodemailer, { type Transporter } from "nodemailer"
 import { getIdentidadPublica } from "./identidad-publica"
-
-// Inicialización diferida del transporte SMTP para evitar errores en build.
-let transporter: Transporter | null = null
+import { prismaMeta } from "./prisma-meta"
+import { decryptSecretos } from "./encryption"
 
 /**
- * Transporte SMTP genérico (Nodemailer). Funciona con cualquier proveedor:
- * correo institucional (Google Workspace / Microsoft 365), Brevo, SES SMTP, etc.
+ * Correo SMTP MULTI-TENANT (Nodemailer).
  *
- * Variables requeridas:
- *  - SMTP_HOST   (ej. smtp.gmail.com, smtp.office365.com)
- *  - SMTP_USER   (cuenta autenticada)
- *  - SMTP_PASS   (contraseña o app password)
- *  - SMTP_PORT   (opcional; 587 STARTTLS por defecto, 465 SSL)
+ * Cada tenant configura su propio correo institucional (Google Workspace /
+ * Microsoft 365 / hosting propio) desde Superadmin → se guarda cifrado en la
+ * meta-DB (Tenant.secretosEncriptados.smtp). Aquí se resuelve por tenant.
+ *
+ * Fallback a variables de entorno globales (SMTP_HOST/USER/PASS/PORT) solo para
+ * desarrollo local o despliegues single-tenant.
  */
-function getTransport(): Transporter {
-  if (!transporter) {
-    const host = process.env.SMTP_HOST
-    const user = process.env.SMTP_USER
-    const pass = process.env.SMTP_PASS
-    const port = Number(process.env.SMTP_PORT || 587)
-    if (!host || !user || !pass) {
-      throw new Error("SMTP no configurado: faltan SMTP_HOST, SMTP_USER y/o SMTP_PASS")
-    }
-    transporter = nodemailer.createTransport({
-      host,
-      port,
-      secure: port === 465, // 465 = SSL; 587 = STARTTLS
-      auth: { user, pass },
-    })
+
+interface SmtpConfig { host: string; port: number; user: string; pass: string; from?: string }
+
+// Un transporter por configuración (clave: "tenant:<id>" o "env").
+const transportCache = new Map<string, Transporter>()
+
+/** Resuelve la config SMTP del tenant dado (o del actual por headers, o env). */
+async function resolveSmtp(tenantId?: string): Promise<{ key: string; cfg: SmtpConfig } | null> {
+  let tid = tenantId
+  if (!tid) {
+    try {
+      const { getTenantId } = await import("./tenant")
+      tid = await getTenantId()
+    } catch { tid = undefined }
   }
-  return transporter
+
+  if (tid) {
+    try {
+      const t = await prismaMeta.tenant.findUnique({
+        where: { id: tid },
+        select: { secretosEncriptados: true },
+      })
+      const s = decryptSecretos(t?.secretosEncriptados)
+      if (s.smtp?.host && s.smtp?.user && s.smtp?.pass) {
+        return {
+          key: `tenant:${tid}`,
+          cfg: { host: s.smtp.host, port: s.smtp.port || 587, user: s.smtp.user, pass: s.smtp.pass, from: s.smtp.from },
+        }
+      }
+    } catch { /* cae al fallback de env */ }
+  }
+
+  // Fallback global (dev / single-tenant)
+  const host = process.env.SMTP_HOST, user = process.env.SMTP_USER, pass = process.env.SMTP_PASS
+  if (host && user && pass) {
+    return {
+      key: "env",
+      cfg: { host, port: Number(process.env.SMTP_PORT || 587), user, pass, from: process.env.EMAIL_FROM },
+    }
+  }
+  return null
 }
 
-// Remitente por defecto: EMAIL_FROM → la propia cuenta SMTP → genérico.
-const defaultEmailFrom = process.env.EMAIL_FROM || process.env.SMTP_USER || "noreply@example.gov.co"
+/** Obtiene (y cachea) el transporter + config SMTP para el tenant. */
+async function getTransportFor(tenantId?: string): Promise<{ transport: Transporter; cfg: SmtpConfig }> {
+  const resolved = await resolveSmtp(tenantId)
+  if (!resolved) {
+    throw new Error("SMTP no configurado para este tenant ni en variables de entorno")
+  }
+  let transport = transportCache.get(resolved.key)
+  if (!transport) {
+    transport = nodemailer.createTransport({
+      host: resolved.cfg.host,
+      port: resolved.cfg.port,
+      secure: resolved.cfg.port === 465, // 465 = SSL; 587 = STARTTLS
+      auth: { user: resolved.cfg.user, pass: resolved.cfg.pass },
+    })
+    transportCache.set(resolved.key, transport)
+  }
+  return { transport, cfg: resolved.cfg }
+}
+
 const appUrl = process.env.NEXTAUTH_URL || "http://localhost:3000"
 
 /** Escapa caracteres HTML para prevenir inyección en emails */
@@ -48,12 +88,15 @@ function escapeHtml(text: string): string {
 }
 
 /**
- * Construye el sender "From" usando la identidad institucional.
- * Prioridad: emailFromName/emailFromAddress configurados → env EMAIL_FROM → fallback genérico.
+ * Construye el sender "From".
+ * Prioridad de dirección: identidad institucional → remitente SMTP del tenant → usuario SMTP.
  */
-function buildFrom(id: { nombreCorto: string; emailFromName: string | null; emailFromAddress: string | null }): string {
+function buildFrom(
+  id: { nombreCorto: string; emailFromName: string | null; emailFromAddress: string | null },
+  cfg?: SmtpConfig,
+): string {
   const displayName = id.emailFromName || id.nombreCorto
-  const address = id.emailFromAddress || defaultEmailFrom
+  const address = id.emailFromAddress || cfg?.from || cfg?.user || "noreply@example.gov.co"
   return `${displayName} <${address}>`
 }
 
@@ -62,7 +105,7 @@ export async function sendPasswordResetEmail(email: string, token: string, nombr
   const safeNombre = escapeHtml(nombre)
   const safeToken = encodeURIComponent(token)
   const resetLink = `${appUrl}/restablecer-contrasena?token=${safeToken}`
-  const transport = getTransport()
+  const { transport, cfg } = await getTransportFor()
 
   const safeNombreCompleto = escapeHtml(id.nombreCompleto)
   const safeNombreCorto = escapeHtml(id.nombreCorto)
@@ -72,7 +115,7 @@ export async function sendPasswordResetEmail(email: string, token: string, nombr
 
   try {
     const data = await transport.sendMail({
-      from: buildFrom(id),
+      from: buildFrom(id, cfg),
       to: email,
       subject: `Recuperación de contraseña - ${id.nombreCompleto}`,
       html: `
@@ -141,7 +184,7 @@ export async function sendPasswordResetEmail(email: string, token: string, nombr
 export async function sendWelcomeEmail(email: string, nombreRaw: string) {
   const id = await getIdentidadPublica()
   const nombre = escapeHtml(nombreRaw)
-  const transport = getTransport()
+  const { transport, cfg } = await getTransportFor()
 
   const safeNombreCompleto = escapeHtml(id.nombreCompleto)
   const safeNombreCorto = escapeHtml(id.nombreCorto)
@@ -149,7 +192,7 @@ export async function sendWelcomeEmail(email: string, nombreRaw: string) {
 
   try {
     const data = await transport.sendMail({
-      from: buildFrom(id),
+      from: buildFrom(id, cfg),
       to: email,
       subject: `Bienvenido al Sistema - ${id.nombreCompleto}`,
       html: `
@@ -196,12 +239,23 @@ export async function sendWelcomeEmail(email: string, nombreRaw: string) {
   }
 }
 
-export async function sendMail(opts: { to: string | string[]; subject: string; html: string; from?: string }) {
-  const transport = getTransport()
+/**
+ * Envía un correo usando la config SMTP del tenant.
+ * @param opts.tenantId  Obligatorio fuera de una request (p. ej. crons), donde no
+ *                       hay headers para resolver el tenant actual.
+ */
+export async function sendMail(opts: {
+  to: string | string[]
+  subject: string
+  html: string
+  from?: string
+  tenantId?: string
+}) {
+  const { transport, cfg } = await getTransportFor(opts.tenantId)
   let from = opts.from
   if (!from) {
     const id = await getIdentidadPublica()
-    from = buildFrom(id)
+    from = buildFrom(id, cfg)
   }
   const info = await transport.sendMail({
     from,

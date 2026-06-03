@@ -140,6 +140,7 @@ export async function GET(req: NextRequest) {
           await sendMail({
             to: admin.email,
             from,
+            tenantId: t.id, // sin headers en el cron → resolver SMTP del tenant explícitamente
             subject: `🔔 Alertas de vencimiento — ${periodo}${sinReporte.length ? " · recordatorio mensual" : ""}`,
             html: construirDigest({ tenant: t.nombre, periodo, polizas, contratos, sinReporte }),
           })

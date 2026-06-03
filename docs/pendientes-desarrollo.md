@@ -350,14 +350,17 @@ El `tsconfig.json` ya lo excluye del compilador — esta es solo limpieza visual
 - ✅ `CRON_SECRET` ya configurada en Vercel (Production/Preview/Development) vía CLI.
 - ⚠️ Los crons de Vercel solo corren en Producción → activar tras merge a la rama de producción.
 
-**Correo electrónico — migrado de Resend a SMTP (Nodemailer):**
-- `src/lib/mail.ts` reescrito con Nodemailer (provider-agnóstico). Funciona con el
-  correo institucional existente (Google Workspace / Microsoft 365) o cualquier SMTP.
-- Variables a configurar en Vercel: `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`,
-  `SMTP_PORT` (opcional, 587 por defecto), `EMAIL_FROM` (opcional, usa SMTP_USER si falta).
+**Correo electrónico — migrado de Resend a SMTP MULTI-TENANT (Nodemailer):**
+- `src/lib/mail.ts` reescrito con Nodemailer y resolución de SMTP **por tenant**.
+- Cada entidad configura su propio correo institucional desde **Superadmin → editar tenant
+  → "Configuración de correo (SMTP)"**. Se guarda cifrado (AES-256-GCM) en
+  `Tenant.secretosEncriptados.smtp` de la meta-DB. NO requiere migración (campo ya existía).
+- El cron pasa `tenantId` explícito a `sendMail` (no tiene headers).
+- Fallback a env globales `SMTP_HOST/USER/PASS/PORT/EMAIL_FROM` solo para dev/single-tenant.
 - `RESEND_API_KEY` ya NO es necesaria. La dependencia `resend` quedó sin usar en package.json.
-- ⚠️ Con Gmail/Workspace, `EMAIL_FROM` debe coincidir con `SMTP_USER` (o un alias verificado),
-  y `SMTP_PASS` debe ser una "app password" (no la contraseña normal).
+- ⚠️ Con Gmail/Workspace: el remitente (From) debe coincidir con el usuario (o alias verificado)
+  y la contraseña debe ser una "app password" (requiere 2FA).
+- ✅ No hay nada de SMTP que configurar en variables globales de Vercel — es por tenant.
 
 ### Pendiente único (bloqueado por insumo externo):
 - Ítem 5 (Mapeo 1:1 CHIP/FUT — requiere los templates oficiales XLSX del cliente)

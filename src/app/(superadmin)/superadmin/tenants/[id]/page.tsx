@@ -4,6 +4,7 @@ import TenantForm from "@/components/admin/superadmin/tenant-form"
 import TenantModulos from "@/components/admin/superadmin/tenant-modulos"
 import StorageConfigPanel from "@/components/admin/superadmin/storage-config-panel"
 import { resolveModulosConfig } from "@/lib/modules"
+import { decryptSecretos } from "@/lib/encryption"
 import Link from "next/link"
 
 interface PageProps {
@@ -24,6 +25,10 @@ export default async function EditTenantPage({ params }: PageProps) {
   })
 
   if (!tenant) notFound()
+
+  // SMTP no sensible para precargar (nunca el password)
+  const secretos = decryptSecretos(tenant.secretosEncriptados)
+  const smtp = secretos.smtp
 
   const TIPO_LABEL: Record<string, string> = {
     PERSONERIA:  "Personería",
@@ -96,6 +101,10 @@ export default async function EditTenantPage({ params }: PageProps) {
           colorSecundario:      tenant.colorSecundario ?? "#7e3af2",
           fechaActivacion:      tenant.fechaActivacion?.toISOString() ?? "",
           fechaVencimiento:     tenant.fechaVencimiento?.toISOString() ?? "",
+          smtpHost:             smtp?.host ?? "",
+          smtpPort:             smtp?.port ? String(smtp.port) : "587",
+          smtpUser:             smtp?.user ?? "",
+          smtpFrom:             smtp?.from ?? "",
         }}
       />
 
