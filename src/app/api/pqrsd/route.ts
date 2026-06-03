@@ -265,7 +265,7 @@ async function guardarLocal(
   // Solo si el módulo VU está activo para este tenant
   try {
     if (isModuleActive(modulos, MODULO_IDS.VENTANILLA_UNICA)) {
-      const { classifyPQRSD, calcularSemaforo, calcularFechaLimite } = await import("@/lib/groq-client")
+      const { classifyPQRSD, calcularSemaforo } = await import("@/lib/groq-client")
       const { getTenantId } = await import("@/lib/tenant")
 
       const tenantId = await getTenantId()
@@ -285,7 +285,10 @@ async function guardarLocal(
       })
 
       // Calcular color del semáforo y fecha límite real
-      const fechaLimiteVU = calcularFechaLimite(new Date(), clasificacion.diasTerminoLegal)
+      // Vencimiento con festivos + Ley Emiliani (vía dias-habiles), no la
+      // versión simplificada de groq-client que ignora festivos.
+      const { calcularFechaVencimientoHabil } = await import("@/lib/dias-habiles")
+      const fechaLimiteVU = await calcularFechaVencimientoHabil(clasificacion.diasTerminoLegal, new Date())
       const colorSemaforo = calcularSemaforo(new Date(), clasificacion.diasTerminoLegal)
 
       // Guardar clasificación IA
