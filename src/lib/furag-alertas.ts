@@ -69,14 +69,22 @@ function calcularFechasVigencia(
   anioVigencia: number,
   config: ConfigVigenciaFurag = CONFIG_DEFAULT
 ): { apertura: Date; cierre: Date } {
-  const apertura = new Date(anioVigencia, config.aperturaMes - 1, config.aperturaDia, 0, 0, 0, 0)
-  const cierre   = new Date(anioVigencia + 1, config.cierreMes - 1, config.cierreDia, 23, 59, 59, 999)
+  // Se construyen en UTC para que el formateo posterior con toISOString()
+  // devuelva la misma fecha de calendario en cualquier zona horaria (Vercel
+  // corre en UTC; los equipos en Colombia, UTC-5). Sin esto, un cierre el
+  // 31-mar 23:59 local se desbordaba al 1-abr en UTC.
+  const apertura = new Date(Date.UTC(anioVigencia, config.aperturaMes - 1, config.aperturaDia, 0, 0, 0, 0))
+  const cierre   = new Date(Date.UTC(anioVigencia + 1, config.cierreMes - 1, config.cierreDia, 23, 59, 59, 999))
   return { apertura, cierre }
 }
 
 function diffDiasNaturales(desde: Date, hasta: Date): number {
+  const DIA_MS = 1000 * 60 * 60 * 24
   const ms = hasta.getTime() - desde.getTime()
-  return Math.ceil(ms / (1000 * 60 * 60 * 24))
+  // Ceil simétrico: una fracción de día cuenta como día completo en ambos
+  // sentidos. Así, un instante ya pasado el cierre da siempre un valor
+  // negativo (vencido), sin depender de la zona horaria del proceso.
+  return ms >= 0 ? Math.ceil(ms / DIA_MS) : -Math.ceil(-ms / DIA_MS)
 }
 
 function porcentajeConsumido(apertura: Date, cierre: Date, ahora: Date): number {

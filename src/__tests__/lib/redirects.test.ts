@@ -117,16 +117,14 @@ describe('cobertura de rutas críticas del sitio anterior', () => {
     '/noticias.html',
     '/pqrsd',
     '/pqrs',
-    '/transparencia',
     '/contratacion',
     '/normatividad',
     '/mipg',
     '/contacto',
     '/preguntas-frecuentes',
-    '/privacidad',
-    '/terminos',
-    '/accesibilidad',
-    '/mapa-sitio',
+    // Nota: /transparencia, /privacidad, /terminos, /accesibilidad y /mapa-sitio
+    // son páginas vivas del nuevo sitio (mismo path). No deben tener redirect:
+    // un redirect a sí mismas sería un bucle y rompería la página real.
   ]
 
   for (const ruta of rutasCriticas) {

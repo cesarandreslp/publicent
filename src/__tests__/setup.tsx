@@ -1,6 +1,14 @@
 import '@testing-library/jest-dom'
 import { vi } from 'vitest'
 
+// Variables de entorno mínimas para el entorno de test.
+// Módulos como `prisma-meta` (importado de forma transitiva por `groq-client`)
+// lanzan al importarse si falta META_DATABASE_URL. Aquí solo evitamos ese
+// throw en tests de funciones puras; NO se abre ninguna conexión real.
+if (!process.env.META_DATABASE_URL) {
+  process.env.META_DATABASE_URL = 'postgresql://test:test@localhost:5432/test'
+}
+
 // Mock de Next.js navigation
 vi.mock('next/navigation', () => ({
   useRouter: () => ({

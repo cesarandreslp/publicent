@@ -294,7 +294,6 @@ const wpAdminRedirects: Redirect[] = [
 // ─── G. Variantes con extensión de archivo ────────────────────────────────────
 const extensionRedirects: Redirect[] = [
   { source: '/index.html',                                     destination: '/',                           permanent: true },
-  { source: '/index.php',                                      destination: '/',                           permanent: true },
   { source: '/home.html',                                      destination: '/',                           permanent: true },
   { source: '/inicio.html',                                    destination: '/',                           permanent: true },
   { source: '/noticias.html',                                  destination: '/noticias',                   permanent: true },
@@ -325,7 +324,6 @@ const transparenciaRedirects: Redirect[] = [
 
 // ─── I. Typos y variantes de ortografía frecuentes ────────────────────────────
 const typoRedirects: Redirect[] = [
-  { source: '/atencion-ciudadana',                             destination: '/atencion-ciudadano',         permanent: true },
   { source: '/atencion_ciudadano',                             destination: '/atencion-ciudadano',         permanent: true },
   { source: '/atencion%20ciudadano',                           destination: '/atencion-ciudadano',         permanent: true },
   { source: '/mision_vision',                                  destination: '/entidad/mision-vision',      permanent: true },
