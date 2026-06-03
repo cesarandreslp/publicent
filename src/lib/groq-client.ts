@@ -347,8 +347,12 @@ export function calcularFechaLimite(fechaRadicacion: Date, diasHabiles: number):
   let diasContados = 0
 
   while (diasContados < diasHabiles) {
-    fecha.setDate(fecha.getDate() + 1)
-    const diaSemana = fecha.getDay()
+    // Se opera en UTC para que el cálculo sea estable en cualquier zona
+    // horaria (Vercel corre en UTC; equipos en Colombia, UTC-5). Con métodos
+    // locales, una fecha a medianoche UTC retrocedía un día y desalineaba
+    // el conteo de días hábiles.
+    fecha.setUTCDate(fecha.getUTCDate() + 1)
+    const diaSemana = fecha.getUTCDay()
     if (diaSemana !== 0 && diaSemana !== 6) {
       diasContados++
     }
