@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { FileText, Plus, Loader2, X, ChevronDown, ChevronUp, Paperclip, GitMerge } from "lucide-react"
+import { FileText, Plus, Loader2, X, ChevronDown, ChevronUp, Paperclip, GitMerge, CalendarClock, Sparkles } from "lucide-react"
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -65,6 +65,35 @@ function ProcesoModal({ vigenciaActual, onClose, onSave }: {
   })
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState("")
+  const [iaLoading, setIaLoading] = useState(false)
+  const [iaInfo, setIaInfo] = useState<{ razon: string; confianza: number; proveedor: string } | null>(null)
+
+  async function sugerirIA() {
+    if (form.objeto.trim().length < 10 || !form.valorEstimado || Number(form.valorEstimado) <= 0) {
+      setErr("Para sugerir con IA, complete el objeto (mín. 10 caracteres) y el valor estimado."); return
+    }
+    setIaLoading(true); setErr(""); setIaInfo(null)
+    try {
+      const res = await fetch("/api/admin/contratacion/procesos/sugerir-modalidad", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ descripcion: form.objeto, valorEstimado: Number(form.valorEstimado) }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setErr(data.error ?? "Error al sugerir"); return }
+      const s = data.sugerencia
+      setForm(p => ({
+        ...p,
+        modalidad: s.modalidad,
+        supervisorNombre: s.supervisorNombre || p.supervisorNombre,
+      }))
+      setIaInfo({ razon: s.razon, confianza: s.confianza, proveedor: s.proveedor })
+    } catch {
+      setErr("Error de conexión con la IA")
+    } finally {
+      setIaLoading(false)
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -104,7 +133,14 @@ function ProcesoModal({ vigenciaActual, onClose, onSave }: {
                 placeholder="PC-2025-001" value={form.numero} onChange={e => f('numero', e.target.value)} />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Modalidad *</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium">Modalidad *</label>
+                <button type="button" onClick={sugerirIA} disabled={iaLoading}
+                  className="text-xs inline-flex items-center gap-1 text-violet-600 hover:text-violet-800 disabled:opacity-50">
+                  {iaLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                  Sugerir con IA
+                </button>
+              </div>
               <select className="w-full border rounded-lg px-3 py-2 text-sm"
                 value={form.modalidad} onChange={e => f('modalidad', e.target.value)}>
                 {Object.entries(MODALIDAD_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
@@ -147,6 +183,13 @@ function ProcesoModal({ vigenciaActual, onClose, onSave }: {
                 placeholder="Personero municipal" value={form.supervisorCargo} onChange={e => f('supervisorCargo', e.target.value)} />
             </div>
           </div>
+          {iaInfo && (
+            <div className="text-xs bg-violet-50 border border-violet-200 rounded-lg px-3 py-2 text-violet-800">
+              <span className="inline-flex items-center gap-1 font-medium"><Sparkles className="w-3 h-3" /> Sugerencia IA</span>
+              {" "}({Math.round(iaInfo.confianza * 100)}% · {iaInfo.proveedor}): {iaInfo.razon}
+              <span className="block text-violet-600 mt-0.5">Revise antes de guardar — la IA sugiere, usted decide.</span>
+            </div>
+          )}
           {err && <p className="text-red-600 text-sm">{err}</p>}
           <div className="flex gap-2 pt-2">
             <button type="button" onClick={onClose} className="flex-1 border rounded-lg py-2 text-sm hover:bg-gray-50">Cancelar</button>
@@ -469,6 +512,53 @@ function ProcesoFila({ proceso, onRefresh }: { proceso: Proceso; onRefresh: () =
   )
 }
 
+// ─── Panel de alertas de vencimiento ──────────────────────────────────────────
+
+type AlertaContratoUI = {
+  contratoId: string; numero: string; contratista: string
+  supervisor: string | null; fechaTerminacion: string; diasRestantes: number
+}
+
+function AlertasVencimientoPanel() {
+  const [alertas, setAlertas] = useState<AlertaContratoUI[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch("/api/admin/contratacion/alertas-vencimiento?diasAnticipacion=30")
+      .then(r => r.json())
+      .then(j => setAlertas(j.alertas ?? []))
+      .catch(() => setAlertas([]))
+      .finally(() => setLoading(false))
+  }, [])
+
+  if (loading || alertas.length === 0) return null
+
+  return (
+    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+      <h2 className="font-semibold text-amber-800 flex items-center gap-2 mb-3">
+        <CalendarClock className="w-5 h-5" /> Contratos próximos a terminar ({alertas.length})
+      </h2>
+      <div className="space-y-1.5">
+        {alertas.slice(0, 8).map(a => (
+          <div key={a.contratoId} className="flex items-center justify-between gap-3 text-sm bg-white rounded-lg px-3 py-2 border border-amber-100">
+            <span className="min-w-0 truncate">
+              <span className="font-medium">{a.numero}</span>
+              <span className="text-slate-500"> — {a.contratista}</span>
+              {a.supervisor && <span className="text-slate-400 text-xs"> · Sup: {a.supervisor}</span>}
+            </span>
+            <span className={`shrink-0 font-semibold ${a.diasRestantes <= 5 ? "text-red-600" : "text-amber-700"}`}>
+              {a.diasRestantes < 0 ? "VENCIDO" : `${a.diasRestantes} días`}
+            </span>
+          </div>
+        ))}
+        {alertas.length > 8 && (
+          <p className="text-xs text-amber-700 pt-1">y {alertas.length - 8} más…</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Componente principal ─────────────────────────────────────────────────────
 export default function ContratacionClient({ procesos, contratosRecientes, vigenciaActual, kpis }: {
   procesos: Proceso[]
@@ -523,6 +613,8 @@ export default function ContratacionClient({ procesos, contratosRecientes, vigen
           <p className="text-2xl font-bold mt-1 text-green-700">{fmt(kpis.valorTotal)}</p>
         </div>
       </div>
+
+      <AlertasVencimientoPanel />
 
       {/* Tabs */}
       <div className="bg-white border rounded-xl shadow-sm overflow-hidden">

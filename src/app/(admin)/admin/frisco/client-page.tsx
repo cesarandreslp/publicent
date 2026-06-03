@@ -3,7 +3,8 @@
 import { useState, useTransition } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Building2, Plus, Search, ChevronRight, X, Loader2, Sparkles } from "lucide-react"
+import { useEffect } from "react"
+import { Building2, Plus, Search, ChevronRight, X, Loader2, Sparkles, ShieldAlert } from "lucide-react"
 
 type Bien = {
   id: string
@@ -103,6 +104,8 @@ export default function FriscoDashboardClient({
         <KpiCard label="Devuelto"     value={kpis.devuelto}  color="text-slate-600" />
       </div>
 
+      <AlertasPolizasPanel />
+
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="p-4 border-b border-gray-100 flex flex-wrap gap-3 items-center">
           <div className="relative flex-1 min-w-[240px] max-w-md">
@@ -201,6 +204,51 @@ export default function FriscoDashboardClient({
           }}
         />
       )}
+    </div>
+  )
+}
+
+type AlertaPolizaUI = {
+  depositarioId: string; depositario: string; email: string | null
+  bienCodigo: string; bienTipo: string; polizaVigenteHasta: string; diasRestantes: number
+}
+
+function AlertasPolizasPanel() {
+  const [alertas, setAlertas] = useState<AlertaPolizaUI[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch("/api/admin/frisco/alertas-polizas?diasAnticipacion=30")
+      .then(r => r.json())
+      .then(j => setAlertas(j.alertas ?? []))
+      .catch(() => setAlertas([]))
+      .finally(() => setLoading(false))
+  }, [])
+
+  if (loading) return null
+  if (alertas.length === 0) return null
+
+  return (
+    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+      <h2 className="font-semibold text-amber-800 flex items-center gap-2 mb-3">
+        <ShieldAlert className="w-5 h-5" /> Pólizas próximas a vencer ({alertas.length})
+      </h2>
+      <div className="space-y-1.5">
+        {alertas.slice(0, 8).map(a => (
+          <div key={a.depositarioId} className="flex items-center justify-between gap-3 text-sm bg-white rounded-lg px-3 py-2 border border-amber-100">
+            <span className="min-w-0">
+              <span className="font-medium">{a.bienCodigo}</span>
+              <span className="text-slate-500"> — {a.depositario}</span>
+            </span>
+            <span className={`shrink-0 font-semibold ${a.diasRestantes <= 5 ? "text-red-600" : "text-amber-700"}`}>
+              {a.diasRestantes < 0 ? "VENCIDA" : `${a.diasRestantes} días`}
+            </span>
+          </div>
+        ))}
+        {alertas.length > 8 && (
+          <p className="text-xs text-amber-700 pt-1">y {alertas.length - 8} más…</p>
+        )}
+      </div>
     </div>
   )
 }

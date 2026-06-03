@@ -909,6 +909,11 @@ export const tesoConciliarSchema = z.object({
   extractoLineaId: z.string().cuid(),
 })
 
+export const tesoConciliarMultipleSchema = z.object({
+  movimientoId:     z.string().cuid(),
+  extractoLineaIds: z.array(z.string().cuid()).min(2, 'Seleccione al menos 2 líneas de extracto'),
+})
+
 
 // ─── CONTRATACIÓN ──────────────────────────────────────────────────────────────
 

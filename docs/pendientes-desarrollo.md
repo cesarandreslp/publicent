@@ -333,13 +333,28 @@ El `tsconfig.json` ya lo excluye del compilador — esta es solo limpieza visual
 7. ✅ Vincular bien a expediente GD desde UI (ítem 10) — DONE 2026-06-03
 ```
 
-### Próxima sesión — continuar con:
-- Ítem 5 (Mapeo 1:1 CHIP/FUT — requiere templates oficiales del cliente)
-- Ítem 7 (Alertas vencimiento contratos + cron vercel.json)
-- Ítem 8 (Alertas pólizas FRISCO + cron)
-- Ítem 11 (Recordatorio mensual depositario — cron)
-- Ítem 12 (Conciliación N:1 tesorería)
-- Ítem 13 (IA modalidad/supervisor contratación)
+### Completados 2026-06-03 (segunda tanda):
+- ✅ Ítem 7 — Alertas vencimiento contratos (lib + endpoint + cron + panel UI)
+- ✅ Ítem 8 — Alertas pólizas FRISCO (lib + endpoint + cron + panel UI)
+- ✅ Ítem 11 — Recordatorio mensual depositario (en cron global)
+- ✅ Ítem 12 — Conciliación N:1 tesorería (endpoint conciliar-multiple + UI multiselect)
+- ✅ Ítem 13 — IA modalidad/supervisor contratación (lib + endpoint + botón en modal)
+
+**Infraestructura de crons (decisión arquitectónica):**
+- Un solo cron global `/api/cron/diario` que hace fan-out a TODOS los tenants
+  (vercel.json es estático, no admite cron por tenant). Maneja las 3 alertas
+  adentro y envía un email-digest por tenant al primer admin activo.
+- Protegido con `Authorization: Bearer ${CRON_SECRET}`.
+- `vercel.json` → `schedule: "0 8 * * *"`. Cabe en el plan gratis (1 de 2 crons, diario).
+- Lógica reutilizable en `src/lib/alertas.ts` (compartida por crons y endpoints on-demand).
+- ⚠️ Configurar `CRON_SECRET` en variables de entorno de Vercel antes de desplegar.
+
+### Pendiente único (bloqueado por insumo externo):
+- Ítem 5 (Mapeo 1:1 CHIP/FUT — requiere los templates oficiales XLSX del cliente)
+
+### ⚠️ Cambio de ruta importante:
+- La carpeta API `con` se renombró a `contratacion` (era nombre reservado de Windows
+  NTFS que rompía `git add`). Endpoints ahora en `/api/admin/contratacion/*`.
 
 ---
 

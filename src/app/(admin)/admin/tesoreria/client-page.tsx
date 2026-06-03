@@ -378,10 +378,14 @@ function ConciliacionPanel({ cuentaId, cuentaNombre }: { cuentaId: string; cuent
   const [extractoId, setExtractoId] = useState("")
   const [extractos, setExtractos] = useState<{ id: string; periodo: string; lineas: any[] }[]>([])
   const [movSel, setMovSel] = useState<string | null>(null)
-  const [lineaSel, setLineaSel] = useState<string | null>(null)
+  const [lineasSel, setLineasSel] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [msg, setMsg] = useState("")
   const router = useRouter()
+
+  function toggleLinea(id: string) {
+    setLineasSel(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
 
   useEffect(() => {
     fetch(`/api/admin/teso/movimientos?cuentaId=${cuentaId}&conciliado=false`)
@@ -402,17 +406,24 @@ function ConciliacionPanel({ cuentaId, cuentaNombre }: { cuentaId: string; cuent
   }, [extractoId])
 
   async function conciliar() {
-    if (!movSel || !lineaSel) return
+    if (!movSel || lineasSel.length === 0) return
     setLoading(true); setMsg("")
-    const res = await fetch("/api/admin/teso/conciliar", {
+    // 1 línea → conciliación par a par; 2+ → conciliación N:1
+    const esMultiple = lineasSel.length > 1
+    const url = esMultiple ? "/api/admin/teso/conciliar-multiple" : "/api/admin/teso/conciliar"
+    const payload = esMultiple
+      ? { movimientoId: movSel, extractoLineaIds: lineasSel }
+      : { movimientoId: movSel, extractoLineaId: lineasSel[0] }
+    const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ movimientoId: movSel, extractoLineaId: lineaSel }),
+      body: JSON.stringify(payload),
     })
     const data = await res.json()
     setLoading(false)
     if (!res.ok) { setMsg(data.error ?? "Error"); return }
-    setMsg("✓ Conciliado"); setMovSel(null); setLineaSel(null)
+    setMsg(esMultiple ? `✓ Conciliado (${lineasSel.length} líneas)` : "✓ Conciliado")
+    setMovSel(null); setLineasSel([])
     // Refrescar listas
     fetch(`/api/admin/teso/movimientos?cuentaId=${cuentaId}&conciliado=false`)
       .then(r => r.json()).then(setMovimientos)
@@ -424,6 +435,17 @@ function ConciliacionPanel({ cuentaId, cuentaNombre }: { cuentaId: string; cuent
   }
 
   const lineasPendientes = (extractoActual as any)?.lineas?.filter((l: any) => !l.conciliada) ?? []
+
+  // Suma de líneas seleccionadas vs valor del movimiento (guía visual para N:1)
+  const movActual = movimientos.find(m => m.id === movSel)
+  const sumaSel = lineasPendientes
+    .filter((l: any) => lineasSel.includes(l.id))
+    .reduce((s: number, l: any) => {
+      if (!movActual) return s + Number(l.credito ?? 0) + Number(l.debito ?? 0)
+      return s + (movActual.tipo === "INGRESO" ? Number(l.credito ?? 0) : Number(l.debito ?? 0))
+    }, 0)
+  const difSuma = movActual ? Number(movActual.valor) - sumaSel : 0
+  const sumaCuadra = movActual ? Math.abs(difSuma) <= (lineasSel.length > 1 ? 1 : 0.5) : false
 
   return (
     <div className="space-y-4">
@@ -459,36 +481,51 @@ function ConciliacionPanel({ cuentaId, cuentaNombre }: { cuentaId: string; cuent
             </div>
           </div>
           <div>
-            <p className="text-sm font-medium mb-2 text-gray-600">Líneas extracto sin conciliar ({lineasPendientes.length})</p>
+            <p className="text-sm font-medium mb-2 text-gray-600">
+              Líneas extracto sin conciliar ({lineasPendientes.length})
+              {lineasSel.length > 0 && <span className="text-emerald-700"> · {lineasSel.length} seleccionada(s)</span>}
+            </p>
             <div className="border rounded-lg overflow-hidden max-h-80 overflow-y-auto">
               {lineasPendientes.length === 0
                 ? <p className="text-center text-sm text-gray-400 py-6">Sin líneas pendientes</p>
-                : lineasPendientes.map((l: any) => (
-                  <button key={l.id} onClick={() => setLineaSel(l.id === lineaSel ? null : l.id)}
-                    className={`w-full text-left px-3 py-2 border-b last:border-b-0 text-sm hover:bg-gray-50 transition-colors ${lineaSel === l.id ? 'bg-emerald-50 border-emerald-200' : ''}`}>
-                    <div className="flex justify-between items-start">
-                      <span className="truncate mr-2 text-gray-700">{l.descripcion}</span>
-                      <span className={`font-medium whitespace-nowrap ${l.credito ? 'text-green-700' : 'text-red-700'}`}>
-                        {l.credito ? `+${fmt(l.credito)}` : l.debito ? `-${fmt(l.debito)}` : '—'}
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-400">{fmtDate(l.fecha)}</p>
-                  </button>
-                ))
+                : lineasPendientes.map((l: any) => {
+                  const sel = lineasSel.includes(l.id)
+                  return (
+                    <button key={l.id} onClick={() => toggleLinea(l.id)}
+                      className={`w-full text-left px-3 py-2 border-b last:border-b-0 text-sm hover:bg-gray-50 transition-colors ${sel ? 'bg-emerald-50 border-emerald-200' : ''}`}>
+                      <div className="flex justify-between items-start">
+                        <span className="truncate mr-2 text-gray-700 flex items-center gap-2">
+                          <span className={`w-3.5 h-3.5 rounded border shrink-0 ${sel ? 'bg-emerald-600 border-emerald-600' : 'border-gray-300'}`} />
+                          {l.descripcion}
+                        </span>
+                        <span className={`font-medium whitespace-nowrap ${l.credito ? 'text-green-700' : 'text-red-700'}`}>
+                          {l.credito ? `+${fmt(l.credito)}` : l.debito ? `-${fmt(l.debito)}` : '—'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-400 pl-5">{fmtDate(l.fecha)}</p>
+                    </button>
+                  )
+                })
               }
             </div>
           </div>
         </div>
       )}
       {extractoId && (
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <button
-            disabled={!movSel || !lineaSel || loading}
+            disabled={!movSel || lineasSel.length === 0 || loading}
             onClick={conciliar}
             className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-emerald-700 disabled:opacity-40 flex items-center gap-2">
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-            Conciliar par seleccionado
+            {lineasSel.length > 1 ? `Conciliar ${lineasSel.length} líneas con el movimiento` : "Conciliar par seleccionado"}
           </button>
+          {movActual && lineasSel.length > 0 && (
+            <span className={`text-sm font-medium ${sumaCuadra ? "text-emerald-700" : "text-amber-600"}`}>
+              Suma {fmt(sumaSel)} vs movimiento {fmt(Number(movActual.valor))}
+              {sumaCuadra ? " ✓" : ` · dif ${fmt(Math.abs(difSuma))}`}
+            </span>
+          )}
           {msg && <span className="text-sm text-emerald-700 font-medium">{msg}</span>}
         </div>
       )}

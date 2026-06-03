@@ -79,12 +79,11 @@ export async function DELETE(req: NextRequest) {
   if (!mov.conciliado) return NextResponse.json({ error: 'El movimiento no está conciliado' }, { status: 409 })
 
   await prisma.$transaction(async (tx) => {
-    if (mov.extractoLineaId) {
-      await tx.tesoExtractoLinea.update({
-        where: { id: mov.extractoLineaId },
-        data: { conciliada: false, movimientoId: null },
-      })
-    }
+    // Limpia TODAS las líneas vinculadas al movimiento (cubre conciliación 1:1 y N:1)
+    await tx.tesoExtractoLinea.updateMany({
+      where: { movimientoId },
+      data: { conciliada: false, movimientoId: null },
+    })
     await tx.tesoMovimiento.update({
       where: { id: movimientoId },
       data: { conciliado: false, conciliadoEn: null, extractoLineaId: null },
