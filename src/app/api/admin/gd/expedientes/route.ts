@@ -1,7 +1,26 @@
 import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 import { getTenantPrisma } from "@/lib/tenant"
 import { checkApiRoles } from "@/lib/authorization"
 import { gdExpedienteCreateSchema, validateBody } from "@/lib/validations"
+
+export async function GET(req: NextRequest) {
+  const { error } = await checkApiRoles(["SUPER_ADMIN", "ADMIN", "EDITOR", "USER"])
+  if (error) return error
+
+  const { searchParams } = new URL(req.url)
+  const q     = searchParams.get("q") ?? ""
+  const limit = Math.min(100, Number(searchParams.get("limit") ?? 50))
+
+  const prisma = await getTenantPrisma()
+  const expedientes = await prisma.gdExpediente.findMany({
+    where: q ? { OR: [{ codigo: { contains: q } }, { nombre: { contains: q } }] } : undefined,
+    orderBy: { codigo: "asc" },
+    take: limit,
+    select: { id: true, codigo: true, nombre: true },
+  })
+  return NextResponse.json({ expedientes })
+}
 
 export async function POST(req: Request) {
   const { error, user } = await checkApiRoles(['SUPER_ADMIN', 'ADMIN', 'EDITOR'])

@@ -1,185 +1,185 @@
-# CLAUDE.md — Plan de trabajo del producto público unificado
+﻿# CLAUDE.md â€” Plan de trabajo del producto pÃºblico unificado
 
-> **Bitácora viva del proyecto.** Este archivo es la fuente de verdad entre sesiones.
+> **BitÃ¡cora viva del proyecto.** Este archivo es la fuente de verdad entre sesiones.
 > Actualizar **permanentemente** y sin que el usuario lo pida en cada uno de estos eventos:
-> - Cierre de fase o módulo (mover de "próximo punto" a sección de fase cerrada con detalle).
-> - Aplicación de mejora retroactiva (tachar `~~...~~` en el backlog en lugar de borrar).
-> - Hallazgo no trivial (decisión de arquitectura, incompatibilidad de tipos, gotcha).
-> - Cambio del "🎯 Próximo punto" al completarse el actual.
-> - Refinamiento del plan original ante información nueva (con nota explícita, sin reescribir silenciosamente).
+> - Cierre de fase o mÃ³dulo (mover de "prÃ³ximo punto" a secciÃ³n de fase cerrada con detalle).
+> - AplicaciÃ³n de mejora retroactiva (tachar `~~...~~` en el backlog en lugar de borrar).
+> - Hallazgo no trivial (decisiÃ³n de arquitectura, incompatibilidad de tipos, gotcha).
+> - Cambio del "ðŸŽ¯ PrÃ³ximo punto" al completarse el actual.
+> - Refinamiento del plan original ante informaciÃ³n nueva (con nota explÃ­cita, sin reescribir silenciosamente).
 >
 > Stack: Next.js 16 + Prisma + PostgreSQL (Neon), multi-tenant con BD separada por tenant.
 
 ---
 
-## Visión del producto
+## VisiÃ³n del producto
 
-**Un solo producto comercializable** para el sector público colombiano:
-Portal institucional Gov.co (base Personería Buga) + catálogo de módulos activables por tenant.
-Clientes objetivo: Personería de Buga, SAE, MinIgualdad, y futuras entidades (alcaldías, personerías, ministerios sectoriales).
+**Un solo producto comercializable** para el sector pÃºblico colombiano:
+Portal institucional Gov.co (base PersonerÃ­a Buga) + catÃ¡logo de mÃ³dulos activables por tenant.
+Clientes objetivo: PersonerÃ­a de Buga, SAE, MinIgualdad, y futuras entidades (alcaldÃ­as, personerÃ­as, ministerios sectoriales).
 
-**Decisión arquitectónica:** sin embeber Odoo. Todo sobre el stack Next.js existente.
+**DecisiÃ³n arquitectÃ³nica:** sin embeber Odoo. Todo sobre el stack Next.js existente.
 
 ---
 
 ## Arquitectura modular
 
-- **Núcleo común** (todo tenant): `sitio_web`, `transparencia`, `pqrsd`, `ventanilla_unica`, `gestion_documental`, `archivo_fisico`, auth/MIPG/SIGEP.
-- **Verticales activables**: FRISCO (SAE), SGBE/ESB sectorial (MinIgualdad), presupuesto público (4 sub-módulos), contabilidad, tesorería, nómina, contratación, etc.
-- **Bundles comerciales**: Control / Ejecutora / Rectoría Sectorial.
-- **Catálogo canónico**: 29 módulos en [`src/lib/modules.ts`](src/lib/modules.ts) con `categoria`, `tier`, `dependeDe`, `entidadesObjetivo`.
+- **NÃºcleo comÃºn** (todo tenant): `sitio_web`, `transparencia`, `pqrsd`, `ventanilla_unica`, `gestion_documental`, `archivo_fisico`, auth/MIPG/SIGEP.
+- **Verticales activables**: FRISCO (SAE), SGBE/ESB sectorial (MinIgualdad), presupuesto pÃºblico (4 sub-mÃ³dulos), contabilidad, tesorerÃ­a, nÃ³mina, contrataciÃ³n, etc.
+- **Bundles comerciales**: Control / Ejecutora / RectorÃ­a Sectorial.
+- **CatÃ¡logo canÃ³nico**: 29 mÃ³dulos en [`src/lib/modules.ts`](src/lib/modules.ts) con `categoria`, `tier`, `dependeDe`, `entidadesObjetivo`.
 
 ---
 
-## Plan de trabajo original (del transcript de la sesión inicial)
+## Plan de trabajo original (del transcript de la sesiÃ³n inicial)
 
-El plan se construyó en 4 acuerdos explícitos:
+El plan se construyÃ³ en 4 acuerdos explÃ­citos:
 
-**1. Catálogo canónico de 29 módulos** (A3 + respuestas U5).
-   El usuario aprobó las 26 entradas iniciales y pidió **partir `presupuesto_publico` en 4** (formulación / ejecución / modificaciones / cierre) → quedan 29. También aprobó mantener `pqrsd` y `ventanilla_unica` separados, y los verticales (`frisco_*`, `sgbe_*`, `esb_*`) como activables.
+**1. CatÃ¡logo canÃ³nico de 29 mÃ³dulos** (A3 + respuestas U5).
+   El usuario aprobÃ³ las 26 entradas iniciales y pidiÃ³ **partir `presupuesto_publico` en 4** (formulaciÃ³n / ejecuciÃ³n / modificaciones / cierre) â†’ quedan 29. TambiÃ©n aprobÃ³ mantener `pqrsd` y `ventanilla_unica` separados, y los verticales (`frisco_*`, `sgbe_*`, `esb_*`) como activables.
 
 **2. Tres archivos a tocar en Fase 0** (A3):
-   - `src/lib/modules.ts` → expandir catálogo.
-   - `src/components/admin/superadmin/tenant-modulos.tsx` → agrupar por categoría + dependencias.
-   - Nuevo `src/lib/module-bundles.ts` → 3 bundles comerciales.
+   - `src/lib/modules.ts` â†’ expandir catÃ¡logo.
+   - `src/components/admin/superadmin/tenant-modulos.tsx` â†’ agrupar por categorÃ­a + dependencias.
+   - Nuevo `src/lib/module-bundles.ts` â†’ 3 bundles comerciales.
 
-**3. Limpieza de 3 hardcodes de Personería** (A4): `groq-client.ts` ×2 + `pqrsd/route.ts` ×1.
+**3. Limpieza de 3 hardcodes de PersonerÃ­a** (A4): `groq-client.ts` Ã—2 + `pqrsd/route.ts` Ã—1.
 
-**4. Orden de construcción de verticales** (A15, decisión explícita):
-   - `frisco_bienes` **primero** — vertical aislado, demostrable para SAE en pocas iteraciones.
-   - `contabilidad_publica` **después** — fundacional, habilita los 4 de presupuesto + tesorería + nómina + contratación. Es "proyecto en sí mismo" y merece su propio bloque.
+**4. Orden de construcciÃ³n de verticales** (A15, decisiÃ³n explÃ­cita):
+   - `frisco_bienes` **primero** â€” vertical aislado, demostrable para SAE en pocas iteraciones.
+   - `contabilidad_publica` **despuÃ©s** â€” fundacional, habilita los 4 de presupuesto + tesorerÃ­a + nÃ³mina + contrataciÃ³n. Es "proyecto en sÃ­ mismo" y merece su propio bloque.
 
-**MVP de venta a SAE definido en A0:** portal + plan CGN + bienes FRISCO + presupuesto mínimo + reporte CHIP básico.
+**MVP de venta a SAE definido en A0:** portal + plan CGN + bienes FRISCO + presupuesto mÃ­nimo + reporte CHIP bÃ¡sico.
 
 ---
 
-## Plan de trabajo — Estado
+## Plan de trabajo â€” Estado
 
-### ✅ Fase 0 — Refactor de fundamentos (cerrada)
+### âœ… Fase 0 â€” Refactor de fundamentos (cerrada)
 
-- [x] Catálogo de 29 módulos en `src/lib/modules.ts` con helper `areDepsActive()`.
-- [x] Bundles comerciales en `src/lib/module-bundles.ts` (Control, Ejecutora, Rectoría Sectorial).
-- [x] Limpieza de 3 hardcodes de Personería:
-  1. `TERMINOS_LEGALES_DEFAULT` exportable y overrideable vía `ContextoEntidad.terminosLegales` ([`src/lib/groq-client.ts`](src/lib/groq-client.ts)).
+- [x] CatÃ¡logo de 29 mÃ³dulos en `src/lib/modules.ts` con helper `areDepsActive()`.
+- [x] Bundles comerciales en `src/lib/module-bundles.ts` (Control, Ejecutora, RectorÃ­a Sectorial).
+- [x] Limpieza de 3 hardcodes de PersonerÃ­a:
+  1. `TERMINOS_LEGALES_DEFAULT` exportable y overrideable vÃ­a `ContextoEntidad.terminosLegales` ([`src/lib/groq-client.ts`](src/lib/groq-client.ts)).
   2. Prompt IA acepta `pais`, `marcoLegal`, `definicionesTipos` opcionales (mismo archivo).
   3. Dependencia receptora en PQRSD lee `pqrsd.dependenciaReceptoraCodigo` con fallback ([`src/app/api/pqrsd/route.ts`](src/app/api/pqrsd/route.ts)).
-- [x] UI superadmin agrupada por categoría con badges de tier y dependencias ([`src/components/admin/superadmin/tenant-modulos.tsx`](src/components/admin/superadmin/tenant-modulos.tsx)).
+- [x] UI superadmin agrupada por categorÃ­a con badges de tier y dependencias ([`src/components/admin/superadmin/tenant-modulos.tsx`](src/components/admin/superadmin/tenant-modulos.tsx)).
 - [x] `tsc --noEmit` limpio (solo legacy `ventanilla_unica_personeria_buga/` excluido).
 
-### ✅ Fase 15 — Pasivos de nómina (cerrada)
+### âœ… Fase 15 â€” Pasivos de nÃ³mina (cerrada)
 
-Segunda mitad del ciclo de pago de nómina: liquidar a EPS/AFP/ARL/DIAN/parafiscales los pasivos generados como crédito por el comprobante de Fase 12. Cada pago a tercero genera un `CpComprobante` independiente con D `<cuenta_pasivo>` / C `<banco>` y se registra en una nueva tabla de control para descontar saldos.
+Segunda mitad del ciclo de pago de nÃ³mina: liquidar a EPS/AFP/ARL/DIAN/parafiscales los pasivos generados como crÃ©dito por el comprobante de Fase 12. Cada pago a tercero genera un `CpComprobante` independiente con D `<cuenta_pasivo>` / C `<banco>` y se registra en una nueva tabla de control para descontar saldos.
 
 **Datos**
 - [x] Modelo `NomPagoPasivo` (campos: periodoId, cuentaCodigo/cuentaNombre, tercero/terceroNit, valor, fecha, cuentaBancoCodigo, comprobanteId, observacion, creadoPor). Indexado por `[periodoId]` y `[cuentaCodigo]`.
-- [x] Relación inversa `NomNominaPeriodo.pagosPasivos`.
+- [x] RelaciÃ³n inversa `NomNominaPeriodo.pagosPasivos`.
 
 **Endpoints**
-- [x] `GET /api/admin/nom/pasivos-pendientes?periodoId=` — agrega créditos en cuentas clase 2 del comprobante de nómina (`fuenteModulo='nomina'`, `fuenteRef=periodoId`) y descuenta lo ya pagado. Devuelve filas `{ cuentaCodigo, cuentaNombre, generado, pagado, saldo }` + historial de pagos.
+- [x] `GET /api/admin/nom/pasivos-pendientes?periodoId=` â€” agrega crÃ©ditos en cuentas clase 2 del comprobante de nÃ³mina (`fuenteModulo='nomina'`, `fuenteRef=periodoId`) y descuenta lo ya pagado. Devuelve filas `{ cuentaCodigo, cuentaNombre, generado, pagado, saldo }` + historial de pagos.
 - [x] `POST /api/admin/nom/pagar-pasivo { periodoId, cuentaCodigo, tercero, terceroNit?, valor, fecha, cuentaBancoId, numero, observacion? }`:
   - Valida periodo `PAGADO|CERRADO`, contabilidad activa, cuenta pasivo clase 2 + permite movimiento, cuenta banco clase 111*, periodo contable ABIERTO.
-  - Calcula saldo disponible y valida `valor ≤ saldo`.
+  - Calcula saldo disponible y valida `valor â‰¤ saldo`.
   - `$transaction`: crea `CpComprobante` EGRESO con 2 asientos (D pasivo / C banco), `fuenteModulo='nomina-pasivo'`, `fuenteRef=periodoId`. Inserta `NomPagoPasivo` apuntando al comprobante.
 
 **Validaciones zod**
 - [x] `nomPagarPasivoSchema` (10 campos).
 
 **UI**
-- [x] Botón "Pasivos" (ámbar) en la tabla de periodos `PAGADO|CERRADO` cuando contabilidad está activa.
-- [x] `PasivosModal` carga vía fetch al abrir (`useEffect`), muestra tabla de pasivos con generado/pagado/saldo, botón "Pagar" por fila habilitado sólo si `saldo > 0.5`, sección "Pagos registrados" con histórico.
-- [x] `PagarPasivoForm` inline (no anidamos modal sobre modal): tercero + NIT + fecha + valor + número (auto-sugerido `PP-<periodo>-<cuenta>`) + cuenta banco + observación.
+- [x] BotÃ³n "Pasivos" (Ã¡mbar) en la tabla de periodos `PAGADO|CERRADO` cuando contabilidad estÃ¡ activa.
+- [x] `PasivosModal` carga vÃ­a fetch al abrir (`useEffect`), muestra tabla de pasivos con generado/pagado/saldo, botÃ³n "Pagar" por fila habilitado sÃ³lo si `saldo > 0.5`, secciÃ³n "Pagos registrados" con histÃ³rico.
+- [x] `PagarPasivoForm` inline (no anidamos modal sobre modal): tercero + NIT + fecha + valor + nÃºmero (auto-sugerido `PP-<periodo>-<cuenta>`) + cuenta banco + observaciÃ³n.
 
-**Verificación**
+**VerificaciÃ³n**
 - [x] `prisma generate` + `tsc --noEmit` limpios.
 
 **Hallazgos**
-- El saldo del pasivo se calcula **al vuelo** desde los asientos contables — no se duplica un campo "saldo" en `NomPagoPasivo`. Razón: la fuente de verdad es el libro contable; si se anula un asiento de nómina, el saldo recalcula automáticamente.
-- `fuenteModulo='nomina-pasivo'` (no `'nomina'` simple) para diferenciar del comprobante original al consultar libros. Los pagos a terceros NO se cuentan como "pasivo generado" en `pasivos-pendientes` (sólo créditos del comprobante origen).
+- El saldo del pasivo se calcula **al vuelo** desde los asientos contables â€” no se duplica un campo "saldo" en `NomPagoPasivo`. RazÃ³n: la fuente de verdad es el libro contable; si se anula un asiento de nÃ³mina, el saldo recalcula automÃ¡ticamente.
+- `fuenteModulo='nomina-pasivo'` (no `'nomina'` simple) para diferenciar del comprobante original al consultar libros. Los pagos a terceros NO se cuentan como "pasivo generado" en `pasivos-pendientes` (sÃ³lo crÃ©ditos del comprobante origen).
 - Un mismo pasivo (ej. salud 4%+8.5%) puede pagarse en varios pagos parciales a la misma EPS, o partirse entre varias EPS si los empleados tienen EPS distintas. La UI permite pagar `valor < saldo` y deja el resto como saldo para otro pago.
-- ⚠ Migración pendiente: `npx prisma db push` para crear `nom_pagos_pasivos`.
-- Limitación conocida: la lista de pasivos hoy agrega TODO crédito de clase 2 del comprobante. Si el comprobante de nómina tuviera créditos a 2505 por aportes patronales (que pagamos a EPS/AFP) **mezclados** con créditos a 2505 por sueldos por pagar al empleado (que ya pagamos al banco), no los distingue — pero el comprobante actual de Fase 12 ya envía el neto directamente al banco (no usa 2505 para sueldos), así que no hay colisión.
+- âš  MigraciÃ³n pendiente: `npx prisma db push` para crear `nom_pagos_pasivos`.
+- LimitaciÃ³n conocida: la lista de pasivos hoy agrega TODO crÃ©dito de clase 2 del comprobante. Si el comprobante de nÃ³mina tuviera crÃ©ditos a 2505 por aportes patronales (que pagamos a EPS/AFP) **mezclados** con crÃ©ditos a 2505 por sueldos por pagar al empleado (que ya pagamos al banco), no los distingue â€” pero el comprobante actual de Fase 12 ya envÃ­a el neto directamente al banco (no usa 2505 para sueldos), asÃ­ que no hay colisiÃ³n.
 
 ---
 
-### ✅ Fase 14 — Exportador XLSX para reportes de control (cerrada)
+### âœ… Fase 14 â€” Exportador XLSX para reportes de control (cerrada)
 
-Conversión de los snapshots JSON de Fase 13 a archivos XLSX descargables, listos para que el contador los entregue al ente (o copie/pegue al template oficial).
+ConversiÃ³n de los snapshots JSON de Fase 13 a archivos XLSX descargables, listos para que el contador los entregue al ente (o copie/pegue al template oficial).
 
-**Implementación**
-- [x] [`src/lib/reportes-control/xlsx.ts`](src/lib/reportes-control/xlsx.ts) — usa `exceljs` (ya en deps). Función única `exportarReporteXlsx(tipo, datos, observacion)` con dispatch por tipo:
-  - **CHIP_BALANCE / CHIP_ACTIVIDAD** → hoja con columnas Cuenta · Nombre · Naturaleza · Débitos · Créditos · Saldo + totales en negrita.
-  - **FUT_GASTOS** → hoja con 10 columnas (Código · Nombre · Nivel · Apropiación inicial · Adiciones · Reducciones · Definitiva · Comprometido · Obligado · Pagado) + fila TOTAL.
-  - **FUT_INGRESOS** → 7 columnas (Código · Nombre · Nivel · Aforado inicial · Adiciones · Reducciones · Aforado definitivo) + TOTAL.
-  - **LEY_617** → tabla vertical con indicador / ICLD / tope / cumple / holgura + fila roja si excede.
+**ImplementaciÃ³n**
+- [x] [`src/lib/reportes-control/xlsx.ts`](src/lib/reportes-control/xlsx.ts) â€” usa `exceljs` (ya en deps). FunciÃ³n Ãºnica `exportarReporteXlsx(tipo, datos, observacion)` con dispatch por tipo:
+  - **CHIP_BALANCE / CHIP_ACTIVIDAD** â†’ hoja con columnas Cuenta Â· Nombre Â· Naturaleza Â· DÃ©bitos Â· CrÃ©ditos Â· Saldo + totales en negrita.
+  - **FUT_GASTOS** â†’ hoja con 10 columnas (CÃ³digo Â· Nombre Â· Nivel Â· ApropiaciÃ³n inicial Â· Adiciones Â· Reducciones Â· Definitiva Â· Comprometido Â· Obligado Â· Pagado) + fila TOTAL.
+  - **FUT_INGRESOS** â†’ 7 columnas (CÃ³digo Â· Nombre Â· Nivel Â· Aforado inicial Â· Adiciones Â· Reducciones Â· Aforado definitivo) + TOTAL.
+  - **LEY_617** â†’ tabla vertical con indicador / ICLD / tope / cumple / holgura + fila roja si excede.
   - Todas las columnas monetarias usan formato COP `"$"#,##0;[Red]-"$"#,##0`.
   - Encabezado azul (#1E40AF) en negrita blanca; ancho de columnas auto-ajustado capeado a 60.
 
 **Endpoint**
-- [x] `GET /api/admin/rc/reportes/[id]/xlsx` — recupera el snapshot, ejecuta el builder, devuelve `Response` con `Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` y `Content-Disposition: attachment; filename="<TIPO>_<clave>_<fecha>.xlsx"`.
+- [x] `GET /api/admin/rc/reportes/[id]/xlsx` â€” recupera el snapshot, ejecuta el builder, devuelve `Response` con `Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` y `Content-Disposition: attachment; filename="<TIPO>_<clave>_<fecha>.xlsx"`.
 
 **UI**
-- [x] Botón XLSX (verde, ícono `FileSpreadsheet`) al lado del JSON en cada fila de la bitácora de `/admin/reportes-control`. Es un `<a href>` directo al endpoint — descarga nativa sin JS adicional.
+- [x] BotÃ³n XLSX (verde, Ã­cono `FileSpreadsheet`) al lado del JSON en cada fila de la bitÃ¡cora de `/admin/reportes-control`. Es un `<a href>` directo al endpoint â€” descarga nativa sin JS adicional.
 
-**Verificación**
+**VerificaciÃ³n**
 - [x] `tsc --noEmit` limpio.
 
 **Hallazgos**
-- `exceljs.writeBuffer()` devuelve `ArrayBuffer | Buffer` según la versión. Lo casteamos a `Uint8Array` y luego a `any` en `new Response()` porque TypeScript de Next.js no acepta `Uint8Array` directo en `BodyInit` sin lib.dom estándar. Funciona en Node runtime de Vercel sin problemas.
-- El layout NO es el oficial CGN/DNP — esos templates cambian por trimestre y por categoría municipal y exigen filas/columnas en posiciones exactas. La estrategia es: el XLSX exportado es **navegable y agrupado** (un contador lo lee bien), y desde ahí el contador copia/pega al template oficial bajado del portal. Mapeo 1:1 queda como mejora futura cuando se tenga el .xlsx oficial de referencia para diff.
-- El archivo se llama `<TIPO>_<vigencia|periodoId>_<fechaISO>.xlsx` — fácil de archivar en la carpeta de la entidad.
+- `exceljs.writeBuffer()` devuelve `ArrayBuffer | Buffer` segÃºn la versiÃ³n. Lo casteamos a `Uint8Array` y luego a `any` en `new Response()` porque TypeScript de Next.js no acepta `Uint8Array` directo en `BodyInit` sin lib.dom estÃ¡ndar. Funciona en Node runtime de Vercel sin problemas.
+- El layout NO es el oficial CGN/DNP â€” esos templates cambian por trimestre y por categorÃ­a municipal y exigen filas/columnas en posiciones exactas. La estrategia es: el XLSX exportado es **navegable y agrupado** (un contador lo lee bien), y desde ahÃ­ el contador copia/pega al template oficial bajado del portal. Mapeo 1:1 queda como mejora futura cuando se tenga el .xlsx oficial de referencia para diff.
+- El archivo se llama `<TIPO>_<vigencia|periodoId>_<fechaISO>.xlsx` â€” fÃ¡cil de archivar en la carpeta de la entidad.
 
 ---
 
-### ✅ Fase 13 — Módulo `reportes_control` (cerrada)
+### âœ… Fase 13 â€” MÃ³dulo `reportes_control` (cerrada)
 
-Cierra la última pieza del MVP SAE original (A0): reportes a entes de control (CHIP / FUT / Ley 617). Implementación como snapshots JSON persistidos en `RcReporteGenerado`, mapeo al layout XLS oficial queda pendiente.
+Cierra la Ãºltima pieza del MVP SAE original (A0): reportes a entes de control (CHIP / FUT / Ley 617). ImplementaciÃ³n como snapshots JSON persistidos en `RcReporteGenerado`, mapeo al layout XLS oficial queda pendiente.
 
 **Datos**
-- [x] `RcReporteGenerado` (campo `datos` Json + `totales` Json para listar rápido) + enum `RcTipoReporte` (5 valores: CHIP_BALANCE, CHIP_ACTIVIDAD, FUT_INGRESOS, FUT_GASTOS, LEY_617). Indexado por `[tipo, vigencia]` y `[tipo, periodoContableId]`.
+- [x] `RcReporteGenerado` (campo `datos` Json + `totales` Json para listar rÃ¡pido) + enum `RcTipoReporte` (5 valores: CHIP_BALANCE, CHIP_ACTIVIDAD, FUT_INGRESOS, FUT_GASTOS, LEY_617). Indexado por `[tipo, vigencia]` y `[tipo, periodoContableId]`.
 
-**Núcleo (`src/lib/reportes-control/`)**
-- [x] [`chip.ts`](src/lib/reportes-control/chip.ts) — `chipBalance(prisma, periodoId)` y `chipActividad(prisma, periodoId)`. Agregan asientos REGISTRADOS no anulados por cuenta (clases 1/2/3 para Balance, 4/5 para Actividad), aplican signo según naturaleza DEBITO/CREDITO y devuelven totales (activo / pasivo / patrimonio / diferencia, ingresos / gastos / excedente).
-- [x] [`fut.ts`](src/lib/reportes-control/fut.ts) — `futGastos(prisma, vigencia)` (apropiación / comprometido / obligado / pagado por rubro CCPET tipo GASTO) y `futIngresos(prisma, vigencia)` (aforado definitivo por rubro INGRESO). El recaudo real desde clase 4 contable queda como nota pendiente — requiere amarra subcuenta→rubro que hoy no existe a nivel catálogo.
-- [x] [`ley617.ts`](src/lib/reportes-control/ley617.ts) — `ley617({ prisma, vigencia, icldManual?, topeCategoria? })`. Suma obligaciones de rubros `A.1*` y `A.2*` como gastos de funcionamiento, divide por ICLD (manual o derivado de CCPET `1.1*`) y compara contra tope por categoría municipal (default 3.7% = categoría 6).
+**NÃºcleo (`src/lib/reportes-control/`)**
+- [x] [`chip.ts`](src/lib/reportes-control/chip.ts) â€” `chipBalance(prisma, periodoId)` y `chipActividad(prisma, periodoId)`. Agregan asientos REGISTRADOS no anulados por cuenta (clases 1/2/3 para Balance, 4/5 para Actividad), aplican signo segÃºn naturaleza DEBITO/CREDITO y devuelven totales (activo / pasivo / patrimonio / diferencia, ingresos / gastos / excedente).
+- [x] [`fut.ts`](src/lib/reportes-control/fut.ts) â€” `futGastos(prisma, vigencia)` (apropiaciÃ³n / comprometido / obligado / pagado por rubro CCPET tipo GASTO) y `futIngresos(prisma, vigencia)` (aforado definitivo por rubro INGRESO). El recaudo real desde clase 4 contable queda como nota pendiente â€” requiere amarra subcuentaâ†’rubro que hoy no existe a nivel catÃ¡logo.
+- [x] [`ley617.ts`](src/lib/reportes-control/ley617.ts) â€” `ley617({ prisma, vigencia, icldManual?, topeCategoria? })`. Suma obligaciones de rubros `A.1*` y `A.2*` como gastos de funcionamiento, divide por ICLD (manual o derivado de CCPET `1.1*`) y compara contra tope por categorÃ­a municipal (default 3.7% = categorÃ­a 6).
 
 **Endpoints**
-- [x] `POST /api/admin/rc/generar { tipo, periodoContableId?, vigencia?, icldManual?, topeCategoria?, observacion? }` — dispatch por tipo, persiste snapshot.
-- [x] `GET /api/admin/rc/reportes?tipo=&vigencia=&periodoContableId=` — lista (sólo metadata + totales para tabla).
-- [x] `GET/DELETE /api/admin/rc/reportes/[id]` — descarga JSON completo / borra snapshot.
+- [x] `POST /api/admin/rc/generar { tipo, periodoContableId?, vigencia?, icldManual?, topeCategoria?, observacion? }` â€” dispatch por tipo, persiste snapshot.
+- [x] `GET /api/admin/rc/reportes?tipo=&vigencia=&periodoContableId=` â€” lista (sÃ³lo metadata + totales para tabla).
+- [x] `GET/DELETE /api/admin/rc/reportes/[id]` â€” descarga JSON completo / borra snapshot.
 - [x] `requireReportesControl` guard.
 - [x] `rcGenerarSchema` zod.
 
 **UI**
-- [x] [`/admin/reportes-control`](src/app/admin/reportes-control/page.tsx) — server: últimos 24 periodos contables + últimos 60 reportes.
-- [x] [`client-page.tsx`](src/app/admin/reportes-control/client-page.tsx) — 5 botones (uno por tipo), tabla de bitácora con resumen línea-por-línea por tipo (`A: ... · P+P: ...` para Balance, `Apropiado X · Pagado Y` para FUT, `% · ✓/✗ cumple` para Ley 617), descarga JSON al click (`URL.createObjectURL` + `<a download>`), eliminar con confirm. Modal único `GenerarModal` adaptativo al tipo (pide periodo para CHIP, vigencia para FUT/617, selector de tope categoría para 617).
+- [x] [`/admin/reportes-control`](src/app/admin/reportes-control/page.tsx) â€” server: Ãºltimos 24 periodos contables + Ãºltimos 60 reportes.
+- [x] [`client-page.tsx`](src/app/admin/reportes-control/client-page.tsx) â€” 5 botones (uno por tipo), tabla de bitÃ¡cora con resumen lÃ­nea-por-lÃ­nea por tipo (`A: ... Â· P+P: ...` para Balance, `Apropiado X Â· Pagado Y` para FUT, `% Â· âœ“/âœ— cumple` para Ley 617), descarga JSON al click (`URL.createObjectURL` + `<a download>`), eliminar con confirm. Modal Ãºnico `GenerarModal` adaptativo al tipo (pide periodo para CHIP, vigencia para FUT/617, selector de tope categorÃ­a para 617).
 - [x] Entrada "Reportes de control" en sidebar gateada por `MODULO_IDS.REPORTES_CONTROL`.
 
-**Verificación**
+**VerificaciÃ³n**
 - [x] `prisma generate` OK + `tsc --noEmit` limpio.
 
 **Hallazgos**
-- Los snapshots se persisten como Json crudo. Razón: estos reportes se entregan al organismo externo en formato propio (CHIP usa su software, FUT usa plantilla XLS) — guardar el JSON normalizado deja la puerta abierta a renderizar contra cualquier layout sin re-consultar la BD ni recalcular.
-- El cálculo de Balance / Actividad **filtra en JS por prefijo** (`startsWith('1')`) tras un `findMany` sin filtro de código. Razón: Prisma no tiene `OR` cómodo sobre `startsWith` múltiples sin construir array. Para volúmenes de personería (<5k asientos/mes) es trivial; para alcaldías grandes hay que mover el filtro a SQL crudo.
-- El FUT de ingresos devuelve **aforado**, no recaudo real. El recaudo necesita amarrar cuentas clase 4 ↔ rubros CCPET 1.x.x — pendiente de modelo (campo `rubroCcpetCodigo` en `CpPlanCuenta`, similar a lo que hicimos en NomConcepto). Documentado en el output del reporte.
-- Ley 617 usa `topeCategoria` parametrizable porque cada municipio tiene su categoría (1.5%–3.7%). Personería Buga es categoría 6 → 3.7%. El selector lista las 6 categorías comunes.
-- ⚠ Migración pendiente: `npx prisma db push` para crear `rc_reportes` por tenant.
+- Los snapshots se persisten como Json crudo. RazÃ³n: estos reportes se entregan al organismo externo en formato propio (CHIP usa su software, FUT usa plantilla XLS) â€” guardar el JSON normalizado deja la puerta abierta a renderizar contra cualquier layout sin re-consultar la BD ni recalcular.
+- El cÃ¡lculo de Balance / Actividad **filtra en JS por prefijo** (`startsWith('1')`) tras un `findMany` sin filtro de cÃ³digo. RazÃ³n: Prisma no tiene `OR` cÃ³modo sobre `startsWith` mÃºltiples sin construir array. Para volÃºmenes de personerÃ­a (<5k asientos/mes) es trivial; para alcaldÃ­as grandes hay que mover el filtro a SQL crudo.
+- El FUT de ingresos devuelve **aforado**, no recaudo real. El recaudo necesita amarrar cuentas clase 4 â†” rubros CCPET 1.x.x â€” pendiente de modelo (campo `rubroCcpetCodigo` en `CpPlanCuenta`, similar a lo que hicimos en NomConcepto). Documentado en el output del reporte.
+- Ley 617 usa `topeCategoria` parametrizable porque cada municipio tiene su categorÃ­a (1.5%â€“3.7%). PersonerÃ­a Buga es categorÃ­a 6 â†’ 3.7%. El selector lista las 6 categorÃ­as comunes.
+- âš  MigraciÃ³n pendiente: `npx prisma db push` para crear `rc_reportes` por tenant.
 
 ---
 
-### ✅ Fase 12 — Pago de nómina → comprobante contable (cerrada)
+### âœ… Fase 12 â€” Pago de nÃ³mina â†’ comprobante contable (cerrada)
 
-Cierra el círculo `Liquidación → Comprobante`. Cuando un periodo está `LIQUIDADO`, la entidad presiona "Pagar" y se genera **un único comprobante EGRESO** que agrega todas las liquidaciones del periodo. El periodo pasa a `PAGADO` y cada `NomLiquidacion.comprobanteId` queda apuntando al comprobante creado.
+Cierra el cÃ­rculo `LiquidaciÃ³n â†’ Comprobante`. Cuando un periodo estÃ¡ `LIQUIDADO`, la entidad presiona "Pagar" y se genera **un Ãºnico comprobante EGRESO** que agrega todas las liquidaciones del periodo. El periodo pasa a `PAGADO` y cada `NomLiquidacion.comprobanteId` queda apuntando al comprobante creado.
 
 **Endpoint**
 - [x] `POST /api/admin/nom/pagar { periodoId, fecha, numero, cuentaBancoId }`
-  - Valida periodo `LIQUIDADO`, módulo `contabilidad_publica` activo, periodo contable `ABIERTO`.
+  - Valida periodo `LIQUIDADO`, mÃ³dulo `contabilidad_publica` activo, periodo contable `ABIERTO`.
   - Itera detalles de todas las liquidaciones, agrega por `cuentaContableCodigo`:
-    - **DEVENGADO** → D gasto (5101/5103/5104/5111 según concepto).
-    - **APORTE_PATRONAL** → D gasto + C pasivo 2505 (nómina por pagar).
-    - **PRESTACION_SOCIAL** → D gasto + C pasivo 2510 (cesantías por pagar).
-    - **DEDUCCION_EMPLEADO** → C pasivo (2425 / 2436 / 2510 según concepto).
-    - **Neto a empleados** → C banco (cuentaBancoId).
-  - Resuelve códigos → `cpPlanCuenta.id` con un solo query. Falla con 400 si falta alguna cuenta (típicamente porque la auto-siembra del CGC no se ejecutó).
+    - **DEVENGADO** â†’ D gasto (5101/5103/5104/5111 segÃºn concepto).
+    - **APORTE_PATRONAL** â†’ D gasto + C pasivo 2505 (nÃ³mina por pagar).
+    - **PRESTACION_SOCIAL** â†’ D gasto + C pasivo 2510 (cesantÃ­as por pagar).
+    - **DEDUCCION_EMPLEADO** â†’ C pasivo (2425 / 2436 / 2510 segÃºn concepto).
+    - **Neto a empleados** â†’ C banco (cuentaBancoId).
+  - Resuelve cÃ³digos â†’ `cpPlanCuenta.id` con un solo query. Falla con 400 si falta alguna cuenta (tÃ­picamente porque la auto-siembra del CGC no se ejecutÃ³).
   - Valida partida doble con tolerancia 0.5 COP. Crea `CpComprobante` con `fuenteModulo='nomina'`, `fuenteRef=periodoId`, `tipo=EGRESO`.
   - `$transaction`: comprobante + `nomLiquidacion.updateMany({ comprobanteId })` + `nomNominaPeriodo.update({ estado: 'PAGADO' })`.
 
@@ -187,99 +187,99 @@ Cierra el círculo `Liquidación → Comprobante`. Cuando un periodo está `LIQU
 - [x] `nomPagarPeriodoSchema { periodoId, fecha, numero, cuentaBancoId, cuentaSueldosPorPagarCodigo? }`.
 
 **UI**
-- [x] Botón "Pagar" en la tabla de periodos sólo aparece cuando `estado=LIQUIDADO` **y** `contabilidad_publica` está activo (caso contrario muestra hint).
-- [x] `PagarModal`: resumen del periodo (#empleados, neto, deducciones), número auto-sugerido `NOM-YYYY-MM`, fecha hoy por defecto, select de cuentas banco (PUC `111*`). Tras éxito muestra resumen del comprobante generado (asientos, totales, deducciones a terceros).
-- [x] Server `page.tsx` ahora carga `cuentasBanco` (sólo si contabilidad activa) y pasa `contabilidadActiva: boolean` al cliente.
+- [x] BotÃ³n "Pagar" en la tabla de periodos sÃ³lo aparece cuando `estado=LIQUIDADO` **y** `contabilidad_publica` estÃ¡ activo (caso contrario muestra hint).
+- [x] `PagarModal`: resumen del periodo (#empleados, neto, deducciones), nÃºmero auto-sugerido `NOM-YYYY-MM`, fecha hoy por defecto, select de cuentas banco (PUC `111*`). Tras Ã©xito muestra resumen del comprobante generado (asientos, totales, deducciones a terceros).
+- [x] Server `page.tsx` ahora carga `cuentasBanco` (sÃ³lo si contabilidad activa) y pasa `contabilidadActiva: boolean` al cliente.
 
-**Verificación**
+**VerificaciÃ³n**
 - [x] `tsc --noEmit` limpio.
 
 **Hallazgos**
-- El comprobante es **agregado** (un solo `CpComprobante` por periodo, ~10-20 asientos) en vez de uno por empleado. Razón: mantiene los libros legibles y `permiteMovimientos=true` se cumple por código de cuenta, no por empleado. El detalle empleado-a-empleado queda en `NomLiquidacionDetalle`.
-- Las cuentas de contrapartida pasivo (2505/2510) están hardcodeadas en el route — funciona porque la auto-siembra del CGC oficial (Fase 8) las garantiza. Si una entidad usa subcuentas distintas, queda como mejora exponer `cuentaSueldosPorPagarCodigo` en la UI (ya está en el schema zod).
-- Los **aportes patronales y deducciones se quedan como pasivos** en 2505/2510/2425/2436. Pagarlos a EPS/AFP/DIAN/parafiscales es otra obligación (CDP/RP/Pago vía módulo presupuesto) — esa es la próxima iteración.
-- Diferencia con `/api/admin/psu/pagos`: no genera obligación presupuestal en este corte. La nómina pública colombiana suele estar **embebida en una sola apropiación A.1.1** y la entidad maneja el devengo presupuestal mensualmente sin atomizar por empleado. Si el cliente lo pide, se añade un flag `generarObligacion: true` que crea una `PsuObligacion` contra un RP anual.
-- `fuenteRef=periodoId` permite cruzar libros: `SELECT * FROM cp_comprobantes WHERE fuente_modulo='nomina' AND fuente_ref=<periodoId>` da el comprobante; al revés desde `NomLiquidacion.comprobanteId` se navega al detalle de asientos.
+- El comprobante es **agregado** (un solo `CpComprobante` por periodo, ~10-20 asientos) en vez de uno por empleado. RazÃ³n: mantiene los libros legibles y `permiteMovimientos=true` se cumple por cÃ³digo de cuenta, no por empleado. El detalle empleado-a-empleado queda en `NomLiquidacionDetalle`.
+- Las cuentas de contrapartida pasivo (2505/2510) estÃ¡n hardcodeadas en el route â€” funciona porque la auto-siembra del CGC oficial (Fase 8) las garantiza. Si una entidad usa subcuentas distintas, queda como mejora exponer `cuentaSueldosPorPagarCodigo` en la UI (ya estÃ¡ en el schema zod).
+- Los **aportes patronales y deducciones se quedan como pasivos** en 2505/2510/2425/2436. Pagarlos a EPS/AFP/DIAN/parafiscales es otra obligaciÃ³n (CDP/RP/Pago vÃ­a mÃ³dulo presupuesto) â€” esa es la prÃ³xima iteraciÃ³n.
+- Diferencia con `/api/admin/psu/pagos`: no genera obligaciÃ³n presupuestal en este corte. La nÃ³mina pÃºblica colombiana suele estar **embebida en una sola apropiaciÃ³n A.1.1** y la entidad maneja el devengo presupuestal mensualmente sin atomizar por empleado. Si el cliente lo pide, se aÃ±ade un flag `generarObligacion: true` que crea una `PsuObligacion` contra un RP anual.
+- `fuenteRef=periodoId` permite cruzar libros: `SELECT * FROM cp_comprobantes WHERE fuente_modulo='nomina' AND fuente_ref=<periodoId>` da el comprobante; al revÃ©s desde `NomLiquidacion.comprobanteId` se navega al detalle de asientos.
 
 ---
 
-### ✅ Fase 11 — Núcleo `nomina_publica` (cerrada)
+### âœ… Fase 11 â€” NÃºcleo `nomina_publica` (cerrada)
 
-Primer módulo que integra **contabilidad + presupuesto + dominio nuevo**. Maneja empleados (planta / trabajador oficial / contratistas / supernumerarios / aprendices), catálogo de conceptos (devengado, deducción empleado, aporte patronal, prestación social), liquidación mensual con motor de cálculo, novedades y enlace a `CpComprobante` + `PsuObligacion` para la fase de pago.
+Primer mÃ³dulo que integra **contabilidad + presupuesto + dominio nuevo**. Maneja empleados (planta / trabajador oficial / contratistas / supernumerarios / aprendices), catÃ¡logo de conceptos (devengado, deducciÃ³n empleado, aporte patronal, prestaciÃ³n social), liquidaciÃ³n mensual con motor de cÃ¡lculo, novedades y enlace a `CpComprobante` + `PsuObligacion` para la fase de pago.
 
 **Datos** (bloque nuevo `prisma/schema.prisma`)
-- [x] `NomEmpleado` — identificación, vinculación (`NomTipoVinculacion`), salario básico decimal(18,2), banca, EPS/AFP/ARL/caja, flag retención. Únicos: `documento`. Índices: `activo`, `dependencia`.
-- [x] `NomConcepto` + enums `NomTipoConcepto` (4) y `NomFormulaConcepto` (5: FIJO, %SUELDO, %DEVENGADO, %IBC, CALCULO_ESPECIAL). Campos `cuentaContableCodigo` (PUC CGC) y `rubroCcpetCodigo` (CCPET A.1.x) → puente con contabilidad/presupuesto.
-- [x] `NomNominaPeriodo` + enum `NomEstadoPeriodo` (ABIERTO/LIQUIDADO/PAGADO/CERRADO). Único por código `YYYY-MM`.
+- [x] `NomEmpleado` â€” identificaciÃ³n, vinculaciÃ³n (`NomTipoVinculacion`), salario bÃ¡sico decimal(18,2), banca, EPS/AFP/ARL/caja, flag retenciÃ³n. Ãšnicos: `documento`. Ãndices: `activo`, `dependencia`.
+- [x] `NomConcepto` + enums `NomTipoConcepto` (4) y `NomFormulaConcepto` (5: FIJO, %SUELDO, %DEVENGADO, %IBC, CALCULO_ESPECIAL). Campos `cuentaContableCodigo` (PUC CGC) y `rubroCcpetCodigo` (CCPET A.1.x) â†’ puente con contabilidad/presupuesto.
+- [x] `NomNominaPeriodo` + enum `NomEstadoPeriodo` (ABIERTO/LIQUIDADO/PAGADO/CERRADO). Ãšnico por cÃ³digo `YYYY-MM`.
 - [x] `NomLiquidacion` con unique `[periodoId, empleadoId]` + acumulados + slots `obligacionId`/`comprobanteId`.
-- [x] `NomLiquidacionDetalle` (línea por concepto con valor y base usada).
-- [x] `NomNovedad` + enum `NomTipoNovedad` (8 tipos: vacaciones, licencias, incapacidades, ausencia, comisión, permiso).
+- [x] `NomLiquidacionDetalle` (lÃ­nea por concepto con valor y base usada).
+- [x] `NomNovedad` + enum `NomTipoNovedad` (8 tipos: vacaciones, licencias, incapacidades, ausencia, comisiÃ³n, permiso).
 
-**Catálogo base de conceptos**
-- [x] [`src/lib/seeders/nomina-conceptos.ts`](src/lib/seeders/nomina-conceptos.ts) — 24 conceptos prefijados:
-  - **9 devengados** (NC-001..009): sueldo, horas extras, auxilio transporte, bonificación servicios, prima servicios, prima navidad, prima vacaciones, vacaciones, honorarios contratistas.
-  - **7 deducciones empleado** (NC-101..122): salud 4%, pensión 4%, FSP 1%, retefuente salarios, retefuente honorarios 10%, embargo, libranza, fondo empleados.
-  - **8 aportes patronales** (NC-201..208): salud 8.5%, pensión 12%, ARL 0.522%, caja 4%, ICBF 3%, SENA 2%, ESAP 0.5%, escuelas técnicas 0.5%.
-  - **2 prestaciones sociales** (NC-301..302): cesantías 8.33%, intereses cesantías 1%.
+**CatÃ¡logo base de conceptos**
+- [x] [`src/lib/seeders/nomina-conceptos.ts`](src/lib/seeders/nomina-conceptos.ts) â€” 24 conceptos prefijados:
+  - **9 devengados** (NC-001..009): sueldo, horas extras, auxilio transporte, bonificaciÃ³n servicios, prima servicios, prima navidad, prima vacaciones, vacaciones, honorarios contratistas.
+  - **7 deducciones empleado** (NC-101..122): salud 4%, pensiÃ³n 4%, FSP 1%, retefuente salarios, retefuente honorarios 10%, embargo, libranza, fondo empleados.
+  - **8 aportes patronales** (NC-201..208): salud 8.5%, pensiÃ³n 12%, ARL 0.522%, caja 4%, ICBF 3%, SENA 2%, ESAP 0.5%, escuelas tÃ©cnicas 0.5%.
+  - **2 prestaciones sociales** (NC-301..302): cesantÃ­as 8.33%, intereses cesantÃ­as 1%.
   - Cada concepto enlazado a la cuenta CGC sembrada en Fase 8 (5101/5103/5104/5111/2425/2436/2510) y al rubro CCPET A.1.x de Fase 10 cuando aplica.
-  - Función `seedNominaConceptos(prisma)` idempotente vía upsert por `codigo`.
+  - FunciÃ³n `seedNominaConceptos(prisma)` idempotente vÃ­a upsert por `codigo`.
 
-**Motor de liquidación**
-- [x] [`src/lib/nomina-motor.ts`](src/lib/nomina-motor.ts) — función pura `liquidarEmpleado(empleado, conceptos, dias, novedades)`:
+**Motor de liquidaciÃ³n**
+- [x] [`src/lib/nomina-motor.ts`](src/lib/nomina-motor.ts) â€” funciÃ³n pura `liquidarEmpleado(empleado, conceptos, dias, novedades)`:
   1. Filtra conceptos aplicables al `tipoVinculacion`.
-  2. Pasada 1 — devengados (calcula IBC = sólo conceptos `constitutivoSalario:true`).
-  3. Pasada 2 — deducciones empleado (sobre IBC, devengado o fijo).
-  4. Pasada 3 — aportes patronales + prestaciones (sobre IBC/devengado).
-  - Aplica `factorDias = dias/30` a fórmulas % de sueldo.
-  - Provisiones (prima/vacaciones) usan aproximaciones determinísticas (8.33% / 4.17%) — placeholder por no consultar histórico.
+  2. Pasada 1 â€” devengados (calcula IBC = sÃ³lo conceptos `constitutivoSalario:true`).
+  3. Pasada 2 â€” deducciones empleado (sobre IBC, devengado o fijo).
+  4. Pasada 3 â€” aportes patronales + prestaciones (sobre IBC/devengado).
+  - Aplica `factorDias = dias/30` a fÃ³rmulas % de sueldo.
+  - Provisiones (prima/vacaciones) usan aproximaciones determinÃ­sticas (8.33% / 4.17%) â€” placeholder por no consultar histÃ³rico.
   - Retefuente queda en 0 (TODO: tablas UVT DIAN).
 
-**Núcleo**
-- [x] [`src/lib/frisco-guard.ts`](src/lib/frisco-guard.ts) — añadido `requireNomina(roles)` (gateado por `MODULO_IDS.NOMINA_PUBLICA`).
-- [x] [`src/lib/validations.ts`](src/lib/validations.ts) — schemas zod nuevos: `nomEmpleadoCreate/Update`, `nomPeriodoCreate`, `nomNovedadCreate`, `nomLiquidarPeriodo`.
+**NÃºcleo**
+- [x] [`src/lib/frisco-guard.ts`](src/lib/frisco-guard.ts) â€” aÃ±adido `requireNomina(roles)` (gateado por `MODULO_IDS.NOMINA_PUBLICA`).
+- [x] [`src/lib/validations.ts`](src/lib/validations.ts) â€” schemas zod nuevos: `nomEmpleadoCreate/Update`, `nomPeriodoCreate`, `nomNovedadCreate`, `nomLiquidarPeriodo`.
 
 **Endpoints admin**
 - [x] `GET/POST /api/admin/nom/empleados` (filtros q/activo/tipoVinculacion).
 - [x] `GET/PATCH/DELETE /api/admin/nom/empleados/[id]` (DELETE = soft inactivar + fechaRetiro).
-- [x] `GET/POST /api/admin/nom/periodos` (auto-calcula código `YYYY-MM` y rangos UTC).
+- [x] `GET/POST /api/admin/nom/periodos` (auto-calcula cÃ³digo `YYYY-MM` y rangos UTC).
 - [x] `GET /api/admin/nom/liquidaciones?periodoId|empleadoId` (incluye empleado + periodo + detalles con concepto).
-- [x] `POST /api/admin/nom/liquidar { periodoId, diasLiquidados? }` — orquesta `liquidarEmpleado` por empleado, upsert `NomLiquidacion` + reemplaza detalles en `$transaction`, marca periodo `LIQUIDADO` y registra `liquidadoPor`.
+- [x] `POST /api/admin/nom/liquidar { periodoId, diasLiquidados? }` â€” orquesta `liquidarEmpleado` por empleado, upsert `NomLiquidacion` + reemplaza detalles en `$transaction`, marca periodo `LIQUIDADO` y registra `liquidadoPor`.
 
-**Auto-siembra al activar el módulo**
-- [x] `PUT /api/superadmin/tenants/[id]/modulos` ahora detecta `nomina_publica` recién activado y siembra los 24 conceptos en la BD del tenant. Devuelve `{ semillas: [{ modulo: "nomina_publica", total }] }`.
+**Auto-siembra al activar el mÃ³dulo**
+- [x] `PUT /api/superadmin/tenants/[id]/modulos` ahora detecta `nomina_publica` reciÃ©n activado y siembra los 24 conceptos en la BD del tenant. Devuelve `{ semillas: [{ modulo: "nomina_publica", total }] }`.
 
 **UI**
-- [x] [`/admin/nomina`](src/app/admin/nomina/page.tsx) — server: carga empleados (200), últimos 12 periodos con totales acumulados, count de conceptos activos.
-- [x] [`client-page.tsx`](src/app/admin/nomina/client-page.tsx) — KPIs (empleados activos / último periodo / neto / aportes), tabla de periodos con badge de estado y botón "Liquidar" en ABIERTO, tabla de empleados, 3 modales (Empleado, Periodo, Liquidar). El modal de Liquidar muestra resumen post-corrida (devengado/deducciones/aportes/neto).
-- [x] Entrada "Nómina" en sidebar gateada por `MODULO_IDS.NOMINA_PUBLICA` ([`admin-sidebar.tsx`](src/components/admin/admin-sidebar.tsx)).
+- [x] [`/admin/nomina`](src/app/admin/nomina/page.tsx) â€” server: carga empleados (200), Ãºltimos 12 periodos con totales acumulados, count de conceptos activos.
+- [x] [`client-page.tsx`](src/app/admin/nomina/client-page.tsx) â€” KPIs (empleados activos / Ãºltimo periodo / neto / aportes), tabla de periodos con badge de estado y botÃ³n "Liquidar" en ABIERTO, tabla de empleados, 3 modales (Empleado, Periodo, Liquidar). El modal de Liquidar muestra resumen post-corrida (devengado/deducciones/aportes/neto).
+- [x] Entrada "NÃ³mina" en sidebar gateada por `MODULO_IDS.NOMINA_PUBLICA` ([`admin-sidebar.tsx`](src/components/admin/admin-sidebar.tsx)).
 
-**Verificación**
+**VerificaciÃ³n**
 - [x] `prisma generate` OK + `tsc --noEmit` limpio.
 
 **Hallazgos**
-- El motor de liquidación es **función pura** (no toca DB) → testeable sin mock. La capa de orquestación (`/liquidar` route) hace upsert + reemplazo de detalles + cambio de estado en una sola `$transaction` para no dejar liquidaciones a medias.
-- Las provisiones (prima de servicios, vacaciones) son aproximaciones — para cumplir formalmente con la norma colombiana hay que promediar últimos 12 meses. Documentado como TODO en el motor.
-- La retención en la fuente quedó como **placeholder = 0**. Implementarla requiere tablas UVT DIAN del año fiscal y procedimientos 1/2 — fuera del scope MVP pero pendiente antes de pagar nómina real.
-- El concepto NC-009 "Honorarios" para contratistas usa `FIJO` (sin porcentaje) porque se pega el valor mensual contratado directamente — eventualmente un campo `valorMensual` en `NomEmpleado` para OPS.
-- La cadena completa **liquidación → obligación presupuestal → pago → comprobante contable** queda para la siguiente fase: hoy `NomLiquidacion.obligacionId` y `.comprobanteId` están preparados pero ningún endpoint los llena. Ese flujo es la *fase 12* (pagar-nomina).
-- ⚠ Migración pendiente: `npx prisma db push` para crear tablas `nom_*`. Al activar el módulo desde Superadmin se siembran los 24 conceptos automáticamente.
+- El motor de liquidaciÃ³n es **funciÃ³n pura** (no toca DB) â†’ testeable sin mock. La capa de orquestaciÃ³n (`/liquidar` route) hace upsert + reemplazo de detalles + cambio de estado en una sola `$transaction` para no dejar liquidaciones a medias.
+- Las provisiones (prima de servicios, vacaciones) son aproximaciones â€” para cumplir formalmente con la norma colombiana hay que promediar Ãºltimos 12 meses. Documentado como TODO en el motor.
+- La retenciÃ³n en la fuente quedÃ³ como **placeholder = 0**. Implementarla requiere tablas UVT DIAN del aÃ±o fiscal y procedimientos 1/2 â€” fuera del scope MVP pero pendiente antes de pagar nÃ³mina real.
+- El concepto NC-009 "Honorarios" para contratistas usa `FIJO` (sin porcentaje) porque se pega el valor mensual contratado directamente â€” eventualmente un campo `valorMensual` en `NomEmpleado` para OPS.
+- La cadena completa **liquidaciÃ³n â†’ obligaciÃ³n presupuestal â†’ pago â†’ comprobante contable** queda para la siguiente fase: hoy `NomLiquidacion.obligacionId` y `.comprobanteId` estÃ¡n preparados pero ningÃºn endpoint los llena. Ese flujo es la *fase 12* (pagar-nomina).
+- âš  MigraciÃ³n pendiente: `npx prisma db push` para crear tablas `nom_*`. Al activar el mÃ³dulo desde Superadmin se siembran los 24 conceptos automÃ¡ticamente.
 
 ---
 
-### ✅ Fase 10 — CCPET Territorial completo (ingresos + gastos)
+### âœ… Fase 10 â€” CCPET Territorial completo (ingresos + gastos)
 
-El usuario aportó los 4 anexos oficiales descargados manualmente del portal de MinHacienda en `docs/ccpet/`. Procesados los dos anexos territoriales; los EICE quedan descargados pero sin aplicar (ver hallazgo).
+El usuario aportÃ³ los 4 anexos oficiales descargados manualmente del portal de MinHacienda en `docs/ccpet/`. Procesados los dos anexos territoriales; los EICE quedan descargados pero sin aplicar (ver hallazgo).
 
 **Carga completa**
-- [x] `ccpet_ingresos_territoriales.xlsx` (Anexo 1A v8) → 512 rubros INGRESO
-- [x] `ccpet_gastos_territoriales.xlsx` (Anexo 2A v8) → 1.272 rubros GASTO
-- **Total: 1.784 rubros** del CCPET Territorial, niveles 1..10, sin huérfanos.
+- [x] `ccpet_ingresos_territoriales.xlsx` (Anexo 1A v8) â†’ 512 rubros INGRESO
+- [x] `ccpet_gastos_territoriales.xlsx` (Anexo 2A v8) â†’ 1.272 rubros GASTO
+- **Total: 1.784 rubros** del CCPET Territorial, niveles 1..10, sin huÃ©rfanos.
 
-**Distribución de gastos** (la columna vertebral de CDP/RP/Obligación/Pago)
+**DistribuciÃ³n de gastos** (la columna vertebral de CDP/RP/ObligaciÃ³n/Pago)
 | Nivel | Cantidad |
 |---|---|
 | 1 (Gastos) | 1 |
-| 2 (Funcionamiento / Servicio deuda / Inversión) | 3 |
+| 2 (Funcionamiento / Servicio deuda / InversiÃ³n) | 3 |
 | 3 (subgrupos) | 18 |
 | 4 (conceptos) | 82 |
 | 5 (subconceptos) | 248 |
@@ -288,42 +288,42 @@ El usuario aportó los 4 anexos oficiales descargados manualmente del portal de 
 | 8 | 200 |
 | 9-10 | 66 |
 
-**Hallazgo arquitectónico — EICE descartado en este corte**
-- [x] Anexos 1B y 2B (Empresas Industriales y Comerciales del Estado) también están descargados en `docs/ccpet/ccpet_{ingresos,gastos}_eice.xlsx` (200 ingresos + 1.137 gastos aprox).
-- ⚠ NO se cargan en este corte por **colisión de códigos**: 1B y 1A comparten prefijo `1.x.x...`; 2B y 2A comparten `2.x.x...`. La tabla `psu_rubros` tiene `codigo @unique`, por lo que cargar ambos rompería la inserción.
-- **Migración propuesta para soportar EICE más adelante:**
+**Hallazgo arquitectÃ³nico â€” EICE descartado en este corte**
+- [x] Anexos 1B y 2B (Empresas Industriales y Comerciales del Estado) tambiÃ©n estÃ¡n descargados en `docs/ccpet/ccpet_{ingresos,gastos}_eice.xlsx` (200 ingresos + 1.137 gastos aprox).
+- âš  NO se cargan en este corte por **colisiÃ³n de cÃ³digos**: 1B y 1A comparten prefijo `1.x.x...`; 2B y 2A comparten `2.x.x...`. La tabla `psu_rubros` tiene `codigo @unique`, por lo que cargar ambos romperÃ­a la inserciÃ³n.
+- **MigraciÃ³n propuesta para soportar EICE mÃ¡s adelante:**
   1. Nuevo enum `PsuMarcoCcpet { TERRITORIAL, EICE }`.
-  2. Cambiar `PsuRubro.codigo @unique` → `@@unique([codigo, marco])`.
-  3. Filtrar los rubros expuestos al tenant según su tipología (campo nuevo en `Tenant.marcoCcpet`).
-- Hasta esa migración, **los tenants tipo EICE (caso SAE) usan el catálogo TERRITORIAL** que cubre la mayor parte de los conceptos comunes. Las 4 cuentas tributarias muy específicas de EICE (impuestos a empresas, dividendos) quedan pendientes hasta la migración.
+  2. Cambiar `PsuRubro.codigo @unique` â†’ `@@unique([codigo, marco])`.
+  3. Filtrar los rubros expuestos al tenant segÃºn su tipologÃ­a (campo nuevo en `Tenant.marcoCcpet`).
+- Hasta esa migraciÃ³n, **los tenants tipo EICE (caso SAE) usan el catÃ¡logo TERRITORIAL** que cubre la mayor parte de los conceptos comunes. Las 4 cuentas tributarias muy especÃ­ficas de EICE (impuestos a empresas, dividendos) quedan pendientes hasta la migraciÃ³n.
 
-**Implementación**
-- [x] [`scripts/parse-ccpet-xlsx.py`](scripts/parse-ccpet-xlsx.py) procesa ambos territoriales en una sola pasada; comentario explica por qué los EICE no se incluyen.
+**ImplementaciÃ³n**
+- [x] [`scripts/parse-ccpet-xlsx.py`](scripts/parse-ccpet-xlsx.py) procesa ambos territoriales en una sola pasada; comentario explica por quÃ© los EICE no se incluyen.
 - [x] [`src/lib/seeders/ccp-rubros.generated.ts`](src/lib/seeders/ccp-rubros.generated.ts) ahora tiene 1.784 rubros (era 512). El seeder principal (`seedCcp`) no cambia.
 - [x] La auto-siembra al activar `presupuesto_ejecucion` desde Superadmin carga ahora los 1.784 rubros oficiales.
 - [x] `tsc --noEmit` limpio.
 
 ---
 
-### ✅ Fase 9 — CCPET ingresos cargado desde MinHacienda (parcial: faltan gastos)
+### âœ… Fase 9 â€” CCPET ingresos cargado desde MinHacienda (parcial: faltan gastos)
 
-Expansión del CCP de ~85 rubros operativos a **512 rubros oficiales de ingresos** del CCPET (Catálogo de Clasificación Presupuestal para Entidades Territoriales y sus Descentralizadas) emitido por MinHacienda / Dirección General de Apoyo Fiscal Territorial.
+ExpansiÃ³n del CCP de ~85 rubros operativos a **512 rubros oficiales de ingresos** del CCPET (CatÃ¡logo de ClasificaciÃ³n Presupuestal para Entidades Territoriales y sus Descentralizadas) emitido por MinHacienda / DirecciÃ³n General de Apoyo Fiscal Territorial.
 
 **Fuente y normativa**
-- Resolución 3832/2019 + 2662/2023 y modificatorias. **Versión 8** (vigente).
+- ResoluciÃ³n 3832/2019 + 2662/2023 y modificatorias. **VersiÃ³n 8** (vigente).
 - URL oficial: `https://www.minhacienda.gov.co/apoyo-fiscal-territorial/estadisticas-de-finanzas-publicas-territoriales/ccpet-cuipo`
 - Anexos descargables:
-  - 1A: ingresos territoriales (✅ descargado)
-  - 2A: gastos territoriales (❌ **bloqueado por Radware Bot Manager** tras la primera petición; requiere descarga manual humana)
+  - 1A: ingresos territoriales (âœ… descargado)
+  - 2A: gastos territoriales (âŒ **bloqueado por Radware Bot Manager** tras la primera peticiÃ³n; requiere descarga manual humana)
   - 1B/2B: empresas industriales y comerciales del Estado (omitidos en este corte)
 
 **Pipeline**
-- [x] [`scripts/parse-ccpet-xlsx.py`](scripts/parse-ccpet-xlsx.py) — lee los XLSX desde `docs/ccpet/` y emite TS con tipos casteados (`any[]` + cast a `RubroCcp[]` para evitar TS2590).
-- [x] [`src/lib/seeders/ccp-rubros.generated.ts`](src/lib/seeders/ccp-rubros.generated.ts) — generado, 512 rubros de ingresos, niveles 1..10.
-- [x] [`src/lib/seeders/ccp-rubros.ts`](src/lib/seeders/ccp-rubros.ts) reescrito: re-exporta `CCP_RUBROS = CCP_RUBROS_OFICIAL`, tipo `RubroCcp.nivel` ampliado a `number` (era `1|2|3|4|5`) para soportar la jerarquía profunda del CCPET tributario.
-- [x] [`src/lib/validations.ts`](src/lib/validations.ts) — `psuRubroCreateSchema`: `nivel.max(6)` → `nivel.max(10)`, `codigo.max(40)` → `60`, `nombre.max(200)` → `300`.
+- [x] [`scripts/parse-ccpet-xlsx.py`](scripts/parse-ccpet-xlsx.py) â€” lee los XLSX desde `docs/ccpet/` y emite TS con tipos casteados (`any[]` + cast a `RubroCcp[]` para evitar TS2590).
+- [x] [`src/lib/seeders/ccp-rubros.generated.ts`](src/lib/seeders/ccp-rubros.generated.ts) â€” generado, 512 rubros de ingresos, niveles 1..10.
+- [x] [`src/lib/seeders/ccp-rubros.ts`](src/lib/seeders/ccp-rubros.ts) reescrito: re-exporta `CCP_RUBROS = CCP_RUBROS_OFICIAL`, tipo `RubroCcp.nivel` ampliado a `number` (era `1|2|3|4|5`) para soportar la jerarquÃ­a profunda del CCPET tributario.
+- [x] [`src/lib/validations.ts`](src/lib/validations.ts) â€” `psuRubroCreateSchema`: `nivel.max(6)` â†’ `nivel.max(10)`, `codigo.max(40)` â†’ `60`, `nombre.max(200)` â†’ `300`.
 
-**Distribución de rubros de ingresos**
+**DistribuciÃ³n de rubros de ingresos**
 | Nivel | Cantidad |
 |---|---|
 | 1 (Agregado) | 1 |
@@ -338,409 +338,484 @@ Expansión del CCP de ~85 rubros operativos a **512 rubros oficiales de ingresos
 | **Total ingresos** | **512** |
 
 **Hallazgos**
-- El XLSX usa el formato "staircased": el nombre aparece en la columna `4 + nivel`, no en una columna fija. El parser detecta automáticamente la primera columna no vacía a la derecha de la columna de tipo.
-- Los rubros tributarios tienen **hasta 10 niveles** (ej. `1.1.02.07.002.01.03.02.02.01`) — mucho más profundo que los típicos 5 niveles. Hubo que ampliar el tipo y la validación zod en consecuencia.
-- **Radware Bot Manager** del sitio de MinHacienda bloquea la segunda descarga inmediata desde la misma IP. El primer anexo (1A ingresos) pasó, pero al pedir 2A inmediatamente devuelve HTML con captcha hCaptcha. Soluciones probadas que **no funcionaron**: User-Agent realista, Referer correcto, cookies persistentes, headers Sec-Fetch-*. Camino seguro documentado: el usuario lo baja desde el navegador y lo deja en `docs/ccpet/ccpet_gastos_territoriales.xlsx`.
-- Sin huérfanos ni duplicados en los 512 rubros. Niveles 1-10 con `permiteMovimientos=true` sólo en hojas (no aparecen como parent de ninguno).
+- El XLSX usa el formato "staircased": el nombre aparece en la columna `4 + nivel`, no en una columna fija. El parser detecta automÃ¡ticamente la primera columna no vacÃ­a a la derecha de la columna de tipo.
+- Los rubros tributarios tienen **hasta 10 niveles** (ej. `1.1.02.07.002.01.03.02.02.01`) â€” mucho mÃ¡s profundo que los tÃ­picos 5 niveles. Hubo que ampliar el tipo y la validaciÃ³n zod en consecuencia.
+- **Radware Bot Manager** del sitio de MinHacienda bloquea la segunda descarga inmediata desde la misma IP. El primer anexo (1A ingresos) pasÃ³, pero al pedir 2A inmediatamente devuelve HTML con captcha hCaptcha. Soluciones probadas que **no funcionaron**: User-Agent realista, Referer correcto, cookies persistentes, headers Sec-Fetch-*. Camino seguro documentado: el usuario lo baja desde el navegador y lo deja en `docs/ccpet/ccpet_gastos_territoriales.xlsx`.
+- Sin huÃ©rfanos ni duplicados en los 512 rubros. Niveles 1-10 con `permiteMovimientos=true` sÃ³lo en hojas (no aparecen como parent de ninguno).
 
-**Pendiente operativo (próxima sesión)**
-- [ ] Bajar manualmente el Anexo 2A de Gastos desde [el portal MinHacienda](https://www.minhacienda.gov.co/apoyo-fiscal-territorial/estadisticas-de-finanzas-publicas-territoriales/ccpet-cuipo) → guardar como `docs/ccpet/ccpet_gastos_territoriales.xlsx` → correr `python scripts/parse-ccpet-xlsx.py` (el script ya está preparado para ambos, sólo saltó el de gastos por archivo inexistente).
-- [ ] Eventualmente: cargar también CCPET 1B/2B para empresas industriales y comerciales (aplicaría a SAE, EICs municipales).
+**Pendiente operativo (prÃ³xima sesiÃ³n)**
+- [ ] Bajar manualmente el Anexo 2A de Gastos desde [el portal MinHacienda](https://www.minhacienda.gov.co/apoyo-fiscal-territorial/estadisticas-de-finanzas-publicas-territoriales/ccpet-cuipo) â†’ guardar como `docs/ccpet/ccpet_gastos_territoriales.xlsx` â†’ correr `python scripts/parse-ccpet-xlsx.py` (el script ya estÃ¡ preparado para ambos, sÃ³lo saltÃ³ el de gastos por archivo inexistente).
+- [ ] Eventualmente: cargar tambiÃ©n CCPET 1B/2B para empresas industriales y comerciales (aplicarÃ­a a SAE, EICs municipales).
 
 ---
 
-### ✅ Fase 8 — CGC oficial completo desde PDF de la CGN (cerrada)
+### âœ… Fase 8 â€” CGC oficial completo desde PDF de la CGN (cerrada)
 
-Corrección a la Fase 7: el subset de ~210 cuentas era insuficiente. El usuario aportó el PDF oficial actualizado de la CGN en `docs/cgc colombia actualizado.pdf` (474 páginas, Resolución 414/2014 con modificatorias **334/2025 y 343/2025**). Se parseó automáticamente.
+CorrecciÃ³n a la Fase 7: el subset de ~210 cuentas era insuficiente. El usuario aportÃ³ el PDF oficial actualizado de la CGN en `docs/cgc colombia actualizado.pdf` (474 pÃ¡ginas, ResoluciÃ³n 414/2014 con modificatorias **334/2025 y 343/2025**). Se parseÃ³ automÃ¡ticamente.
 
 **Pipeline de carga**
-- [x] [`scripts/parse-cgc-pdf.py`](scripts/parse-cgc-pdf.py) — extrae texto de páginas 7..142 (capítulo 1 "ESTRUCTURA"), aplica regex `^(\d{1,6})\s+(.+)$`, deriva nivel por longitud del código (1/2/4/6), determina parent por prefijo (subcuenta→cuenta→grupo→clase), e infiere naturaleza/tipo desde la clase con inversión automática en grupos "por contra" (89, 99).
-- [x] [`src/lib/seeders/cgc-cuentas.generated.ts`](src/lib/seeders/cgc-cuentas.generated.ts) — archivo TS generado, **3.745 cuentas** distribuidas así:
+- [x] [`scripts/parse-cgc-pdf.py`](scripts/parse-cgc-pdf.py) â€” extrae texto de pÃ¡ginas 7..142 (capÃ­tulo 1 "ESTRUCTURA"), aplica regex `^(\d{1,6})\s+(.+)$`, deriva nivel por longitud del cÃ³digo (1/2/4/6), determina parent por prefijo (subcuentaâ†’cuentaâ†’grupoâ†’clase), e infiere naturaleza/tipo desde la clase con inversiÃ³n automÃ¡tica en grupos "por contra" (89, 99).
+- [x] [`src/lib/seeders/cgc-cuentas.generated.ts`](src/lib/seeders/cgc-cuentas.generated.ts) â€” archivo TS generado, **3.745 cuentas** distribuidas asÃ­:
   - 9 clases
   - 44 grupos
   - 359 cuentas
   - 3.333 subcuentas (hojas con `permiteMovimientos=true`)
-- [x] [`src/lib/seeders/cgc-cuentas.ts`](src/lib/seeders/cgc-cuentas.ts) ahora re-exporta `CGC_CUENTAS = CGC_CUENTAS_OFICIAL` del generado. La función `seedCgc(prisma)` no cambia → la auto-siembra al activar el módulo ahora carga el catálogo completo.
+- [x] [`src/lib/seeders/cgc-cuentas.ts`](src/lib/seeders/cgc-cuentas.ts) ahora re-exporta `CGC_CUENTAS = CGC_CUENTAS_OFICIAL` del generado. La funciÃ³n `seedCgc(prisma)` no cambia â†’ la auto-siembra al activar el mÃ³dulo ahora carga el catÃ¡logo completo.
 
-**Marco normativo del catálogo cargado**
-- El PDF aportado corresponde al **Marco Normativo para Empresas que no Cotizan en el Mercado de Valores y que no Captan ni Administran Ahorro del Público** (Res. 414/2014 CGN). Es el aplicable a empresas estatales como **SAE** (cliente piloto del MVP).
-- Las **entidades de gobierno territorial puras** (alcaldías, personerías, gobernaciones) aplican la **Res. 533/2015** (Marco de Entidades de Gobierno). Documentado como pendiente: cargar este segundo marco como catálogo opcional cuando un tenant lo requiera. La estructura es similar pero los códigos y nombres varían (especialmente clase 7).
+**Marco normativo del catÃ¡logo cargado**
+- El PDF aportado corresponde al **Marco Normativo para Empresas que no Cotizan en el Mercado de Valores y que no Captan ni Administran Ahorro del PÃºblico** (Res. 414/2014 CGN). Es el aplicable a empresas estatales como **SAE** (cliente piloto del MVP).
+- Las **entidades de gobierno territorial puras** (alcaldÃ­as, personerÃ­as, gobernaciones) aplican la **Res. 533/2015** (Marco de Entidades de Gobierno). Documentado como pendiente: cargar este segundo marco como catÃ¡logo opcional cuando un tenant lo requiera. La estructura es similar pero los cÃ³digos y nombres varÃ­an (especialmente clase 7).
 
-**Hallazgos técnicos**
-- TypeScript reventaba con `TS2590 "Expression produces a union type that is too complex"` al intentar inferir el tipo unión literal de 3.745 objetos. **Fix:** el archivo generado declara el array como `const _CGC_RAW: any[] = [...]` y exporta `CGC_CUENTAS_OFICIAL = _CGC_RAW as CuentaCgc[]`. El cast omite la inferencia y mantiene tipado en uso. Patrón documentado en el header.
-- La verificación con `tsc --noEmit` queda limpia (EXIT=0).
-- Las modificatorias 334 y 343 de **2025** indican que la CGN actualizó el catálogo recientemente; al volver a publicar futura resolución basta reemplazar el PDF y correr `python scripts/parse-cgc-pdf.py`.
-- El parser detecta automáticamente la flag `(CR)` o `(DB)` en el nombre, pero el cambio efectivo de naturaleza se hace **sólo** por grupo "por contra" (89/99). Esto evita doble inversión cuando el grupo ya es contra y el nombre contiene la marca informativa.
-- ⚠ Migración pendiente: para los tenants que ya activaron el módulo con el subset de Fase 7 (210 cuentas), al volver a guardar la activación desde Superadmin se disparará el seeder y sembrará las ~3.500 cuentas faltantes (idempotente, no toca asientos existentes).
+**Hallazgos tÃ©cnicos**
+- TypeScript reventaba con `TS2590 "Expression produces a union type that is too complex"` al intentar inferir el tipo uniÃ³n literal de 3.745 objetos. **Fix:** el archivo generado declara el array como `const _CGC_RAW: any[] = [...]` y exporta `CGC_CUENTAS_OFICIAL = _CGC_RAW as CuentaCgc[]`. El cast omite la inferencia y mantiene tipado en uso. PatrÃ³n documentado en el header.
+- La verificaciÃ³n con `tsc --noEmit` queda limpia (EXIT=0).
+- Las modificatorias 334 y 343 de **2025** indican que la CGN actualizÃ³ el catÃ¡logo recientemente; al volver a publicar futura resoluciÃ³n basta reemplazar el PDF y correr `python scripts/parse-cgc-pdf.py`.
+- El parser detecta automÃ¡ticamente la flag `(CR)` o `(DB)` en el nombre, pero el cambio efectivo de naturaleza se hace **sÃ³lo** por grupo "por contra" (89/99). Esto evita doble inversiÃ³n cuando el grupo ya es contra y el nombre contiene la marca informativa.
+- âš  MigraciÃ³n pendiente: para los tenants que ya activaron el mÃ³dulo con el subset de Fase 7 (210 cuentas), al volver a guardar la activaciÃ³n desde Superadmin se dispararÃ¡ el seeder y sembrarÃ¡ las ~3.500 cuentas faltantes (idempotente, no toca asientos existentes).
 
 ---
 
-### ✅ Fase 7 — Catálogos públicos completos + auto-siembra al activar (cerrada)
+### âœ… Fase 7 â€” CatÃ¡logos pÃºblicos completos + auto-siembra al activar (cerrada)
 
-Corrección importante traída por el usuario: **el plan de cuentas y el catálogo presupuestal del sector público son distintos a los del sector privado**, y **no pueden quedar como tablas vacías** cuando se activa el módulo. Se reemplaza el JSON mínimo de la Fase 5 por dos catálogos canónicos completos y se conecta su carga a la activación del módulo desde Superadmin.
+CorrecciÃ³n importante traÃ­da por el usuario: **el plan de cuentas y el catÃ¡logo presupuestal del sector pÃºblico son distintos a los del sector privado**, y **no pueden quedar como tablas vacÃ­as** cuando se activa el mÃ³dulo. Se reemplaza el JSON mÃ­nimo de la Fase 5 por dos catÃ¡logos canÃ³nicos completos y se conecta su carga a la activaciÃ³n del mÃ³dulo desde Superadmin.
 
-**Catálogos canónicos**
-- [x] [`src/lib/seeders/cgc-cuentas.ts`](src/lib/seeders/cgc-cuentas.ts) — **CGC (Catálogo General de Cuentas) público** Resolución 533/2015 CGN. ≈210 cuentas cubriendo clases 1..9 (activos, pasivos, patrimonio, ingresos, gastos, costos de producción 7, orden 8/9). Incluye:
+**CatÃ¡logos canÃ³nicos**
+- [x] [`src/lib/seeders/cgc-cuentas.ts`](src/lib/seeders/cgc-cuentas.ts) â€” **CGC (CatÃ¡logo General de Cuentas) pÃºblico** ResoluciÃ³n 533/2015 CGN. â‰ˆ210 cuentas cubriendo clases 1..9 (activos, pasivos, patrimonio, ingresos, gastos, costos de producciÃ³n 7, orden 8/9). Incluye:
   - Niveles 1..5 (Clase/Grupo/Cuenta/Subcuenta/Auxiliar).
-  - Cuentas específicas del sector público: 17 (bienes de uso público), 47/57 (operaciones interinstitucionales), 44 (SGP educación/salud/agua/propósito general), 4407 (SGR), 55 (gasto público social), 59 (cierre).
-  - Cuentas correctoras con naturaleza invertida (1386 Deterioro CxC, 1685 Depreciación, 8920 Por contra).
-  - Función exportada `seedCgc(prisma)` — idempotente por upsert en `codigo`, resuelve grafo por pasadas.
-- [x] [`src/lib/seeders/ccp-rubros.ts`](src/lib/seeders/ccp-rubros.ts) — **CCP (Catálogo de Clasificación Presupuestal)** MinHacienda/DGPPN, basado en CICP Resolución 4015/2021 + Decreto 111/96. Cubre:
-  - **A — Funcionamiento** completo: A.1 personal (sueldos + contribuciones + parafiscales + servicios indirectos), A.2 bienes y servicios (activos no financieros + servicios públicos + mantenimiento + arrendamientos + viáticos + seguros + capacitación), A.3 transferencias corrientes (SGP, órganos de control con sub-rubros personería/contraloría/concejo), A.4 tributos/multas/sanciones, A.6 disminución de pasivos.
-  - **B — Servicio de deuda** (interna/externa: amortización + intereses + comisiones).
-  - **C — Inversión** por sectores DNP (educación, salud, vivienda, agua, transporte, cultura, ambiente, gobierno/seguridad, equidad, agro).
-  - **INGRESOS**: 1 corrientes (1.1 tributarios directos+indirectos, 1.2 no tributarios + SGP + SGR), 2 capital (crédito interno/externo, balance, rendimientos, donaciones, cofinanciación).
-  - Función `seedCcp(prisma)` análoga.
+  - Cuentas especÃ­ficas del sector pÃºblico: 17 (bienes de uso pÃºblico), 47/57 (operaciones interinstitucionales), 44 (SGP educaciÃ³n/salud/agua/propÃ³sito general), 4407 (SGR), 55 (gasto pÃºblico social), 59 (cierre).
+  - Cuentas correctoras con naturaleza invertida (1386 Deterioro CxC, 1685 DepreciaciÃ³n, 8920 Por contra).
+  - FunciÃ³n exportada `seedCgc(prisma)` â€” idempotente por upsert en `codigo`, resuelve grafo por pasadas.
+- [x] [`src/lib/seeders/ccp-rubros.ts`](src/lib/seeders/ccp-rubros.ts) â€” **CCP (CatÃ¡logo de ClasificaciÃ³n Presupuestal)** MinHacienda/DGPPN, basado en CICP ResoluciÃ³n 4015/2021 + Decreto 111/96. Cubre:
+  - **A â€” Funcionamiento** completo: A.1 personal (sueldos + contribuciones + parafiscales + servicios indirectos), A.2 bienes y servicios (activos no financieros + servicios pÃºblicos + mantenimiento + arrendamientos + viÃ¡ticos + seguros + capacitaciÃ³n), A.3 transferencias corrientes (SGP, Ã³rganos de control con sub-rubros personerÃ­a/contralorÃ­a/concejo), A.4 tributos/multas/sanciones, A.6 disminuciÃ³n de pasivos.
+  - **B â€” Servicio de deuda** (interna/externa: amortizaciÃ³n + intereses + comisiones).
+  - **C â€” InversiÃ³n** por sectores DNP (educaciÃ³n, salud, vivienda, agua, transporte, cultura, ambiente, gobierno/seguridad, equidad, agro).
+  - **INGRESOS**: 1 corrientes (1.1 tributarios directos+indirectos, 1.2 no tributarios + SGP + SGR), 2 capital (crÃ©dito interno/externo, balance, rendimientos, donaciones, cofinanciaciÃ³n).
+  - FunciÃ³n `seedCcp(prisma)` anÃ¡loga.
 
-**Auto-siembra al activar el módulo**
-- [x] [`PUT /api/superadmin/tenants/[id]/modulos`](src/app/api/superadmin/tenants/[id]/modulos/route.ts) detecta los módulos **recién activados** (no estaban antes, sí están ahora) y, si incluyen `contabilidad_publica` o `presupuesto_ejecucion`, obtiene la BD del tenant vía `getOrCreateTenantClientById(id)` y ejecuta el seeder correspondiente. La respuesta JSON incluye `{ semillas: [{ modulo, total }] }` para que el frontend lo confirme.
-- [x] Las semillas se ejecutan tras la actualización del meta-tenant; si fallan no abortan la activación (se registra `error` en el log de evento), porque puede correrse manualmente con el script CLI.
-- [x] El evento `MODULO_ACTUALIZADO` ahora guarda `{ anterior, nuevo, semillas }` en `EventoTenant.datos` — auditable desde Superadmin.
+**Auto-siembra al activar el mÃ³dulo**
+- [x] [`PUT /api/superadmin/tenants/[id]/modulos`](src/app/api/superadmin/tenants/[id]/modulos/route.ts) detecta los mÃ³dulos **reciÃ©n activados** (no estaban antes, sÃ­ estÃ¡n ahora) y, si incluyen `contabilidad_publica` o `presupuesto_ejecucion`, obtiene la BD del tenant vÃ­a `getOrCreateTenantClientById(id)` y ejecuta el seeder correspondiente. La respuesta JSON incluye `{ semillas: [{ modulo, total }] }` para que el frontend lo confirme.
+- [x] Las semillas se ejecutan tras la actualizaciÃ³n del meta-tenant; si fallan no abortan la activaciÃ³n (se registra `error` en el log de evento), porque puede correrse manualmente con el script CLI.
+- [x] El evento `MODULO_ACTUALIZADO` ahora guarda `{ anterior, nuevo, semillas }` en `EventoTenant.datos` â€” auditable desde Superadmin.
 
 **Script CLI**
-- [x] [`scripts/seed-puc.ts`](scripts/seed-puc.ts) reescrito: importa `seedCgc`/`seedCcp` desde el mismo módulo `lib/seeders/*` (única fuente de verdad). Banderas: `--ccp` para sólo presupuesto, `--all` para ambos, sin flag = sólo contabilidad.
-- [x] Eliminado [`prisma/seeds/puc-cgn.json`](prisma/seeds/puc-cgn.json) (era seed mínimo de 45 cuentas — ahora obsoleto).
+- [x] [`scripts/seed-puc.ts`](scripts/seed-puc.ts) reescrito: importa `seedCgc`/`seedCcp` desde el mismo mÃ³dulo `lib/seeders/*` (Ãºnica fuente de verdad). Banderas: `--ccp` para sÃ³lo presupuesto, `--all` para ambos, sin flag = sÃ³lo contabilidad.
+- [x] Eliminado [`prisma/seeds/puc-cgn.json`](prisma/seeds/puc-cgn.json) (era seed mÃ­nimo de 45 cuentas â€” ahora obsoleto).
 
 **Hallazgos**
-- Confusión común: el "PUC" colloquialmente se refiere al plan de cuentas privado (Decreto 2650/93). Para entidades públicas la norma vigente es la **Resolución 533/2015** de la CGN, que define el "Catálogo General de Cuentas (CGC)" dentro del Régimen de Contabilidad Pública (RCP). El código de los modelos sigue siendo `CpPlanCuenta` (sin rename para evitar migración invasiva) pero la documentación y los seeders ya hablan correctamente de CGC.
-- Para evitar tablas vacías en producción, la auto-siembra es **idempotente** (upsert por código): activar/desactivar/reactivar un módulo sólo siembra lo que falta y refresca metadatos sin destruir asientos ni movimientos.
-- `getOrCreateTenantClientById` se importa **dinámicamente** dentro del handler para no atar la ruta del meta al cliente del tenant si la ruta nunca dispara siembra (evita imports pesados en cold-start).
-- El CGC sembrado es **subset operativo** (~210 cuentas) — el catálogo completo de CGN tiene ~1500. Cuando un cliente necesite el resto, se amplía directamente en el array `CGC_CUENTAS` del seeder y se vuelve a correr (idempotente). Documentado en el header del archivo.
-- ⚠ Migración pendiente: para tenants donde ya se activó contabilidad_publica con el JSON mínimo, correr `DATABASE_URL=... npx tsx scripts/seed-puc.ts --all` una vez para completar el catálogo a la versión nueva.
+- ConfusiÃ³n comÃºn: el "PUC" colloquialmente se refiere al plan de cuentas privado (Decreto 2650/93). Para entidades pÃºblicas la norma vigente es la **ResoluciÃ³n 533/2015** de la CGN, que define el "CatÃ¡logo General de Cuentas (CGC)" dentro del RÃ©gimen de Contabilidad PÃºblica (RCP). El cÃ³digo de los modelos sigue siendo `CpPlanCuenta` (sin rename para evitar migraciÃ³n invasiva) pero la documentaciÃ³n y los seeders ya hablan correctamente de CGC.
+- Para evitar tablas vacÃ­as en producciÃ³n, la auto-siembra es **idempotente** (upsert por cÃ³digo): activar/desactivar/reactivar un mÃ³dulo sÃ³lo siembra lo que falta y refresca metadatos sin destruir asientos ni movimientos.
+- `getOrCreateTenantClientById` se importa **dinÃ¡micamente** dentro del handler para no atar la ruta del meta al cliente del tenant si la ruta nunca dispara siembra (evita imports pesados en cold-start).
+- El CGC sembrado es **subset operativo** (~210 cuentas) â€” el catÃ¡logo completo de CGN tiene ~1500. Cuando un cliente necesite el resto, se amplÃ­a directamente en el array `CGC_CUENTAS` del seeder y se vuelve a correr (idempotente). Documentado en el header del archivo.
+- âš  MigraciÃ³n pendiente: para tenants donde ya se activÃ³ contabilidad_publica con el JSON mÃ­nimo, correr `DATABASE_URL=... npx tsx scripts/seed-puc.ts --all` una vez para completar el catÃ¡logo a la versiÃ³n nueva.
 
 ---
 
-### ✅ Fase 6 — Núcleo `presupuesto_ejecucion` (cerrada)
+### âœ… Fase 6 â€” NÃºcleo `presupuesto_ejecucion` (cerrada)
 
-Cadena clásica del gasto público colombiano: **CDP → RP → Obligación → Pago**, con validación de saldos disponibles en cada paso y generación automática del comprobante contable al confirmar el pago.
+Cadena clÃ¡sica del gasto pÃºblico colombiano: **CDP â†’ RP â†’ ObligaciÃ³n â†’ Pago**, con validaciÃ³n de saldos disponibles en cada paso y generaciÃ³n automÃ¡tica del comprobante contable al confirmar el pago.
 
 **Datos** (nuevo bloque al final de `prisma/schema.prisma`)
-- [x] `PsuRubro` — jerárquico (parent/hijos), tipo GASTO/INGRESO, niveles 1..6, `permiteMovimientos` (sólo hojas).
-- [x] `PsuApropiacion` — única por (rubro, vigencia). Campos: `apropiacionInicial`, `adiciones`, `reducciones`. Saldo apropiación se calcula como `inicial + adiciones - reducciones - Σ(CDP vigentes)`.
-- [x] `PsuCdp`, `PsuRp`, `PsuObligacion`, `PsuPago` — cada uno con `numero @unique`, `valor`, `estado` enum `PsuEstadoDoc {VIGENTE, ANULADO, AGOTADO}`, trazabilidad (`creadoPor/anuladoEn/anuladoPor/motivoAnulacion`).
-- [x] `PsuPago` enlaza opcionalmente a `CpComprobante` vía `comprobanteId` y al PUC vía `cuentaBancoId`. Enum `PsuMedioPago {TRANSFERENCIA, CHEQUE, EFECTIVO, OTRO}`.
-- [x] Relación inversa nueva en `CpAuxiliarTercero.rps PsuRp[]` (named "PsuRpTercero").
+- [x] `PsuRubro` â€” jerÃ¡rquico (parent/hijos), tipo GASTO/INGRESO, niveles 1..6, `permiteMovimientos` (sÃ³lo hojas).
+- [x] `PsuApropiacion` â€” Ãºnica por (rubro, vigencia). Campos: `apropiacionInicial`, `adiciones`, `reducciones`. Saldo apropiaciÃ³n se calcula como `inicial + adiciones - reducciones - Î£(CDP vigentes)`.
+- [x] `PsuCdp`, `PsuRp`, `PsuObligacion`, `PsuPago` â€” cada uno con `numero @unique`, `valor`, `estado` enum `PsuEstadoDoc {VIGENTE, ANULADO, AGOTADO}`, trazabilidad (`creadoPor/anuladoEn/anuladoPor/motivoAnulacion`).
+- [x] `PsuPago` enlaza opcionalmente a `CpComprobante` vÃ­a `comprobanteId` y al PUC vÃ­a `cuentaBancoId`. Enum `PsuMedioPago {TRANSFERENCIA, CHEQUE, EFECTIVO, OTRO}`.
+- [x] RelaciÃ³n inversa nueva en `CpAuxiliarTercero.rps PsuRp[]` (named "PsuRpTercero").
 
-**Núcleo**
-- [x] [`src/lib/presupuesto-saldos.ts`](src/lib/presupuesto-saldos.ts) — 4 helpers `saldoApropiacion`, `saldoCdp`, `saldoRp`, `saldoObligacion`. Cada uno suma documentos hijos no-anulados y retorna `{ total, comprometido/obligado/pagado, disponible }`.
-- [x] [`src/lib/frisco-guard.ts`](src/lib/frisco-guard.ts) — añadido `requirePresupuesto(roles)`.
-- [x] [`src/lib/validations.ts`](src/lib/validations.ts) — 6 schemas zod nuevos (`psuRubroCreate`, `psuApropiacionCreate`, `psuCdpCreate`, `psuRpCreate`, `psuObligacionCreate`, `psuPagoCreate`).
+**NÃºcleo**
+- [x] [`src/lib/presupuesto-saldos.ts`](src/lib/presupuesto-saldos.ts) â€” 4 helpers `saldoApropiacion`, `saldoCdp`, `saldoRp`, `saldoObligacion`. Cada uno suma documentos hijos no-anulados y retorna `{ total, comprometido/obligado/pagado, disponible }`.
+- [x] [`src/lib/frisco-guard.ts`](src/lib/frisco-guard.ts) â€” aÃ±adido `requirePresupuesto(roles)`.
+- [x] [`src/lib/validations.ts`](src/lib/validations.ts) â€” 6 schemas zod nuevos (`psuRubroCreate`, `psuApropiacionCreate`, `psuCdpCreate`, `psuRpCreate`, `psuObligacionCreate`, `psuPagoCreate`).
 
 **Endpoints admin**
 - [x] `POST/GET /api/admin/psu/rubros`
 - [x] `POST/GET /api/admin/psu/apropiaciones` (upsert por `[rubroId, vigencia]`)
-- [x] `POST/GET /api/admin/psu/cdp` — valida `valor ≤ saldo apropiación`.
-- [x] `POST/GET /api/admin/psu/rp` — valida `valor ≤ saldo CDP` y CDP no anulado.
-- [x] `POST/GET /api/admin/psu/obligaciones` — valida `valor ≤ saldo RP`.
-- [x] `POST/GET /api/admin/psu/pagos` — valida `valor ≤ saldo obligación` y, si `contabilidad_publica` está activo + `cuentaBancoId` provista, **genera `CpComprobante` tipo EGRESO en la misma `$transaction`**:
-  - Cabecera con `fuenteModulo='presupuesto'`, `fuenteRef=<pagoId>` (post-update para cerrar el círculo).
+- [x] `POST/GET /api/admin/psu/cdp` â€” valida `valor â‰¤ saldo apropiaciÃ³n`.
+- [x] `POST/GET /api/admin/psu/rp` â€” valida `valor â‰¤ saldo CDP` y CDP no anulado.
+- [x] `POST/GET /api/admin/psu/obligaciones` â€” valida `valor â‰¤ saldo RP`.
+- [x] `POST/GET /api/admin/psu/pagos` â€” valida `valor â‰¤ saldo obligaciÃ³n` y, si `contabilidad_publica` estÃ¡ activo + `cuentaBancoId` provista, **genera `CpComprobante` tipo EGRESO en la misma `$transaction`**:
+  - Cabecera con `fuenteModulo='presupuesto'`, `fuenteRef=<pagoId>` (post-update para cerrar el cÃ­rculo).
   - 2 asientos: D cuenta de gasto (default: primera `5111*` activa si no se pasa `cuentaGastoId`) / C cuenta de banco.
   - Usa el periodo contable ABIERTO actual del tenant; falla si no hay ninguno.
-- [x] `GET /api/admin/psu/ejecucion?vigencia=YYYY` — vista consolidada con apropiado, comprometido (Σ CDP), obligado (Σ Obligaciones), pagado (Σ Pagos), disponible y % ejecución. Incluye totales.
+- [x] `GET /api/admin/psu/ejecucion?vigencia=YYYY` â€” vista consolidada con apropiado, comprometido (Î£ CDP), obligado (Î£ Obligaciones), pagado (Î£ Pagos), disponible y % ejecuciÃ³n. Incluye totales.
 
 **UI**
-- [x] [`/admin/presupuesto`](src/app/admin/presupuesto/page.tsx) — server component, carga vigencia desde query string (default año actual), tabla por rubro, recientes (CDP/RP), terceros y cuentas bancarias del PUC (filtra `111*`).
-- [x] [`client-page.tsx`](src/app/admin/presupuesto/client-page.tsx) — KPIs apropiado/comprometido/obligado/pagado, tabla detallada por rubro con % ejecución, 6 modales independientes (Rubro, Apropiación, CDP, RP, Obligación, Pago) — el de Pago marca opción "Generar comprobante contable automáticamente".
+- [x] [`/admin/presupuesto`](src/app/admin/presupuesto/page.tsx) â€” server component, carga vigencia desde query string (default aÃ±o actual), tabla por rubro, recientes (CDP/RP), terceros y cuentas bancarias del PUC (filtra `111*`).
+- [x] [`client-page.tsx`](src/app/admin/presupuesto/client-page.tsx) â€” KPIs apropiado/comprometido/obligado/pagado, tabla detallada por rubro con % ejecuciÃ³n, 6 modales independientes (Rubro, ApropiaciÃ³n, CDP, RP, ObligaciÃ³n, Pago) â€” el de Pago marca opciÃ³n "Generar comprobante contable automÃ¡ticamente".
 - [x] Entrada "Presupuesto" en sidebar gateada por `MODULO_IDS.PRESUPUESTO_EJECUCION`.
 
-**Verificación**
+**VerificaciÃ³n**
 - [x] `prisma generate` OK + `tsc --noEmit` limpio.
 
 **Hallazgos**
-- El campo `fuenteRef` del `CpComprobante` se actualiza **post-create** dentro de la misma transacción porque necesita el `pago.id` que sólo existe después de crear el pago. Sin esto, el comprobante quedaba apuntando a `'<pendiente>'`. Patrón a replicar en otros módulos que generen comprobantes.
-- El selector de obligación en el modal de Pago todavía pide pegar el `cuid` (no hay tabla de obligaciones recientes en este snapshot). Mejora obvia para iteración 2: traer las últimas obligaciones VIGENTES y mostrarlas como `<select>`. Aceptable para MVP porque el flujo intencional es Obligación → Pago en la misma sesión.
-- Cuando se quiera **anular** un documento de la cadena, los hijos vigentes deben anularse primero (no implementado aún — pendiente para iteración 2: validar `_count` de hijos vigentes antes de pasar a ANULADO).
-- ⚠ Migración pendiente: `npx prisma db push` para crear las 6 tablas `psu_*` y la nueva columna de relación en `cp_terceros`.
+- El campo `fuenteRef` del `CpComprobante` se actualiza **post-create** dentro de la misma transacciÃ³n porque necesita el `pago.id` que sÃ³lo existe despuÃ©s de crear el pago. Sin esto, el comprobante quedaba apuntando a `'<pendiente>'`. PatrÃ³n a replicar en otros mÃ³dulos que generen comprobantes.
+- El selector de obligaciÃ³n en el modal de Pago todavÃ­a pide pegar el `cuid` (no hay tabla de obligaciones recientes en este snapshot). Mejora obvia para iteraciÃ³n 2: traer las Ãºltimas obligaciones VIGENTES y mostrarlas como `<select>`. Aceptable para MVP porque el flujo intencional es ObligaciÃ³n â†’ Pago en la misma sesiÃ³n.
+- Cuando se quiera **anular** un documento de la cadena, los hijos vigentes deben anularse primero (no implementado aÃºn â€” pendiente para iteraciÃ³n 2: validar `_count` de hijos vigentes antes de pasar a ANULADO).
+- âš  MigraciÃ³n pendiente: `npx prisma db push` para crear las 6 tablas `psu_*` y la nueva columna de relaciÃ³n en `cp_terceros`.
 
 ---
 
-### ✅ Fase 5 — Núcleo `contabilidad_publica` (cerrada)
+### âœ… Fase 5 â€” NÃºcleo `contabilidad_publica` (cerrada)
 
 Siguiente palanca grande del MVP SAE. Motor de doble partida con PUC CGN, primer corte fino.
 
 **Datos**
-- [x] Modelos Prisma ya existían en `schema.prisma`: `CpPlanCuenta` (jerárquico, niveles 1..5, `naturaleza` DEBITO/CREDITO, `tipo` BALANCE/RESULTADO/ORDEN, `permiteMovimientos`), `CpPeriodoContable` (estados ABIERTO/CERRADO/AJUSTE), `CpAuxiliarTercero` (NIT/CC con `tipoDocumento`), `CpComprobante` (totalDebito/totalCredito, fuenteModulo+fuenteRef para trazabilidad cruzada), `CpAsiento` (cuenta + tercero opcional + débito/crédito con `@db.Decimal(18,2)`).
+- [x] Modelos Prisma ya existÃ­an en `schema.prisma`: `CpPlanCuenta` (jerÃ¡rquico, niveles 1..5, `naturaleza` DEBITO/CREDITO, `tipo` BALANCE/RESULTADO/ORDEN, `permiteMovimientos`), `CpPeriodoContable` (estados ABIERTO/CERRADO/AJUSTE), `CpAuxiliarTercero` (NIT/CC con `tipoDocumento`), `CpComprobante` (totalDebito/totalCredito, fuenteModulo+fuenteRef para trazabilidad cruzada), `CpAsiento` (cuenta + tercero opcional + dÃ©bito/crÃ©dito con `@db.Decimal(18,2)`).
 - [x] Enums: `CpNaturaleza`, `CpTipoCuenta`, `CpTipoComprobante` (CONTABLE/EGRESO/INGRESO/AJUSTE/APERTURA/CIERRE), `CpEstadoComprobante`, `CpEstadoPeriodo`, `CpTipoDocumento`.
 
 **Seed PUC CGN**
-- [x] [`prisma/seeds/puc-cgn.json`](prisma/seeds/puc-cgn.json) — semilla mínima viable (≈45 cuentas) cubriendo clases 1..5 + 8/9, niveles raíz/grupo/cuenta/auxiliar. Marca `permiteMovimientos=true` sólo en hojas.
-- [x] [`scripts/seed-puc.ts`](scripts/seed-puc.ts) — loader idempotente con upsert por `codigo`; resuelve `parentId` por pasadas hasta cerrar el grafo. Uso: `npx tsx scripts/seed-puc.ts` (toma `DATABASE_URL` del .env del tenant). Falla explícitamente si quedan cuentas con parent inexistente.
+- [x] [`prisma/seeds/puc-cgn.json`](prisma/seeds/puc-cgn.json) â€” semilla mÃ­nima viable (â‰ˆ45 cuentas) cubriendo clases 1..5 + 8/9, niveles raÃ­z/grupo/cuenta/auxiliar. Marca `permiteMovimientos=true` sÃ³lo en hojas.
+- [x] [`scripts/seed-puc.ts`](scripts/seed-puc.ts) â€” loader idempotente con upsert por `codigo`; resuelve `parentId` por pasadas hasta cerrar el grafo. Uso: `npx tsx scripts/seed-puc.ts` (toma `DATABASE_URL` del .env del tenant). Falla explÃ­citamente si quedan cuentas con parent inexistente.
 
-**Núcleo**
-- [x] [`src/lib/frisco-guard.ts`](src/lib/frisco-guard.ts) — añadido `requireContabilidad(roles)` reutilizando `requireModule` interno. Gatea por `MODULO_IDS.CONTABILIDAD_PUBLICA`.
-- [x] [`src/lib/validations.ts`](src/lib/validations.ts) — schemas zod: `cpCuentaCreate/Update`, `cpPeriodoCreate/Update`, `cpTerceroCreate/Update`, `cpAsientoSchema` (refine: exactamente uno de débito/crédito > 0), `cpComprobanteCreateSchema` (refine: ∑débitos ≈ ∑créditos con tolerancia 0.005, mínimo 2 asientos).
+**NÃºcleo**
+- [x] [`src/lib/frisco-guard.ts`](src/lib/frisco-guard.ts) â€” aÃ±adido `requireContabilidad(roles)` reutilizando `requireModule` interno. Gatea por `MODULO_IDS.CONTABILIDAD_PUBLICA`.
+- [x] [`src/lib/validations.ts`](src/lib/validations.ts) â€” schemas zod: `cpCuentaCreate/Update`, `cpPeriodoCreate/Update`, `cpTerceroCreate/Update`, `cpAsientoSchema` (refine: exactamente uno de dÃ©bito/crÃ©dito > 0), `cpComprobanteCreateSchema` (refine: âˆ‘dÃ©bitos â‰ˆ âˆ‘crÃ©ditos con tolerancia 0.005, mÃ­nimo 2 asientos).
 
 **Endpoints admin**
 - [x] `/api/admin/cp/cuentas` GET (filtros q/tipo/soloMovimiento) + POST.
 - [x] `/api/admin/cp/cuentas/[id]` PATCH + DELETE (inactiva si tiene movimientos, borra si no).
 - [x] `/api/admin/cp/periodos` GET + POST.
-- [x] `/api/admin/cp/periodos/[id]` PATCH (cambio de estado; AJUSTE sólo SUPER_ADMIN).
+- [x] `/api/admin/cp/periodos/[id]` PATCH (cambio de estado; AJUSTE sÃ³lo SUPER_ADMIN).
 - [x] `/api/admin/cp/terceros` GET + POST.
 - [x] `/api/admin/cp/comprobantes` GET + POST con validaciones en cascada:
-   1. Periodo existe y está ABIERTO (o AJUSTE con SUPER_ADMIN).
-   2. Todas las cuentas existen, están activas y `permiteMovimientos=true`.
-   3. Partida doble (cuadre ∑D = ∑C).
+   1. Periodo existe y estÃ¡ ABIERTO (o AJUSTE con SUPER_ADMIN).
+   2. Todas las cuentas existen, estÃ¡n activas y `permiteMovimientos=true`.
+   3. Partida doble (cuadre âˆ‘D = âˆ‘C).
    4. Crea comprobante + N asientos en una sola `$transaction`.
 - [x] `/api/admin/cp/comprobantes/[id]` GET (detalle con cuenta+tercero) + DELETE (anula con motivo).
-- [x] `/api/admin/cp/balance?periodoId=...` — agrega débitos/créditos/saldo por cuenta del periodo (sólo comprobantes REGISTRADOS), con totales para verificar cuadre global.
+- [x] `/api/admin/cp/balance?periodoId=...` â€” agrega dÃ©bitos/crÃ©ditos/saldo por cuenta del periodo (sÃ³lo comprobantes REGISTRADOS), con totales para verificar cuadre global.
 
 **UI**
-- [x] [`/admin/contabilidad`](src/app/admin/contabilidad/page.tsx) — server component, carga periodo abierto + KPIs por clase + balance del periodo + últimos comprobantes + cuentas con movimiento.
-- [x] [`client-page.tsx`](src/app/admin/contabilidad/client-page.tsx) — dashboard con 5 KPIs (clases 1-5), tabla de balance con totales, lista de últimos 15 comprobantes, modal "Nuevo periodo" (autocalcula código `YYYY-MM` y rangos UTC) y modal "Nuevo comprobante" con grilla editable de N líneas: select de cuenta · débito · crédito · detalle, totales en vivo y badge "✓ partida doble" / "⚠ no cuadra" que habilita el botón Registrar.
+- [x] [`/admin/contabilidad`](src/app/admin/contabilidad/page.tsx) â€” server component, carga periodo abierto + KPIs por clase + balance del periodo + Ãºltimos comprobantes + cuentas con movimiento.
+- [x] [`client-page.tsx`](src/app/admin/contabilidad/client-page.tsx) â€” dashboard con 5 KPIs (clases 1-5), tabla de balance con totales, lista de Ãºltimos 15 comprobantes, modal "Nuevo periodo" (autocalcula cÃ³digo `YYYY-MM` y rangos UTC) y modal "Nuevo comprobante" con grilla editable de N lÃ­neas: select de cuenta Â· dÃ©bito Â· crÃ©dito Â· detalle, totales en vivo y badge "âœ“ partida doble" / "âš  no cuadra" que habilita el botÃ³n Registrar.
 - [x] Entrada "Contabilidad" en sidebar gateada por `MODULO_IDS.CONTABILIDAD_PUBLICA` ([`admin-sidebar.tsx`](src/components/admin/admin-sidebar.tsx)).
 
-**Verificación**
+**VerificaciÃ³n**
 - [x] `prisma generate` OK + `tsc --noEmit` limpio.
 
 **Hallazgos**
-- Los modelos `Cp*` ya estaban definidos en `schema.prisma` (presumiblemente de una sesión previa que no llegó a CLAUDE.md). Confirma la lección del transcript de Fase 1: siempre `git status` antes de re-modelar.
+- Los modelos `Cp*` ya estaban definidos en `schema.prisma` (presumiblemente de una sesiÃ³n previa que no llegÃ³ a CLAUDE.md). Confirma la lecciÃ³n del transcript de Fase 1: siempre `git status` antes de re-modelar.
 - El refine de Zod para partida doble usa tolerancia `< 0.005` para evitar artefactos de coma flotante con dos decimales. Si en el futuro se necesitan 3+ decimales (multimoneda), bajar a `< 0.0005` y revisar el `@db.Decimal(18,2)`.
-- `permiteMovimientos` es la clave del modelo: sólo cuentas hoja reciben asientos; las cuentas de grupo agregan saldos por suma de hojas. El seed ya marca esto correctamente — replicar en cargas futuras del PUC ampliado.
-- ⚠ Migración pendiente: las tablas `cp_*` ya están en el `schema.prisma` pero hay que correr `npx prisma db push` contra cada tenant Neon donde se vaya a activar el módulo + `npx tsx scripts/seed-puc.ts` con el `DATABASE_URL` apuntando a ese tenant.
+- `permiteMovimientos` es la clave del modelo: sÃ³lo cuentas hoja reciben asientos; las cuentas de grupo agregan saldos por suma de hojas. El seed ya marca esto correctamente â€” replicar en cargas futuras del PUC ampliado.
+- âš  MigraciÃ³n pendiente: las tablas `cp_*` ya estÃ¡n en el `schema.prisma` pero hay que correr `npx prisma db push` contra cada tenant Neon donde se vaya a activar el mÃ³dulo + `npx tsx scripts/seed-puc.ts` con el `DATABASE_URL` apuntando a ese tenant.
 
 ---
 
-### ✅ Fase 4 — IA del reporte del depositario (cerrada)
+### âœ… Fase 4 â€” IA del reporte del depositario (cerrada)
 
-Primer retroactivo del barrido de IA. Analogía directa al clasificador de Ventanilla Única.
+Primer retroactivo del barrido de IA. AnalogÃ­a directa al clasificador de Ventanilla Ãšnica.
 
 **Datos**
 - [x] Modelo `FriscoReporteAnalisisIA` (1:1 con `FriscoReporteDepositario`, cascade): `urgencia` (enum NORMAL/ATENCION/CRITICA), `etiquetas` (String[]), `resumen`, `confianza`, `modelo`, `proveedor`, `promptVersion`, `raw` (Json), `tokensPrompt`/`tokensRespuesta`, `errorMsg`, `revisadoPor`/`revisadoEn`.
-- [x] Relación inversa `FriscoReporteDepositario.analisisIA`.
+- [x] RelaciÃ³n inversa `FriscoReporteDepositario.analisisIA`.
 
-**Núcleo IA**
-- [x] [`src/lib/groq-client.ts`](src/lib/groq-client.ts) — añadido helper exportado `callIaJson(tenantId, prompt)` con el mismo patrón Groq → Shipu de `classifyPQRSD`. No se tocó la función existente para evitar regresiones.
-- [x] [`src/lib/frisco-reporte-ia.ts`](src/lib/frisco-reporte-ia.ts) — `analizarReporte()` clasifica urgencia + asigna etiquetas (10 categorías cerradas: ocupación indebida, intento de venta, deterioro grave, daños estructurales, amenazas, robo, incendio, póliza vencida, documento pendiente, operación normal). Si la IA falla → fallback determinístico por regex sobre `novedades` + estado físico, marca `proveedor: "fallback"` y `errorMsg`. El reporte nunca se queda sin análisis.
-- [x] `promptVersion: "frisco-reporte-v1"` para poder versionar prompts sin perder histórico.
+**NÃºcleo IA**
+- [x] [`src/lib/groq-client.ts`](src/lib/groq-client.ts) â€” aÃ±adido helper exportado `callIaJson(tenantId, prompt)` con el mismo patrÃ³n Groq â†’ Shipu de `classifyPQRSD`. No se tocÃ³ la funciÃ³n existente para evitar regresiones.
+- [x] [`src/lib/frisco-reporte-ia.ts`](src/lib/frisco-reporte-ia.ts) â€” `analizarReporte()` clasifica urgencia + asigna etiquetas (10 categorÃ­as cerradas: ocupaciÃ³n indebida, intento de venta, deterioro grave, daÃ±os estructurales, amenazas, robo, incendio, pÃ³liza vencida, documento pendiente, operaciÃ³n normal). Si la IA falla â†’ fallback determinÃ­stico por regex sobre `novedades` + estado fÃ­sico, marca `proveedor: "fallback"` y `errorMsg`. El reporte nunca se queda sin anÃ¡lisis.
+- [x] `promptVersion: "frisco-reporte-v1"` para poder versionar prompts sin perder histÃ³rico.
 
-**Endpoint público**
-- [x] `POST /api/portal/frisco/[token]/reporte` ahora dispara `dispararAnalisisIA()` post-upsert. No-bloqueante: si la IA tarda, el ciudadano ya recibió 201. Persiste en `FriscoReporteAnalisisIA` por upsert (sobreescribe si el reporte se reedita en el mismo mes).
+**Endpoint pÃºblico**
+- [x] `POST /api/portal/frisco/[token]/reporte` ahora dispara `dispararAnalisisIA()` post-upsert. No-bloqueante: si la IA tarda, el ciudadano ya recibiÃ³ 201. Persiste en `FriscoReporteAnalisisIA` por upsert (sobreescribe si el reporte se reedita en el mismo mes).
 
 **API admin**
-- [x] `GET  /api/admin/frisco/bienes/[id]/reportes` — lista hasta 60 reportes del bien con `analisisIA` incluido.
-- [x] `PATCH /api/admin/frisco/reportes/[reporteId]/analisis` — override humano: actualiza urgencia/etiquetas y registra `revisadoPor` + `revisadoEn`. **IA sugiere, humano decide**.
+- [x] `GET  /api/admin/frisco/bienes/[id]/reportes` â€” lista hasta 60 reportes del bien con `analisisIA` incluido.
+- [x] `PATCH /api/admin/frisco/reportes/[reporteId]/analisis` â€” override humano: actualiza urgencia/etiquetas y registra `revisadoPor` + `revisadoEn`. **IA sugiere, humano decide**.
 
 **UI admin**
-- [x] Nueva tab "Reportes" en la ficha del bien (oculta si `portal_externo` no está activo).
-- [x] Cada reporte muestra: cabecera con depositario + período + estado físico + badge de urgencia, novedades del custodio, **bloque azul con sugerencia IA** (proveedor, confianza, resumen, etiquetas como chips), botones de override `NORMAL | ATENCIÓN | CRÍTICA`. Marca "Revisado" si ya hubo override.
+- [x] Nueva tab "Reportes" en la ficha del bien (oculta si `portal_externo` no estÃ¡ activo).
+- [x] Cada reporte muestra: cabecera con depositario + perÃ­odo + estado fÃ­sico + badge de urgencia, novedades del custodio, **bloque azul con sugerencia IA** (proveedor, confianza, resumen, etiquetas como chips), botones de override `NORMAL | ATENCIÃ“N | CRÃTICA`. Marca "Revisado" si ya hubo override.
 
-**Verificación**
+**VerificaciÃ³n**
 - [x] `prisma generate` OK + `tsc --noEmit` limpio.
 
 **Hallazgos**
-- El motor de IA estaba acoplado a PQRSD vía función monolítica. Extracción mínima (`callIaJson`) habilita reutilizar el patrón Groq+Shipu+keys-por-tenant sin tocar lo existente. Replicable para los siguientes módulos.
-- `dispararAnalisisIA()` se invoca con `void` (fire-and-forget). En Vercel/Edge esto puede no terminar; si en producción se observan reportes sin análisis, considerar cola (BullMQ / QStash) o sincronizar la llamada aceptando el retraso de ~2s para el ciudadano.
-- Las etiquetas son enum-cerrado de strings (no enum Prisma) — permite ampliar la lista sin migración pero el clasificador filtra sólo las conocidas para evitar etiquetas alucinadas.
+- El motor de IA estaba acoplado a PQRSD vÃ­a funciÃ³n monolÃ­tica. ExtracciÃ³n mÃ­nima (`callIaJson`) habilita reutilizar el patrÃ³n Groq+Shipu+keys-por-tenant sin tocar lo existente. Replicable para los siguientes mÃ³dulos.
+- `dispararAnalisisIA()` se invoca con `void` (fire-and-forget). En Vercel/Edge esto puede no terminar; si en producciÃ³n se observan reportes sin anÃ¡lisis, considerar cola (BullMQ / QStash) o sincronizar la llamada aceptando el retraso de ~2s para el ciudadano.
+- Las etiquetas son enum-cerrado de strings (no enum Prisma) â€” permite ampliar la lista sin migraciÃ³n pero el clasificador filtra sÃ³lo las conocidas para evitar etiquetas alucinadas.
 
 ---
 
-### ✅ Fase 3 — Módulo `portal_externo` (cerrada)
+### âœ… Fase 3 â€” MÃ³dulo `portal_externo` (cerrada)
 
 Portal de auto-consulta del depositario SAE. Acceso por token (sin password).
 
 **Datos**
-- [x] `FriscoPortalAcceso` — guarda **SHA-256** del token (nunca el plano). Campos: `tokenHash` (unique), `depositarioId`, `expiraEn`, `revocadoEn`, `ultimoAccesoEn`, `accesoCount`, `createdBy`.
-- [x] `FriscoReporteDepositario` — reporte mensual con unique `[depositarioId, periodo]` (un reporte por mes, idempotente vía upsert). Campos: `estadoBien` (enum `FriscoEstadoFisico`), `novedades`, `fotoUrl`, `adjuntoUrl`, `ipOrigen`.
+- [x] `FriscoPortalAcceso` â€” guarda **SHA-256** del token (nunca el plano). Campos: `tokenHash` (unique), `depositarioId`, `expiraEn`, `revocadoEn`, `ultimoAccesoEn`, `accesoCount`, `createdBy`.
+- [x] `FriscoReporteDepositario` â€” reporte mensual con unique `[depositarioId, periodo]` (un reporte por mes, idempotente vÃ­a upsert). Campos: `estadoBien` (enum `FriscoEstadoFisico`), `novedades`, `fotoUrl`, `adjuntoUrl`, `ipOrigen`.
 - [x] Relaciones inversas en `FriscoDepositario.accesos` y `.reportes`.
 
 **Helpers**
-- [x] [`src/lib/frisco-portal.ts`](src/lib/frisco-portal.ts) — `generarToken()` (32 bytes hex), `hashToken()`, `resolverAcceso()` (valida hash + expiración + revocación + incluye bien y reportes), `periodoActual()` formato `YYYY-MM`.
-- [x] `requirePortalExterno` añadido a [`frisco-guard.ts`](src/lib/frisco-guard.ts).
+- [x] [`src/lib/frisco-portal.ts`](src/lib/frisco-portal.ts) â€” `generarToken()` (32 bytes hex), `hashToken()`, `resolverAcceso()` (valida hash + expiraciÃ³n + revocaciÃ³n + incluye bien y reportes), `periodoActual()` formato `YYYY-MM`.
+- [x] `requirePortalExterno` aÃ±adido a [`frisco-guard.ts`](src/lib/frisco-guard.ts).
 
 **API admin**
-- [x] `GET  /api/admin/frisco/depositarios/[id]/portal-acceso` — lista accesos del depositario.
-- [x] `POST /api/admin/frisco/depositarios/[id]/portal-acceso` — genera token (revoca activos previos en transacción), opcional `enviarEmail: true`. Devuelve token plano **una sola vez** + URL del portal.
-- [x] `DELETE /api/admin/frisco/portal-acceso/[accesoId]` — revoca acceso (marca `revocadoEn`, no elimina).
+- [x] `GET  /api/admin/frisco/depositarios/[id]/portal-acceso` â€” lista accesos del depositario.
+- [x] `POST /api/admin/frisco/depositarios/[id]/portal-acceso` â€” genera token (revoca activos previos en transacciÃ³n), opcional `enviarEmail: true`. Devuelve token plano **una sola vez** + URL del portal.
+- [x] `DELETE /api/admin/frisco/portal-acceso/[accesoId]` â€” revoca acceso (marca `revocadoEn`, no elimina).
 
-**API pública (sin login)**
-- [x] `POST /api/portal/frisco/[token]/reporte` — valida token, upsert reporte del mes, actualiza `FriscoDepositario.ultimoReporte`. Captura IP origen.
+**API pÃºblica (sin login)**
+- [x] `POST /api/portal/frisco/[token]/reporte` â€” valida token, upsert reporte del mes, actualiza `FriscoDepositario.ultimoReporte`. Captura IP origen.
 
-**Portal público**
-- [x] [`/portal/frisco/[token]`](src/app/portal/frisco/[token]/page.tsx) — server page con `dynamic = 'force-dynamic'` y `robots: noindex`. Si token inválido/expirado/revocado → `notFound()`. Registra `ultimoAccesoEn` + incrementa `accesoCount` (no-bloqueante).
-- [x] UI con 4 secciones: datos del depositario (con alerta de póliza vencida), bien custodiado, reporte mensual (estado + novedades + URLs opcionales), historial de últimos 12 reportes.
+**Portal pÃºblico**
+- [x] [`/portal/frisco/[token]`](src/app/portal/frisco/[token]/page.tsx) â€” server page con `dynamic = 'force-dynamic'` y `robots: noindex`. Si token invÃ¡lido/expirado/revocado â†’ `notFound()`. Registra `ultimoAccesoEn` + incrementa `accesoCount` (no-bloqueante).
+- [x] UI con 4 secciones: datos del depositario (con alerta de pÃ³liza vencida), bien custodiado, reporte mensual (estado + novedades + URLs opcionales), historial de Ãºltimos 12 reportes.
 
 **UI admin**
-- [x] Botón `KeyRound` por depositario en la tab Depositarios (sólo si `portal_externo` está activo).
-- [x] Modal `PortalAccesoModal`: días de vigencia + checkbox de envío por email (deshabilitado si depositario sin email). Tras generar, muestra URL una sola vez con botón copiar y avisa si el email se envió OK.
-- [x] Columna nueva "Último reporte" en la tabla.
+- [x] BotÃ³n `KeyRound` por depositario en la tab Depositarios (sÃ³lo si `portal_externo` estÃ¡ activo).
+- [x] Modal `PortalAccesoModal`: dÃ­as de vigencia + checkbox de envÃ­o por email (deshabilitado si depositario sin email). Tras generar, muestra URL una sola vez con botÃ³n copiar y avisa si el email se enviÃ³ OK.
+- [x] Columna nueva "Ãšltimo reporte" en la tabla.
 
-**Verificación**
+**VerificaciÃ³n**
 - [x] `prisma generate` OK + `tsc --noEmit` limpio.
 
 **Hallazgos**
-- Infra de email ya existía: [`src/lib/mail.ts`](src/lib/mail.ts) (Resend) + `sendMail()` genérico — reutilizado sin tocar.
-- `getTenantPrisma()` funciona también en rutas públicas sin auth (resuelve tenant por host). Sin esto el portal externo necesitaba un esquema diferente; ya estaba resuelto.
-- `dynamic = "force-dynamic"` necesario en la página pública para que Next no intente prerender con un token dummy.
+- Infra de email ya existÃ­a: [`src/lib/mail.ts`](src/lib/mail.ts) (Resend) + `sendMail()` genÃ©rico â€” reutilizado sin tocar.
+- `getTenantPrisma()` funciona tambiÃ©n en rutas pÃºblicas sin auth (resuelve tenant por host). Sin esto el portal externo necesitaba un esquema diferente; ya estaba resuelto.
+- `dynamic = "force-dynamic"` necesario en la pÃ¡gina pÃºblica para que Next no intente prerender con un token dummy.
 
 ---
 
-### ✅ Fase 2 — Módulo `frisco_interop` (cerrada)
+### âœ… Fase 2 â€” MÃ³dulo `frisco_interop` (cerrada)
 
 Conectores externos para mantener el inventario FRISCO consistente.
 
 **Datos**
-- [x] Modelo `FriscoInteropLog` + enum `FriscoInteropServicio` (SNR/FISCALIA/IGAC) en [`prisma/schema.prisma`](prisma/schema.prisma). Relación inversa en `FriscoBien.interopLogs`.
+- [x] Modelo `FriscoInteropLog` + enum `FriscoInteropServicio` (SNR/FISCALIA/IGAC) en [`prisma/schema.prisma`](prisma/schema.prisma). RelaciÃ³n inversa en `FriscoBien.interopLogs`.
 
 **Servicios (stub)**
-- [x] [`src/lib/frisco-interop/types.ts`](src/lib/frisco-interop/types.ts) — contratos compartidos `InteropResult<T>` + tipos por servicio.
-- [x] [`snr.ts`](src/lib/frisco-interop/snr.ts), [`fiscalia.ts`](src/lib/frisco-interop/fiscalia.ts), [`igac.ts`](src/lib/frisco-interop/igac.ts) — stubs determinísticos con latencia simulada; mismo shape que la API real esperada (drop-in replace cuando SAE provea credenciales).
+- [x] [`src/lib/frisco-interop/types.ts`](src/lib/frisco-interop/types.ts) â€” contratos compartidos `InteropResult<T>` + tipos por servicio.
+- [x] [`snr.ts`](src/lib/frisco-interop/snr.ts), [`fiscalia.ts`](src/lib/frisco-interop/fiscalia.ts), [`igac.ts`](src/lib/frisco-interop/igac.ts) â€” stubs determinÃ­sticos con latencia simulada; mismo shape que la API real esperada (drop-in replace cuando SAE provea credenciales).
 
 **API**
 - [x] `POST /api/admin/frisco/interop/snr`
 - [x] `POST /api/admin/frisco/interop/fiscalia`
 - [x] `POST /api/admin/frisco/interop/igac`
-- [x] Cada llamada registra `FriscoInteropLog` (servicio, params, payload, latencia, error, usuario). Errores remotos → 502.
-- [x] Helper `requireFriscoInterop` añadido a [`src/lib/frisco-guard.ts`](src/lib/frisco-guard.ts) (refactor: `requireModule` interno reutilizable).
+- [x] Cada llamada registra `FriscoInteropLog` (servicio, params, payload, latencia, error, usuario). Errores remotos â†’ 502.
+- [x] Helper `requireFriscoInterop` aÃ±adido a [`src/lib/frisco-guard.ts`](src/lib/frisco-guard.ts) (refactor: `requireModule` interno reutilizable).
 
 **UI**
-- [x] Nueva tab "Interop" en `/admin/frisco/bienes/[id]` (oculta si el módulo no está activo). Tres tarjetas con botón "Consultar", auto-rellena `folioMatricula` / `numeroProceso` desde el bien, deshabilita si falta el dato. Renderizado tipado por servicio + latencia visible.
+- [x] Nueva tab "Interop" en `/admin/frisco/bienes/[id]` (oculta si el mÃ³dulo no estÃ¡ activo). Tres tarjetas con botÃ³n "Consultar", auto-rellena `folioMatricula` / `numeroProceso` desde el bien, deshabilita si falta el dato. Renderizado tipado por servicio + latencia visible.
 
-**Verificación**
+**VerificaciÃ³n**
 - [x] `prisma generate` OK + `tsc --noEmit` limpio.
 
-**Hallazgo** — Prisma exige `Prisma.JsonNull` (no `null` literal) al escribir `Json?`. Se corrigió en los 3 endpoints.
+**Hallazgo** â€” Prisma exige `Prisma.JsonNull` (no `null` literal) al escribir `Json?`. Se corrigiÃ³ en los 3 endpoints.
 
 ---
 
-### ✅ Fase 1 — Módulo FRISCO (cerrada en esta sesión)
+### âœ… Fase 1 â€” MÃ³dulo FRISCO (cerrada en esta sesiÃ³n)
 
 Primer vertical activable. Cliente piloto: **SAE**.
 
 **Datos**
 - [x] Modelos Prisma: `FriscoBien`, `FriscoDepositario`, `FriscoContrato`, `FriscoDestinacion` ([`prisma/schema.prisma`](prisma/schema.prisma):2154+).
-- [x] Relaciones inversas en `GdExpediente` y `GaCarpeta` (vincula bienes a expediente y carpeta física).
+- [x] Relaciones inversas en `GdExpediente` y `GaCarpeta` (vincula bienes a expediente y carpeta fÃ­sica).
 - [x] Schemas zod: `friscoBien*`, `friscoDepositario*`, `friscoContrato*`, `friscoDestinacion*` ([`src/lib/validations.ts`](src/lib/validations.ts):460+).
 
 **API**
-- [x] `/api/admin/frisco/bienes` — GET (lista paginada con filtros tipo/estado/búsqueda) + POST.
-- [x] `/api/admin/frisco/bienes/[id]` — GET (con includes), PATCH, DELETE.
-- [x] `/api/admin/frisco/depositarios` — GET (filtrable por bienId, activo), POST.
-- [x] `/api/admin/frisco/depositarios/[id]` — PATCH, DELETE.
-- [x] `/api/admin/frisco/contratos` — GET (filtrable), POST.
-- [x] `/api/admin/frisco/contratos/[id]` — PATCH, DELETE.
-- [x] `/api/admin/frisco/destinaciones` — POST con `upsert` (relación 1:1 bien↔destinación).
-- [x] Helper `requireFrisco(roles)` en [`src/lib/frisco-guard.ts`](src/lib/frisco-guard.ts): gatea por módulo activo + roles.
+- [x] `/api/admin/frisco/bienes` â€” GET (lista paginada con filtros tipo/estado/bÃºsqueda) + POST.
+- [x] `/api/admin/frisco/bienes/[id]` â€” GET (con includes), PATCH, DELETE.
+- [x] `/api/admin/frisco/depositarios` â€” GET (filtrable por bienId, activo), POST.
+- [x] `/api/admin/frisco/depositarios/[id]` â€” PATCH, DELETE.
+- [x] `/api/admin/frisco/contratos` â€” GET (filtrable), POST.
+- [x] `/api/admin/frisco/contratos/[id]` â€” PATCH, DELETE.
+- [x] `/api/admin/frisco/destinaciones` â€” POST con `upsert` (relaciÃ³n 1:1 bienâ†”destinaciÃ³n).
+- [x] Helper `requireFrisco(roles)` en [`src/lib/frisco-guard.ts`](src/lib/frisco-guard.ts): gatea por mÃ³dulo activo + roles.
 
 **UI admin**
-- [x] [`/admin/frisco`](src/app/admin/frisco/page.tsx) — dashboard con 5 KPIs (total / EN_PROCESO / CAUTELAR / EXTINTO / DEVUELTO), tabla con búsqueda + filtros tipo/estado, modal "Registrar bien".
-- [x] [`/admin/frisco/bienes/[id]`](src/app/admin/frisco/bienes/[id]/page.tsx) — detalle con 4 tabs: Resumen, Depositarios, Contratos, Destinación. Cada tab tiene su modal de alta y acción de eliminación.
-- [x] Entrada de menú "FRISCO — Bienes" en sidebar, gateada por `MODULO_IDS.FRISCO_BIENES` ([`src/components/admin/admin-sidebar.tsx`](src/components/admin/admin-sidebar.tsx):309).
+- [x] [`/admin/frisco`](src/app/admin/frisco/page.tsx) â€” dashboard con 5 KPIs (total / EN_PROCESO / CAUTELAR / EXTINTO / DEVUELTO), tabla con bÃºsqueda + filtros tipo/estado, modal "Registrar bien".
+- [x] [`/admin/frisco/bienes/[id]`](src/app/admin/frisco/bienes/[id]/page.tsx) â€” detalle con 4 tabs: Resumen, Depositarios, Contratos, DestinaciÃ³n. Cada tab tiene su modal de alta y acciÃ³n de eliminaciÃ³n.
+- [x] Entrada de menÃº "FRISCO â€” Bienes" en sidebar, gateada por `MODULO_IDS.FRISCO_BIENES` ([`src/components/admin/admin-sidebar.tsx`](src/components/admin/admin-sidebar.tsx):309).
 
-**Verificación**
+**VerificaciÃ³n**
 - [x] `tsc --noEmit` limpio post-cambios.
 
 ---
 
-## Hallazgos y mejoras aplicadas en esta sesión
+## Hallazgos y mejoras aplicadas en esta sesiÃ³n
 
-1. **Tipo `Role` real del proyecto** es `'SUPER_ADMIN' | 'ADMIN' | 'EDITOR' | 'USER'` (no `'VIEWER'` como asumía la sesión previa). Corregido en `frisco-guard.ts` y en las 4 rutas API que ya estaban escritas. Lección para módulos futuros: usar `USER` como rol de solo lectura.
+1. **Tipo `Role` real del proyecto** es `'SUPER_ADMIN' | 'ADMIN' | 'EDITOR' | 'USER'` (no `'VIEWER'` como asumÃ­a la sesiÃ³n previa). Corregido en `frisco-guard.ts` y en las 4 rutas API que ya estaban escritas. LecciÃ³n para mÃ³dulos futuros: usar `USER` como rol de solo lectura.
 
-2. **Sesión previa había llegado más lejos que el transcript.** Al retomar, encontré las 7 rutas API ya implementadas (sólidas), no stubs. El transcript se cortó justo después de empezar el helper guard, pero las rutas existían como cambios sin commitear. Verificar siempre `git status` antes de re-implementar.
+2. **SesiÃ³n previa habÃ­a llegado mÃ¡s lejos que el transcript.** Al retomar, encontrÃ© las 7 rutas API ya implementadas (sÃ³lidas), no stubs. El transcript se cortÃ³ justo despuÃ©s de empezar el helper guard, pero las rutas existÃ­an como cambios sin commitear. Verificar siempre `git status` antes de re-implementar.
 
-3. **Relación bien ↔ destinación es 1:1**, por eso `/api/admin/frisco/destinaciones` usa `upsert` (no POST puro). Documentado en la cabecera de la ruta.
+3. **RelaciÃ³n bien â†” destinaciÃ³n es 1:1**, por eso `/api/admin/frisco/destinaciones` usa `upsert` (no POST puro). Documentado en la cabecera de la ruta.
 
-4. **Cascada de borrado**: borrar un `FriscoBien` elimina automáticamente sus depositarios, contratos y destinación (Prisma cascade). El DELETE de bien debe quedar restringido a `SUPER_ADMIN | ADMIN` (no EDITOR).
+4. **Cascada de borrado**: borrar un `FriscoBien` elimina automÃ¡ticamente sus depositarios, contratos y destinaciÃ³n (Prisma cascade). El DELETE de bien debe quedar restringido a `SUPER_ADMIN | ADMIN` (no EDITOR).
 
-5. **Memoria del usuario:** no levantar dev local — el flujo es commit + push y Vercel auto-deploya. Verificación local con `tsc`, no con preview server.
+5. **Memoria del usuario:** no levantar dev local â€” el flujo es commit + push y Vercel auto-deploya. VerificaciÃ³n local con `tsc`, no con preview server.
 
 ---
 
 ## Pendiente
 
-### En el módulo FRISCO
+### En el mÃ³dulo FRISCO
 
-**Hecho** (resumen, detalle en fases 1–4):
-- ~~Endpoint público de auto-consulta del depositario~~ → ✅ `portal_externo` (fase 3).
-- ~~Integraciones interop SNR / Fiscalía / IGAC~~ → ✅ stub funcional en `frisco_interop` (fase 2). Falta: reemplazar stub por servicios reales cuando SAE provea credenciales.
-- ~~Reporte mensual del depositario~~ → ✅ vía portal externo + clasificación IA (fases 3 y 4).
+**Hecho** (resumen, detalle en fases 1â€“4):
+- ~~Endpoint pÃºblico de auto-consulta del depositario~~ â†’ âœ… `portal_externo` (fase 3).
+- ~~Integraciones interop SNR / FiscalÃ­a / IGAC~~ â†’ âœ… stub funcional en `frisco_interop` (fase 2). Falta: reemplazar stub por servicios reales cuando SAE provea credenciales.
+- ~~Reporte mensual del depositario~~ â†’ âœ… vÃ­a portal externo + clasificaciÃ³n IA (fases 3 y 4).
 
 **Pendiente**:
-- [ ] **IA retroactiva en `frisco_bienes`** — sugerir `tipo`/`estadoFisico` desde descripción; extracción de `placa`/`folioMatricula`/`numeroProceso` (OCR + LLM); análisis de foto.
-- [ ] **IA retroactiva en `frisco_interop`** — detectar discrepancias semánticas SNR↔IGAC↔registro interno; resumen de 2 líneas del proceso fiscal.
-- [ ] **Reemplazar stubs interop** por las APIs reales de SNR / Fiscalía / IGAC cuando SAE entregue credenciales. Drop-in en `src/lib/frisco-interop/{snr,fiscalia,igac}.ts` — interfaz ya estable.
-- [ ] **Recordatorio mensual al depositario** vía email (cron) — el endpoint y modelo ya existen; falta el job que dispare el envío los primeros días de cada mes a depositarios activos sin reporte del período.
-- [ ] **Alertas de pólizas** próximas a vencer (depositario y contrato): job + notificación al funcionario asignado. Aprovechable también por la IA del reporte para subir urgencia.
-- [ ] **Vincular bien a expediente GD desde la UI** (campo `expedienteId` existe en schema y en API; falta selector en form de alta/edición de bien).
-- [ ] **Vincular bien a carpeta física GA** (mismo caso que expediente).
-- [ ] **Cola de análisis IA** — hoy `dispararAnalisisIA` es fire-and-forget. En Vercel serverless puede cortarse antes de terminar. Mover a cola (BullMQ / QStash) o pasar a sincrónico aceptando ~2s de latencia.
-- [ ] **Acción de notificación al funcionario** cuando el clasificador marca un reporte como CRITICA (hoy sólo queda visible en la tab Reportes; no avisa a nadie).
-- [ ] **Subida de archivos al portal externo** — el campo `fotoUrl`/`adjuntoUrl` acepta URLs externas; falta un componente de upload propio (S3/UploadThing) para que el depositario no tenga que hostear el archivo.
-- [ ] **Tests E2E** del flujo completo: alta de bien → asignar depositario → generar acceso portal → reporte mensual → análisis IA → override admin → contrato → destinación.
+- [ ] **IA retroactiva en `frisco_bienes`** â€” sugerir `tipo`/`estadoFisico` desde descripciÃ³n; extracciÃ³n de `placa`/`folioMatricula`/`numeroProceso` (OCR + LLM); anÃ¡lisis de foto.
+- [x] **IA retroactiva en `frisco_interop`** — `frisco-interop-ia.ts` + `POST /api/admin/frisco/interop/analizar` + panel "Analizar discrepancias con IA" en tab Interop. Cruza SNR / IGAC / Fiscalía / datos internos. Devuelve discrepancias con severidad INFO/ALERTA/CRITICA, nivel de riesgo y resumen del proceso fiscal.
+- [ ] **Reemplazar stubs interop** por las APIs reales de SNR / FiscalÃ­a / IGAC cuando SAE entregue credenciales. Drop-in en `src/lib/frisco-interop/{snr,fiscalia,igac}.ts` â€” interfaz ya estable.
+- [ ] **Recordatorio mensual al depositario** vÃ­a email (cron) â€” el endpoint y modelo ya existen; falta el job que dispare el envÃ­o los primeros dÃ­as de cada mes a depositarios activos sin reporte del perÃ­odo.
+- [ ] **Alertas de pÃ³lizas** prÃ³ximas a vencer (depositario y contrato): job + notificaciÃ³n al funcionario asignado. Aprovechable tambiÃ©n por la IA del reporte para subir urgencia.
+- [ ] **Vincular bien a expediente GD desde la UI** (campo `expedienteId` existe en schema y en API; falta selector en form de alta/ediciÃ³n de bien).
+- [ ] **Vincular bien a carpeta fÃ­sica GA** (mismo caso que expediente).
+- [ ] **Cola de anÃ¡lisis IA** â€” hoy `dispararAnalisisIA` es fire-and-forget. En Vercel serverless puede cortarse antes de terminar. Mover a cola (BullMQ / QStash) o pasar a sincrÃ³nico aceptando ~2s de latencia.
+- [ ] **AcciÃ³n de notificaciÃ³n al funcionario** cuando el clasificador marca un reporte como CRITICA (hoy sÃ³lo queda visible en la tab Reportes; no avisa a nadie).
+- [ ] **Subida de archivos al portal externo** â€” el campo `fotoUrl`/`adjuntoUrl` acepta URLs externas; falta un componente de upload propio (S3/UploadThing) para que el depositario no tenga que hostear el archivo.
+- [ ] **Tests E2E** del flujo completo: alta de bien â†’ asignar depositario â†’ generar acceso portal â†’ reporte mensual â†’ anÃ¡lisis IA â†’ override admin â†’ contrato â†’ destinaciÃ³n.
 
-### En el catálogo
-- [ ] Decidir orden del siguiente módulo a construir (ver "Próximo punto" abajo).
-- [ ] Materializar bundles comerciales en UI superadmin (botón "Aplicar bundle Control" que active de un click los módulos del paquete).
+### En el catÃ¡logo
+- [ ] Decidir orden del siguiente mÃ³dulo a construir (ver "PrÃ³ximo punto" abajo).
+- [ ] Materializar bundles comerciales en UI superadmin (botÃ³n "Aplicar bundle Control" que active de un click los mÃ³dulos del paquete).
 
 ### Fundamentos transversales
-- [ ] Excluir definitivamente `ventanilla_unica_personeria_buga/` del repo o moverlo a `archive/` (sigue generando ruido aunque esté excluido del tsc).
-- [ ] Seeds de catálogos públicos comunes (entidades, dependencias estándar, TRD base) para acelerar onboarding de tenants nuevos.
+- [ ] Excluir definitivamente `ventanilla_unica_personeria_buga/` del repo o moverlo a `archive/` (sigue generando ruido aunque estÃ© excluido del tsc).
+- [x] Seeds de catÃ¡logos comunes para onboarding â€” `catalogo-entidades.ts` (datos iniciales: 10 deps + TRD base + 26 terceros), auto-siembra al activar mÃ³dulos. GestiÃ³n en producciÃ³n vÃ­a formulario: `/admin/contabilidad/terceros` (CRUD completo) y `/admin/gd/trd` (ya existÃ­a). Endpoint `PATCH/DELETE /api/admin/cp/terceros/[id]` aÃ±adido.
 
 ---
 
-## 🧠 Integración de IA por módulo
+## ðŸ§  IntegraciÃ³n de IA por mÃ³dulo
 
-**Patrón base** (ya implementado en Ventanilla Única): Groq como motor primario, fallback determinístico, IA **sugiere** y humano **decide**. La sugerencia se persiste en un modelo separado (ej. `VuAsignacionIA`) con metadata: modelo, prompt versión, confianza, timestamp. Cliente compartido: [`src/lib/groq-client.ts`](src/lib/groq-client.ts).
+**PatrÃ³n base** (ya implementado en Ventanilla Ãšnica): Groq como motor primario, fallback determinÃ­stico, IA **sugiere** y humano **decide**. La sugerencia se persiste en un modelo separado (ej. `VuAsignacionIA`) con metadata: modelo, prompt versiÃ³n, confianza, timestamp. Cliente compartido: [`src/lib/groq-client.ts`](src/lib/groq-client.ts).
 
-### Pendiente retroactivo (módulos ya cerrados sin IA)
+### Pendiente retroactivo (mÃ³dulos ya cerrados sin IA)
 
-Aplicar el patrón a lo que ya está construido — son ganancias rápidas, no bloquean nada:
+Aplicar el patrÃ³n a lo que ya estÃ¡ construido â€” son ganancias rÃ¡pidas, no bloquean nada:
 
-1. **`frisco_bienes`** — al registrar/editar un bien:
-   - Sugerir `tipo` (INMUEBLE_URBANO/RURAL/VEHICULO/…) desde `descripcion`.
+1. **`frisco_bienes`** â€” al registrar/editar un bien:
+   - Sugerir `tipo` (INMUEBLE_URBANO/RURAL/VEHICULO/â€¦) desde `descripcion`.
    - Extraer `placa`, `folioMatricula`, `numeroProceso` desde texto libre o documento adjunto (OCR + LLM).
-   - Sugerir `estadoFisico` y palabras clave de riesgo (deterioro, ocupación) cuando se cargue una foto.
+   - Sugerir `estadoFisico` y palabras clave de riesgo (deterioro, ocupaciÃ³n) cuando se cargue una foto.
 
-2. **`frisco_interop`** — al recibir respuesta de SNR / Fiscalía / IGAC:
-   - Detectar discrepancias semánticas (dirección registrada vs. dirección IGAC) y resaltarlas.
-   - Generar resumen de 2 líneas del proceso fiscal para mostrar en la ficha.
+2. **`frisco_interop`** â€” al recibir respuesta de SNR / FiscalÃ­a / IGAC:
+   - Detectar discrepancias semÃ¡nticas (direcciÃ³n registrada vs. direcciÃ³n IGAC) y resaltarlas.
+   - Generar resumen de 2 lÃ­neas del proceso fiscal para mostrar en la ficha.
 
-3. ~~**`portal_externo`** — clasificador de urgencia del reporte del depositario~~ — ✅ implementado en Fase 4.
+3. ~~**`portal_externo`** â€” clasificador de urgencia del reporte del depositario~~ â€” âœ… implementado en Fase 4.
 
-### IA prevista para el módulo siguiente (`contabilidad_publica`)
+### IA prevista para el mÃ³dulo siguiente (`contabilidad_publica`)
 
 Casos donde aporta:
-1. **Sugerencia de cuentas PUC** dada la descripción del comprobante → propone débito/crédito con cuentas del PUC CGN, el contador confirma. Persistir en `CpAsientoSugerenciaIA`.
-2. **Detección de comprobantes anómalos** — monto fuera de rango histórico de la cuenta, fecha invertida, contraparte no usual. Marca pero no bloquea.
-3. **Sugerencia de tercero auxiliar** — match probabilístico con `CpAuxiliarTercero` existentes para evitar duplicados (mismo NIT con razón social levemente distinta).
+1. **Sugerencia de cuentas PUC** dada la descripciÃ³n del comprobante â†’ propone dÃ©bito/crÃ©dito con cuentas del PUC CGN, el contador confirma. Persistir en `CpAsientoSugerenciaIA`.
+2. **DetecciÃ³n de comprobantes anÃ³malos** â€” monto fuera de rango histÃ³rico de la cuenta, fecha invertida, contraparte no usual. Marca pero no bloquea.
+3. **Sugerencia de tercero auxiliar** â€” match probabilÃ­stico con `CpAuxiliarTercero` existentes para evitar duplicados (mismo NIT con razÃ³n social levemente distinta).
 
-Casos donde IA **NO** entra (definidos explícitamente):
-- El motor de doble partida (débito = crédito) es validación determinística.
-- Aprobación de comprobante.
-- Cierre de período contable.
-- Cálculo de saldos.
+Casos donde IA **NO** entra (definidos explÃ­citamente):
+- El motor de doble partida (dÃ©bito = crÃ©dito) es validaciÃ³n determinÃ­stica.
+- AprobaciÃ³n de comprobante.
+- Cierre de perÃ­odo contable.
+- CÃ¡lculo de saldos.
 
 ---
 
-## 🎯 Próximo punto
+## ðŸŽ¯ PrÃ³ximo punto
 
-Avance respecto al MVP SAE de A0 (portal + plan CGN + bienes FRISCO + presupuesto mínimo + reporte CHIP):
+Avance respecto al MVP SAE de A0 (portal + plan CGN + bienes FRISCO + presupuesto mÃ­nimo + reporte CHIP):
 
-- [x] Portal (base Personería)
+- [x] Portal (base PersonerÃ­a)
 - [x] Bienes FRISCO (`frisco_bienes`)
-- [x] Interoperabilidad SNR/Fiscalía/IGAC (`frisco_interop`)
+- [x] Interoperabilidad SNR/FiscalÃ­a/IGAC (`frisco_interop`)
 - [x] Portal externo del depositario (`portal_externo`)
-- [x] **Plan CGN + motor contable** (`contabilidad_publica` — Fase 5)
-- [x] **Presupuesto mínimo (CDP/RP/Obligación/Pago)** (`presupuesto_ejecucion` — Fase 6, con comprobante contable auto al pagar)
-- [x] **Nómina pública** (`nomina_publica` — Fase 11, motor de liquidación + 24 conceptos sembrados)
-- [x] **Pagar nómina → comprobante contable** (`/api/admin/nom/pagar` — Fase 12, agrega liquidaciones en un único comprobante EGRESO)
-- [ ] **Pago de pasivos de nómina** — segundo comprobante para liquidar 2425/2436/2505/2510 contra EPS/AFP/DIAN/parafiscales (vía cadena CDP/RP/Obligación/Pago del módulo presupuesto).
-- [x] **Reportes a entes de control** (`reportes_control` — Fase 13: CHIP Balance + Actividad, FUT Ingresos + Gastos, Ley 617) — **MVP SAE cerrado en feature core**
+- [x] **Plan CGN + motor contable** (`contabilidad_publica` â€” Fase 5)
+- [x] **Presupuesto mÃ­nimo (CDP/RP/ObligaciÃ³n/Pago)** (`presupuesto_ejecucion` â€” Fase 6, con comprobante contable auto al pagar)
+- [x] **NÃ³mina pÃºblica** (`nomina_publica` â€” Fase 11, motor de liquidaciÃ³n + 24 conceptos sembrados)
+- [x] **Pagar nÃ³mina â†’ comprobante contable** (`/api/admin/nom/pagar` â€” Fase 12, agrega liquidaciones en un Ãºnico comprobante EGRESO)
+- [x] **Reportes a entes de control** (`reportes_control` â€” Fase 13: CHIP Balance + Actividad, FUT Ingresos + Gastos, Ley 617) â€” **MVP SAE cerrado en feature core**
 - [x] **Exportador XLSX** de los 5 tipos de reporte con formato moneda COP y totales (Fase 14, `exceljs`). El contador descarga el XLSX, lo revisa y lo copia/pega al template oficial CGN/DNP.
-- [x] **Pasivos de nómina** (Fase 15: cierra el ciclo nómina → EPS/AFP/DIAN/parafiscales con un comprobante D pasivo / C banco por tercero).
+- [x] **Pasivos de nÃ³mina** (Fase 15: cierra el ciclo nÃ³mina â†’ EPS/AFP/DIAN/parafiscales con un comprobante D pasivo / C banco por tercero).
+- [x] **TesorerÃ­a** (Fase 16: cuentas bancarias, movimientos de libro, extractos bancarios, conciliaciÃ³n par a par).
+- [x] **ContrataciÃ³n pÃºblica** (Fase 17: procesos Ley 80/1150, contratos, adiciones/prÃ³rrogas, documentos, flujo de estados).
 - [ ] **Mapeo 1:1 al template oficial** del CHIP/FUT (layout exacto del periodo de reporte).
 
-**Siguiente sugerido:** `tesoreria` (saldos bancarios + conciliación con extractos), `contratacion` (SECOP II + minutas con IA), o el mapeo 1:1 al template CHIP oficial. Decisión pendiente con el usuario.
+### âœ… Fase 16 â€” MÃ³dulo `tesoreria` (cerrada)
+
+GestiÃ³n de cuentas bancarias institucionales, movimientos de libro y conciliaciÃ³n con extractos.
+
+**Datos**
+- [x] `TesoCuenta` â€” cuenta bancaria (nombre, banco, nitBanco, numeroCuenta, tipo, moneda, cuentaContableCodigo). Enum `TesoCuentaTipo` (CORRIENTE/AHORROS/INVERSION_TEMPORAL/FONDOS_ESPECIALES).
+- [x] `TesoMovimiento` â€” lÃ­nea del libro de tesorerÃ­a (tipo INGRESO/EGRESO, fecha, valor, descripcion, numero, tercero, comprobanteId, pagoPresupId, conciliado, extractoLineaId). Ãndices: `[cuentaId, fecha]`, `[conciliado]`, `[comprobanteId]`.
+- [x] `TesoExtracto` â€” cabecera del extracto bancario mensual (periodo YYYY-MM, saldoInicial, saldoFinal). Unique `[cuentaId, periodo]`.
+- [x] `TesoExtractoLinea` â€” lÃ­nea del extracto (fecha, descripcion, referencia, debito, credito, saldo, conciliada, movimientoId). Cascade delete desde extracto.
+
+**Endpoints**
+- [x] `GET/POST /api/admin/teso/cuentas` â€” lista ordenada / alta de cuenta.
+- [x] `GET/PATCH/DELETE /api/admin/teso/cuentas/[id]` â€” detalle con movimientos y extractos / actualizar / inactivar-o-borrar segÃºn si tiene movimientos.
+- [x] `GET/POST /api/admin/teso/movimientos` â€” lista filtrable por cuentaId + conciliado / registrar movimiento con validaciÃ³n de cuenta activa.
+- [x] `GET /api/admin/teso/saldos` â€” saldo libro por cuenta (Î£ INGRESO - Î£ EGRESO) + total general + pendientes de conciliar.
+- [x] `GET/POST /api/admin/teso/extractos` â€” lista por cuenta / carga de extracto con lÃ­neas (CSV parseado en cliente, JSON enviado al endpoint). Conflicto 409 si ya existe el periodo.
+- [x] `GET/DELETE /api/admin/teso/extractos/[id]` â€” detalle con lineas / borrar (bloquea si tiene lÃ­neas conciliadas).
+- [x] `POST /api/admin/teso/conciliar` â€” concilia un movimiento â†” lÃ­nea de extracto. Validaciones: misma cuenta, tipo coherente (INGRESOâ†”crÃ©dito/EGRESOâ†”dÃ©bito), diferencia â‰¤ 0.5 COP, ambos sin conciliar previo. Actualiza ambos registros en `$transaction`.
+- [x] `DELETE /api/admin/teso/conciliar?movimientoId=` â€” revierte conciliaciÃ³n.
+
+**Guard**
+- [x] `requireTesoreria(roles)` en `frisco-guard.ts`.
+
+**UI**
+- [x] [`/admin/tesoreria`](src/app/admin/tesoreria/page.tsx) â€” server: carga cuentas + 80 movimientos recientes + saldos calculados.
+- [x] [`client-page.tsx`](src/app/admin/tesoreria/client-page.tsx):
+  - KPIs: saldo total en banco, movimientos pendientes de conciliar, total de cuentas.
+  - Tabla de cuentas con saldo libro y botÃ³n "Conciliar" por fila.
+  - Modal "Nueva cuenta" (nombre, banco, NIT, nÃºmero, tipo, cÃ³digo CGC).
+  - Modal "Movimiento" (cuenta, tipo ingreso/egreso, fecha, valor, nÃºmero, descripciÃ³n, tercero).
+  - Modal "Extracto" â€” carga con CSV/TSV pegado (formato: fecha,descripcion,referencia,debito,credito,saldo); parsea en cliente y envÃ­a JSON al endpoint.
+  - Panel de conciliaciÃ³n inline: lista de movimientos pendientes (izquierda) + lÃ­neas de extracto pendientes (derecha); click en par â†’ botÃ³n "Conciliar par seleccionado".
+- [x] Entrada "TesorerÃ­a" en sidebar gateada por `MODULO_IDS.TESORERIA`.
+
+**VerificaciÃ³n**
+- [x] `prisma generate` OK (v7.2.0, 4 modelos nuevos generados).
+- [x] `tsc --noEmit` limpio.
+
+**Hallazgos**
+- El saldo del libro se calcula **al vuelo** (Î£ INGRESO - Î£ EGRESO) â€” no hay campo de saldo en `TesoCuenta`. RazÃ³n: igual que pasivos de nÃ³mina, la fuente de verdad son las transacciones; cualquier correcciÃ³n o anulaciÃ³n se refleja automÃ¡ticamente.
+- La conciliaciÃ³n es **par a par** (1 movimiento â†” 1 lÃ­nea). En la prÃ¡ctica bancaria colombiana algunos movimientos tienen varias lÃ­neas (retenciones + principal). Mejora futura: conciliaciÃ³n mÃºltiple (1:N) agrupando por fecha+valor con tolerancia.
+- El extracto se carga como CSV pegado en un `<textarea>`, no como upload de archivo. RazÃ³n: evita S3/UploadThing en esta iteraciÃ³n y cubre el caso mÃ¡s comÃºn (copiar del PDF del extracto). Mejora futura: input `type=file` que lea el CSV y lo auto-parsee.
+- `TesoMovimiento.comprobanteId` y `.pagoPresupId` son strings opcionales sin FK explÃ­cita (igual que el patrÃ³n `fuenteRef` de CpComprobante). RazÃ³n: evita migraciÃ³n compleja y permite referenciar sin crear dependencia circular de mÃ³dulos.
+- âš  MigraciÃ³n pendiente: `npx prisma db push` por tenant para crear tablas `teso_cuentas`, `teso_movimientos`, `teso_extractos`, `teso_extracto_lineas`.
+
+---
+
+### Estado al cerrar la sesiÃ³n (2026-06-01)
+
+**Branch:** `feat/integrar-ventanilla-unica` | **Ãšltimo commit documentado:** `b454fa6` (Fase 15) â€” Fase 16 pendiente de commit.
+**TSC:** limpio. **prisma generate:** OK.
+**MVP SAE A0:** cerrado en feature core.
+
+**Ciclo de nÃ³mina completo en backend:**
+1. Crear empleado (POST `/api/admin/nom/empleados`).
+2. Crear periodo `YYYY-MM` (POST `/api/admin/nom/periodos`).
+3. Liquidar periodo (POST `/api/admin/nom/liquidar`) â†’ motor de 3 pasadas, marca `LIQUIDADO`.
+4. Pagar nÃ³mina (POST `/api/admin/nom/pagar`) â†’ un `CpComprobante` EGRESO con asientos agregados, marca `PAGADO`.
+5. Consultar pasivos pendientes (GET `/api/admin/nom/pasivos-pendientes?periodoId=`).
+6. Pagar pasivos a terceros (POST `/api/admin/nom/pagar-pasivo`) â€” uno por EPS/AFP/DIAN, valor parcial permitido.
+
+**Siguiente sugerido (prÃ³xima sesiÃ³n):** mapeo 1:1 al template CHIP oficial, mejoras a contrataciÃ³n (alertas de vencimiento, IA para sugerencia de modalidad/supervisor), o mejoras a tesorerÃ­a (conciliaciÃ³n N:1, upload CSV).
+
+### Pendientes operativos antes de pasar a producciÃ³n
+
+- [ ] **`npx prisma db push` por tenant Neon** para crear las tablas nuevas:
+  - `cp_*` (Fase 5 â€” contabilidad)
+  - `psu_*` (Fase 6 â€” presupuesto)
+  - `nom_*` (Fase 11 â€” nÃ³mina: empleados, conceptos, periodos, liquidaciones, detalles, novedades)
+  - `nom_pagos_pasivos` (Fase 15)
+  - `rc_reportes` (Fase 13)
+  - `teso_cuentas`, `teso_movimientos`, `teso_extractos`, `teso_extracto_lineas` (Fase 16)
+- [ ] **Auto-siembras al activar mÃ³dulos** disparan: `seedCgc` (3.745 cuentas), `seedCcp` (1.784 rubros CCPET), `seedNominaConceptos` (24 conceptos). Verificar en cada tenant al activar.
 
 ### Pendientes inmediatos en `presupuesto_ejecucion`
 - [ ] `npx prisma db push` por tenant para crear tablas `psu_*`.
-- [ ] Endpoint DELETE/PATCH para **anular** documentos de la cadena, con validación de que no haya hijos vigentes (CDP no se puede anular si tiene RPs activos, etc.).
-- [ ] Selector de obligación en el modal de Pago (hoy se pega cuid manualmente).
-- [ ] **IA retroactiva**: sugerencia de rubro a partir de la descripción del CDP; detector de gastos atípicos vs. apropiación; resumen de ejecución mensual.
-- [ ] Generación del comprobante también en el paso de **Obligación** (devengo) si CGN lo exige formalmente — hoy sólo en Pago.
+- [ ] Endpoint DELETE/PATCH para **anular** documentos de la cadena, con validaciÃ³n de que no haya hijos vigentes (CDP no se puede anular si tiene RPs activos, etc.).
+- [ ] Selector de obligaciÃ³n en el modal de Pago (hoy se pega cuid manualmente).
+- [ ] **IA retroactiva**: sugerencia de rubro a partir de la descripciÃ³n del CDP; detector de gastos atÃ­picos vs. apropiaciÃ³n; resumen de ejecuciÃ³n mensual.
+- [ ] GeneraciÃ³n del comprobante tambiÃ©n en el paso de **ObligaciÃ³n** (devengo) si CGN lo exige formalmente â€” hoy sÃ³lo en Pago.
 
 ### Pendientes inmediatos en `contabilidad_publica`
-- [x] Auto-siembra del CGC al activar el módulo (Fase 7).
+- [x] Auto-siembra del CGC al activar el mÃ³dulo (Fase 7).
 - [ ] Correr `prisma db push` por tenant (para crear las tablas `cp_*`).
-- [ ] **IA retroactiva**: sugerencia de cuentas CGC y de tercero auxiliar (modelo `CpAsientoSugerenciaIA` aún por crear); detector de comprobantes anómalos.
-- [ ] Cierre anual: comprobante automático de cierre que traslada saldos de cuentas de resultado (4 y 5) a `3110` (resultado del ejercicio) usando las cuentas 5905/5910/5915 ya sembradas.
+- [ ] **IA retroactiva**: sugerencia de cuentas CGC y de tercero auxiliar (modelo `CpAsientoSugerenciaIA` aÃºn por crear); detector de comprobantes anÃ³malos.
+- [ ] Cierre anual: comprobante automÃ¡tico de cierre que traslada saldos de cuentas de resultado (4 y 5) a `3110` (resultado del ejercicio) usando las cuentas 5905/5910/5915 ya sembradas.
 - [ ] Balance comparativo (vs. periodo anterior) y libros oficiales (Diario, Mayor, Auxiliar).
+
+

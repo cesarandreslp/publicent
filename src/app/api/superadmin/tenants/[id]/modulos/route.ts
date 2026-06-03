@@ -115,11 +115,13 @@ export async function PUT(req: NextRequest, { params }: Params) {
     (cat) => actual[cat.id]?.activo !== true && nueva[cat.id]?.activo === true,
   ).map((cat) => cat.id)
   const semillas: { modulo: string; total?: number; error?: string }[] = []
-  if (
+  const necesitaSiembra =
     recienActivados.includes("contabilidad_publica") ||
     recienActivados.includes("presupuesto_ejecucion") ||
-    recienActivados.includes("nomina_publica")
-  ) {
+    recienActivados.includes("nomina_publica") ||
+    recienActivados.includes("gestion_documental")
+
+  if (necesitaSiembra) {
     try {
       const { getOrCreateTenantClientById } = await import("@/lib/tenant")
       const tenantPrisma = await getOrCreateTenantClientById(id)
@@ -138,6 +140,23 @@ export async function PUT(req: NextRequest, { params }: Params) {
         const { seedNominaConceptos } = await import("@/lib/seeders/nomina-conceptos")
         const r = await seedNominaConceptos(tenantPrisma)
         semillas.push({ modulo: "nomina_publica", total: r.total })
+      }
+      // Catálogos comunes de onboarding: dependencias GD + TRD base + terceros del Estado.
+      // Se dispara al activar gestion_documental (deps + TRD) o módulos financieros (terceros).
+      if (recienActivados.includes("gestion_documental")) {
+        const { seedDependencias, seedTrd } = await import("@/lib/seeders/onboarding")
+        const rDeps = await seedDependencias(tenantPrisma)
+        const rTrd = await seedTrd(tenantPrisma)
+        semillas.push({ modulo: "gestion_documental:dependencias", total: rDeps.total })
+        semillas.push({ modulo: "gestion_documental:trd", total: rTrd.series + rTrd.subseries })
+      }
+      if (
+        recienActivados.includes("contabilidad_publica") ||
+        recienActivados.includes("presupuesto_ejecucion")
+      ) {
+        const { seedTercerosEstado } = await import("@/lib/seeders/onboarding")
+        const rTerc = await seedTercerosEstado(tenantPrisma)
+        semillas.push({ modulo: "terceros_estado", total: rTerc.total })
       }
     } catch (e) {
       // No abortamos la activación: el módulo queda activo, sólo registramos

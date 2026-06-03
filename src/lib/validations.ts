@@ -673,6 +673,10 @@ export const psuObligacionCreateSchema = z.object({
   concepto: z.string().min(3).max(2000),
 })
 
+export const psuAnularSchema = z.object({
+  motivoAnulacion: z.string().min(10, "El motivo debe tener al menos 10 caracteres").max(500),
+})
+
 export const psuPagoCreateSchema = z.object({
   numero: z.string().min(1).max(40),
   fecha: z.string().datetime(),
@@ -767,6 +771,69 @@ export const nomPagarPeriodoSchema = z.object({
   cuentaSueldosPorPagarCodigo: z.string().max(20).optional(),    // default: 2505
 })
 
+// ─── Activos Bienes ────────────────────────────────────────────────────────────
+
+const ACTIVO_CATEGORIA = ['MUEBLE_ENSERE','EQUIPO_COMPUTO','EQUIPO_COMUNICACION','EQUIPO_AUDIOVISUAL','MAQUINARIA_EQUIPO','VEHICULO','INMUEBLE','SEMOVIENTE','INTANGIBLE','OTRO'] as const
+const ACTIVO_ESTADO    = ['EN_SERVICIO','EN_MANTENIMIENTO','EN_BODEGA','DADO_DE_BAJA','EXTRAVIADO'] as const
+const ACTIVO_TIPO_MNT  = ['PREVENTIVO','CORRECTIVO','GARANTIA'] as const
+const ACTIVO_TIPO_MOV  = ['INGRESO','ASIGNACION','TRASLADO','DEVOLUCION','BAJA','REINTEGRO'] as const
+
+export const activoBienCreateSchema = z.object({
+  codigo:            z.string().min(1).max(80),
+  nombre:            z.string().min(2).max(300),
+  descripcion:       z.string().max(1000).optional(),
+  categoria:         z.enum(ACTIVO_CATEGORIA),
+  tipo:              z.string().max(100).optional(),
+  marca:             z.string().max(100).optional(),
+  modelo:            z.string().max(100).optional(),
+  serial:            z.string().max(100).optional(),
+  color:             z.string().max(50).optional(),
+  valorAdquisicion:  z.number().nonnegative().optional(),
+  fechaAdquisicion:  z.string().datetime().optional(),
+  vidaUtilAnios:     z.number().int().positive().optional(),
+  dependenciaId:     z.string().cuid().optional(),
+  dependenciaNombre: z.string().max(300).optional(),
+  responsableId:     z.string().cuid().optional(),
+  responsableNombre: z.string().max(300).optional(),
+  ubicacion:         z.string().max(500).optional(),
+  estado:            z.enum(ACTIVO_ESTADO).optional(),
+  imagenUrl:         z.string().url().optional(),
+  observaciones:     z.string().max(2000).optional(),
+})
+
+export const activoBienUpdateSchema = activoBienCreateSchema.partial()
+
+export const activoAsignacionSchema = z.object({
+  activoId:          z.string().cuid(),
+  funcionarioId:     z.string().cuid().optional(),
+  funcionarioNombre: z.string().min(2).max(300),
+  dependenciaNombre: z.string().max(300).optional(),
+  fechaInicio:       z.string().datetime(),
+  fechaFin:          z.string().datetime().optional(),
+  actaNumero:        z.string().max(80).optional(),
+  observacion:       z.string().max(1000).optional(),
+})
+
+export const activoMantenimientoSchema = z.object({
+  activoId:             z.string().cuid(),
+  tipo:                 z.enum(ACTIVO_TIPO_MNT),
+  fecha:                z.string().datetime(),
+  descripcion:          z.string().min(5).max(2000),
+  proveedor:            z.string().max(300).optional(),
+  costo:                z.number().nonnegative().optional(),
+  proximoMantenimiento: z.string().datetime().optional(),
+})
+
+export const activoMovimientoSchema = z.object({
+  activoId:           z.string().cuid(),
+  tipo:               z.enum(ACTIVO_TIPO_MOV),
+  fecha:              z.string().datetime(),
+  descripcion:        z.string().min(3).max(2000),
+  origenDependencia:  z.string().max(300).optional(),
+  destinoDependencia: z.string().max(300).optional(),
+  actaNumero:         z.string().max(80).optional(),
+})
+
 // ──────────────────────────────────────────────────────────────────────────────
 
 export function validateBody<T>(
@@ -789,3 +856,256 @@ export function validateBody<T>(
     ),
   }
 }
+
+
+// ─── TESORERÍA ─────────────────────────────────────────────────────────────────
+
+export const tesoCuentaCreateSchema = z.object({
+  nombre:              z.string().min(2).max(200),
+  banco:               z.string().min(2).max(200),
+  nitBanco:            z.string().max(20).optional().nullable(),
+  numeroCuenta:        z.string().min(3).max(60),
+  tipo:                z.enum(['CORRIENTE','AHORROS','INVERSION_TEMPORAL','FONDOS_ESPECIALES']).optional(),
+  moneda:              z.string().max(5).optional(),
+  descripcion:         z.string().max(500).optional().nullable(),
+  cuentaContableCodigo: z.string().max(20).optional().nullable(),
+  activa:              z.boolean().optional(),
+})
+
+export const tesoCuentaUpdateSchema = tesoCuentaCreateSchema.partial()
+
+export const tesoMovimientoCreateSchema = z.object({
+  cuentaId:     z.string().cuid(),
+  tipo:         z.enum(['INGRESO','EGRESO']),
+  fecha:        z.string().datetime(),
+  valor:        z.number().positive(),
+  descripcion:  z.string().min(2).max(500),
+  numero:       z.string().max(60).optional().nullable(),
+  tercero:      z.string().max(300).optional().nullable(),
+  terceroNit:   z.string().max(20).optional().nullable(),
+  comprobanteId: z.string().optional().nullable(),
+  pagoPresupId:  z.string().optional().nullable(),
+  creadoPor:     z.string().max(200).optional().nullable(),
+})
+
+export const tesoExtractoCreateSchema = z.object({
+  cuentaId:     z.string().cuid(),
+  periodo:      z.string().regex(/^\d{4}-\d{2}$/, 'Formato YYYY-MM'),
+  saldoInicial: z.number(),
+  saldoFinal:   z.number(),
+  observacion:  z.string().max(500).optional().nullable(),
+  lineas: z.array(z.object({
+    fecha:        z.string().datetime(),
+    descripcion:  z.string().min(1).max(500),
+    referencia:   z.string().max(100).optional().nullable(),
+    debito:       z.number().nonnegative().optional().nullable(),
+    credito:      z.number().nonnegative().optional().nullable(),
+    saldo:        z.number().optional().nullable(),
+  })).min(1, 'El extracto debe tener al menos una línea'),
+})
+
+export const tesoConciliarSchema = z.object({
+  movimientoId:    z.string().cuid(),
+  extractoLineaId: z.string().cuid(),
+})
+
+
+// ─── CONTRATACIÓN ──────────────────────────────────────────────────────────────
+
+export const conProcesoCreateSchema = z.object({
+  numero:           z.string().min(1).max(60),
+  modalidad:        z.enum(['LICITACION_PUBLICA','SELECCION_ABREVIADA','CONCURSO_MERITOS','CONTRATACION_DIRECTA','MINIMA_CUANTIA','ASOCIACION_PUBLICO_PRIVADA']),
+  objeto:           z.string().min(5).max(2000),
+  vigencia:         z.number().int().min(2000).max(2100),
+  valorEstimado:    z.number().positive(),
+  cdpId:            z.string().optional().nullable(),
+  cdpNumero:        z.string().max(60).optional().nullable(),
+  rubroNombre:      z.string().max(300).optional().nullable(),
+  fechaAviso:       z.string().datetime().optional().nullable(),
+  fechaCierre:      z.string().datetime().optional().nullable(),
+  fechaAdjudicacion: z.string().datetime().optional().nullable(),
+  supervisorNombre: z.string().max(200).optional().nullable(),
+  supervisorCargo:  z.string().max(200).optional().nullable(),
+  dependencia:      z.string().max(200).optional().nullable(),
+})
+
+export const conProcesoUpdateSchema = conProcesoCreateSchema.partial().extend({
+  estado: z.enum(['PLANEACION','CONVOCATORIA','EVALUACION','ADJUDICADO','CONTRATADO','LIQUIDADO','DESIERTO','REVOCADO']).optional(),
+})
+
+export const conContratoCreateSchema = z.object({
+  procesoId:           z.string().cuid(),
+  numero:              z.string().min(1).max(60),
+  tipo:                z.enum(['PRESTACION_SERVICIOS','COMPRAVENTA','SUMINISTRO','OBRA_PUBLICA','CONSULTORIA','INTERADMINISTRATIVO','CONCESION','ARRENDAMIENTO','COMODATO','CONVENIO','OTRO']),
+  contratistaNombre:   z.string().min(2).max(300),
+  contratistaDoc:      z.string().min(3).max(30),
+  contratistaEmail:    z.string().email().optional().nullable(),
+  contratistaTelefono: z.string().max(20).optional().nullable(),
+  valorContrato:       z.number().positive(),
+  plazoMeses:          z.number().int().positive().optional().nullable(),
+  fechaSuscripcion:    z.string().datetime(),
+  fechaInicio:         z.string().datetime().optional().nullable(),
+  fechaTerminacion:    z.string().datetime().optional().nullable(),
+  rpId:                z.string().optional().nullable(),
+  rpNumero:            z.string().max(60).optional().nullable(),
+  supervisorNombre:    z.string().max(200).optional().nullable(),
+  observacion:         z.string().max(2000).optional().nullable(),
+})
+
+export const conContratoUpdateSchema = conContratoCreateSchema.partial().omit({ procesoId: true }).extend({
+  estado: z.enum(['SUSCRITO','EN_EJECUCION','SUSPENDIDO','TERMINADO','LIQUIDADO','INCUMPLIDO']).optional(),
+  fechaLiquidacion: z.string().datetime().optional().nullable(),
+  valorAdiciones: z.number().nonnegative().optional(),
+})
+
+export const conAdicionCreateSchema = z.object({
+  contratoId:    z.string().cuid(),
+  tipo:          z.enum(['ADICION_VALOR','PROROGA','ADICION_VALOR_Y_PROROGA','SUSPENSION','REINICIO']),
+  numero:        z.string().min(1).max(20),
+  valor:         z.number().positive().optional().nullable(),
+  plazoMeses:    z.number().int().positive().optional().nullable(),
+  fecha:         z.string().datetime(),
+  justificacion: z.string().min(5).max(2000),
+})
+
+export const conDocumentoCreateSchema = z.object({
+  procesoId:   z.string().cuid().optional().nullable(),
+  contratoId:  z.string().cuid().optional().nullable(),
+  tipo:        z.enum(['ESTUDIO_PREVIO','AVISO_CONVOCATORIA','PLIEGO_CONDICIONES','ADENDA','PROPUESTA_OFERENTE','INFORME_EVALUACION','ACTO_ADJUDICACION','CONTRATO','POLIZA','ACTA_INICIO','INFORME_SUPERVISION','ACTA_SUSPENSION','ACTA_REINICIO','ACTA_TERMINACION','ACTA_LIQUIDACION','OTRO']),
+  nombre:      z.string().min(2).max(300),
+  url:         z.string().url().optional().nullable(),
+  fechaDoc:    z.string().datetime().optional().nullable(),
+  observacion: z.string().max(500).optional().nullable(),
+}).refine(d => d.procesoId || d.contratoId, { message: 'Debe indicar procesoId o contratoId' })
+// ─── Almacén ───────────────────────────────────────────────────────────────────
+
+const ALM_CATEGORIA    = ['PAPELERIA_UTILES','ASEO_CAFETERIA','TONER_INSUMOS_TIC','HERRAMIENTAS','MEDICAMENTOS','COMBUSTIBLE','MATERIALES_OBRA','OTRO'] as const
+const ALM_TIPO_ENTRADA = ['COMPRA','DONACION','REINTEGRO','AJUSTE_POSITIVO'] as const
+
+export const almArticuloCreateSchema = z.object({
+  codigo:          z.string().min(1).max(80),
+  nombre:          z.string().min(2).max(300),
+  descripcion:     z.string().max(1000).optional(),
+  unidad:          z.string().min(1).max(50),
+  categoria:       z.enum(ALM_CATEGORIA),
+  marca:           z.string().max(100).optional(),
+  stockMinimo:     z.number().int().nonnegative().optional(),
+  ubicacionBodega: z.string().max(200).optional(),
+  imagenUrl:       z.string().url().optional(),
+})
+
+export const almArticuloUpdateSchema = almArticuloCreateSchema.partial().extend({
+  activo: z.boolean().optional(),
+})
+
+export const almEntradaSchema = z.object({
+  articuloId:        z.string().cuid(),
+  tipo:              z.enum(ALM_TIPO_ENTRADA),
+  cantidad:          z.number().int().positive(),
+  valorUnitario:     z.number().nonnegative().optional(),
+  fechaEntrada:      z.string().datetime(),
+  ordenCompraNumero: z.string().max(80).optional(),
+  facturaNumero:     z.string().max(80).optional(),
+  proveedor:         z.string().max(300).optional(),
+  observacion:       z.string().max(1000).optional(),
+})
+
+export const almSalidaSchema = z.object({
+  articuloId:        z.string().cuid(),
+  cantidad:          z.number().int().positive(),
+  fechaSalida:       z.string().datetime(),
+  dependenciaNombre: z.string().max(300).optional(),
+  funcionarioNombre: z.string().max(300).optional(),
+  actaNumero:        z.string().max(80).optional(),
+  observacion:       z.string().max(1000).optional(),
+})
+// ─── Observatorio ──────────────────────────────────────────────────────────────
+
+const OBS_CATEGORIA    = ['GESTION_INTERNA','ATENCION_CIUDADANA','FINANCIERO','CONTRATACION','GESTION_DOCUMENTAL','TALENTO_HUMANO','MIPG','OTRO'] as const
+const OBS_PERIODICIDAD = ['DIARIA','SEMANAL','MENSUAL','TRIMESTRAL','SEMESTRAL','ANUAL'] as const
+const OBS_META_TIPO    = ['MAYOR_ES_MEJOR','MENOR_ES_MEJOR','EXACTO'] as const
+
+export const obsIndicadorCreateSchema = z.object({
+  codigo:            z.string().min(1).max(40),
+  nombre:            z.string().min(3).max(300),
+  descripcion:       z.string().max(2000).optional(),
+  unidad:            z.string().min(1).max(30),
+  categoria:         z.enum(OBS_CATEGORIA),
+  periodicidad:      z.enum(OBS_PERIODICIDAD),
+  meta:              z.number(),
+  metaTipo:          z.enum(OBS_META_TIPO).optional(),
+  dependenciaNombre: z.string().max(300).optional(),
+  responsableNombre: z.string().max(300).optional(),
+  publicado:         z.boolean().optional(),
+  orden:             z.number().int().optional(),
+})
+
+export const obsIndicadorUpdateSchema = obsIndicadorCreateSchema.partial()
+
+export const obsMedicionSchema = z.object({
+  indicadorId: z.string().cuid(),
+  valor:       z.number(),
+  fecha:       z.string().datetime(),
+  periodo:     z.string().min(1).max(20),
+  fuente:      z.string().max(300).optional(),
+  observacion: z.string().max(1000).optional(),
+})
+// ─── Rentas locales ────────────────────────────────────────────────────────────
+
+const REN_TIPO_CONCEPTO   = ['PREDIAL_UNIFICADO','INDUSTRIA_COMERCIO','SOBRETASA_GASOLINA','ESTAMPILLA','DELINEACION_URBANA','AVISOS_TABLEROS','PLUSVALIA','ALUMBRADO_PUBLICO','OTRO'] as const
+const REN_PERIODICIDAD    = ['ANUAL','SEMESTRAL','TRIMESTRAL','MENSUAL','UNICA'] as const
+const REN_ESTADO_LIQ      = ['PENDIENTE','PARCIAL','PAGADA','VENCIDA','EN_ACUERDO_PAGO','ANULADA'] as const
+const REN_MEDIO_PAGO      = ['EFECTIVO','TRANSFERENCIA','PSE','CHEQUE','DATAFONO','OTRO'] as const
+
+export const renConceptoCreateSchema = z.object({
+  codigo:       z.string().min(1).max(40),
+  nombre:       z.string().min(2).max(300),
+  descripcion:  z.string().max(1000).optional(),
+  tipo:         z.enum(REN_TIPO_CONCEPTO),
+  periodicidad: z.enum(REN_PERIODICIDAD),
+  tasaBase:     z.number().nonnegative().optional(),
+  activo:       z.boolean().optional(),
+})
+
+export const renConceptoUpdateSchema = renConceptoCreateSchema.partial()
+
+export const renContribuyenteCreateSchema = z.object({
+  documento:   z.string().min(3).max(30),
+  tipoDoc:     z.enum(['CC','NIT','CE','PASAPORTE']).optional(),
+  nombre:      z.string().min(2).max(300),
+  razonSocial: z.string().max(300).optional(),
+  direccion:   z.string().max(500).optional(),
+  telefono:    z.string().max(20).optional(),
+  email:       z.string().email().optional(),
+})
+
+export const renContribuyenteUpdateSchema = renContribuyenteCreateSchema.partial().extend({
+  activo: z.boolean().optional(),
+})
+
+export const renLiquidacionCreateSchema = z.object({
+  numero:          z.string().min(1).max(60),
+  conceptoId:      z.string().cuid(),
+  contribuyenteId: z.string().cuid(),
+  vigencia:        z.number().int().min(2000).max(2100),
+  periodo:         z.string().max(20).optional(),
+  baseGravable:    z.number().nonnegative(),
+  tarifa:          z.number().nonnegative(),
+  intereses:       z.number().nonnegative().optional(),
+  descuentos:      z.number().nonnegative().optional(),
+  fechaVencimiento: z.string().datetime().optional(),
+  observacion:     z.string().max(1000).optional(),
+})
+
+export const renLiquidacionUpdateSchema = renLiquidacionCreateSchema.partial().extend({
+  estado: z.enum(REN_ESTADO_LIQ).optional(),
+})
+
+export const renPagoSchema = z.object({
+  liquidacionId: z.string().cuid(),
+  valor:         z.number().positive(),
+  fecha:         z.string().datetime(),
+  medioPago:     z.enum(REN_MEDIO_PAGO),
+  referencia:    z.string().max(100).optional(),
+  observacion:   z.string().max(500).optional(),
+})

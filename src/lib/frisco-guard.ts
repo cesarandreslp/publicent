@@ -70,3 +70,30 @@ export function requireNomina(roles: Role[]) {
 export function requireReportesControl(roles: Role[]) {
   return requireModule(MODULO_IDS.REPORTES_CONTROL, "Reportes a entes de control", roles)
 }
+
+/** Gate para endpoints admin de tesorería (módulo `tesoreria`). */
+export function requireTesoreria(roles: Role[]) {
+  return requireModule(MODULO_IDS.TESORERIA, "Tesorería", roles)
+}
+
+/** Gate para endpoints admin de contratación pública (módulo `contratacion`). */
+export function requireContratacion(roles: Role[]) {
+  return requireModule(MODULO_IDS.CONTRATACION, "Contratación pública", roles)
+}
+
+/** Gate para endpoints admin de activos y bienes institucionales (módulo ctivos_bienes). */
+export function requireActivosBienes(roles: Role[]) {
+  return requireModule(MODULO_IDS.ACTIVOS_BIENES, "Activos y bienes", roles)
+}
+/** Gate para endpoints admin de almacén / suministros (módulo lmacen). */
+export function requireAlmacen(roles: Role[]) {
+  return requireModule(MODULO_IDS.ALMACEN, "Almacén", roles)
+}
+/** Gate para endpoints admin del observatorio de indicadores (módulo observatorio). */
+export function requireObservatorio(roles: Role[]) {
+  return requireModule(MODULO_IDS.OBSERVATORIO, "Observatorio", roles)
+}
+/** Gate para endpoints admin de rentas locales (módulo entas_locales). */
+export function requireRentasLocales(roles: Role[]) {
+  return requireModule(MODULO_IDS.RENTAS_LOCALES, "Rentas locales", roles)
+}

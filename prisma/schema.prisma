@@ -1,5 +1,5 @@
-// Schema de Prisma para Personería de Guadalajara de Buga
-// Basado en Resolución 1519 de 2020 - MinTIC
+// Schema de Prisma para PersonerÃ­a de Guadalajara de Buga
+// Basado en ResoluciÃ³n 1519 de 2020 - MinTIC
 
 generator client {
   provider = "prisma-client-js"
@@ -10,7 +10,7 @@ datasource db {
 }
 
 // ==========================================
-// AUTENTICACIÓN Y USUARIOS
+// AUTENTICACIÃ“N Y USUARIOS
 // ==========================================
 
 model Usuario {
@@ -43,7 +43,7 @@ model Usuario {
   evidenciasMIPG   MipgEvidencia[]
   evaluacionesMIPG MipgEvaluacion[]
 
-  // Gestión Documental
+  // GestiÃ³n Documental
   gdRadicadosCreados    GdRadicado[]       @relation("GdCreador")
   gdRadicadosTramitados GdRadicado[]       @relation("GdTramitador")
   gdTransacciones       GdLogTransaccion[]
@@ -63,11 +63,11 @@ model Usuario {
   // Fase 3: API Keys
   gdApiKeysCreadas      GdApiKey[]            @relation("GdApiKeyCreador")
 
-  // Ventanilla Única
+  // Ventanilla Ãšnica
   vuRespuestas          VuRespuesta[]         @relation("VuRespuestasFuncionario")
   vuChatMensajes        VuChatMensaje[]       @relation("VuChatMensajes")
 
-  // Ventanilla Única — relaciones nuevas
+  // Ventanilla Ãšnica â€” relaciones nuevas
   vuAsignacionesComoFuncionario VuAsignacionFuncionario[] @relation("VuAsignacionFuncionario")
   vuAsignacionesComoResponsable VuAsignacionFuncionario[] @relation("VuAsignacionResponsable")
   vuAsignHistorialAnterior      VuAsignacionHistorial[]   @relation("VuAsignHistAnterior")
@@ -90,7 +90,7 @@ model Rol {
   id          String  @id @default(cuid())
   nombre      String  @unique
   descripcion String?
-  permisos    Json // Array de permisos específicos
+  permisos    Json // Array de permisos especÃ­ficos
   esProtegido Boolean @default(false) // No se puede eliminar
 
   usuarios Usuario[]
@@ -124,8 +124,8 @@ model TokenRecuperacion {
 }
 
 // ==========================================
-// ESTRUCTURA DEL SITIO - MENÚ Y SECCIONES
-// Basado en Resolución 1519 de 2020
+// ESTRUCTURA DEL SITIO - MENÃš Y SECCIONES
+// Basado en ResoluciÃ³n 1519 de 2020
 // ==========================================
 
 model MenuPrincipal {
@@ -136,9 +136,9 @@ model MenuPrincipal {
   orden         Int     @default(0)
   visible       Boolean @default(true)
   esObligatorio Boolean @default(false) // Secciones que exige la Res. 1519
-  codigoITA     String? // Código del criterio ITA asociado
+  codigoITA     String? // CÃ³digo del criterio ITA asociado
 
-  // Relación padre-hijo para submenús
+  // RelaciÃ³n padre-hijo para submenÃºs
   padreId  String?
   padre    MenuPrincipal?  @relation("SubMenus", fields: [padreId], references: [id])
   subMenus MenuPrincipal[] @relation("SubMenus")
@@ -163,11 +163,11 @@ model Pagina {
   imagenDestacada String?
   publicada       Boolean         @default(false)
 
-  // Relación con menú
+  // RelaciÃ³n con menÃº
   menuId String?        @unique
   menu   MenuPrincipal? @relation(fields: [menuId], references: [id])
 
-  // Secciones de la página
+  // Secciones de la pÃ¡gina
   secciones SeccionPagina[]
 
   createdAt DateTime @default(now())
@@ -180,10 +180,10 @@ model SeccionPagina {
   id            String      @id @default(cuid())
   nombre        String
   tipo          TipoSeccion
-  contenido     Json // Contenido flexible según el tipo
+  contenido     Json // Contenido flexible segÃºn el tipo
   orden         Int         @default(0)
   visible       Boolean     @default(true)
-  configuracion Json? // Configuración específica de la sección
+  configuracion Json? // ConfiguraciÃ³n especÃ­fica de la secciÃ³n
 
   paginaId String
   pagina   Pagina @relation(fields: [paginaId], references: [id], onDelete: Cascade)
@@ -195,19 +195,19 @@ model SeccionPagina {
 }
 
 // ==========================================
-// TRANSPARENCIA - Resolución 1519 de 2020
+// TRANSPARENCIA - ResoluciÃ³n 1519 de 2020
 // ==========================================
 
 model CategoriaTransparencia {
   id            String  @id @default(cuid())
-  numero        Int // 1, 2, 3... según Res. 1519
+  numero        Int // 1, 2, 3... segÃºn Res. 1519
   nombre        String
   slug          String  @unique
   descripcion   String?
   icono         String?
   orden         Int     @default(0)
   esObligatoria Boolean @default(true)
-  codigoITA     String? // Código ITA asociado
+  codigoITA     String? // CÃ³digo ITA asociado
 
   subcategorias SubcategoriaTransparencia[]
 
@@ -293,7 +293,7 @@ model Noticia {
   extracto         String? // Resumen corto
   contenido        Json // Contenido HTML del editor
   imagenDestacada  String?
-  galeria          Json? // Array de URLs de imágenes
+  galeria          Json? // Array de URLs de imÃ¡genes
   videoUrl         String?
   estado           EstadoPublicacion @default(BORRADOR)
   destacada        Boolean           @default(false)
@@ -345,7 +345,7 @@ model EtiquetaNoticia {
 }
 
 // ==========================================
-// CONTENIDO GENERAL Y PÁGINAS DINÁMICAS
+// CONTENIDO GENERAL Y PÃGINAS DINÃMICAS
 // ==========================================
 
 model Contenido {
@@ -383,7 +383,7 @@ model Documento {
   tipoArchivo String
   tamanio     Int?
   categoria   CategoriaDocumento
-  carpeta     String? // Para organización interna
+  carpeta     String? // Para organizaciÃ³n interna
   publico     Boolean            @default(true)
 
   subidoPorId String
@@ -401,7 +401,7 @@ model Documento {
 
 model PQRS {
   id          String   @id @default(cuid())
-  radicado    String   @unique // Número único de radicación
+  radicado    String   @unique // NÃºmero Ãºnico de radicaciÃ³n
   tipo        TipoPQRS
   asunto      String
   descripcion String   @db.Text
@@ -429,7 +429,7 @@ model PQRS {
   respuesta        String? @db.Text
   archivoRespuesta String?
 
-  // Asignación
+  // AsignaciÃ³n
   asignadoId String?
   asignado   Usuario? @relation("PQRSAsignado", fields: [asignadoId], references: [id])
 
@@ -444,19 +444,19 @@ model PQRS {
   anonimo Boolean   @default(false)
   canal   CanalPQRS @default(WEB)
 
-  // Integración con Gestión Documental AGN
-  // → cuando es un PQRS nativo se vincula automáticamente al radicado oficial
+  // IntegraciÃ³n con GestiÃ³n Documental AGN
+  // â†’ cuando es un PQRS nativo se vincula automÃ¡ticamente al radicado oficial
   gdRadicadoId String?     @unique
   gdRadicado   GdRadicado? @relation(fields: [gdRadicadoId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // ── Campos de Ventanilla Única (extienden el ticket base) ─────────────
-  folios                  Int?      // hojas que ocupa la descripción en formato carta
+  // â”€â”€ Campos de Ventanilla Ãšnica (extienden el ticket base) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  folios                  Int?      // hojas que ocupa la descripciÃ³n en formato carta
   razonPrioridad          String?   @db.Text
-  diasTerminoLegal        Int?      // días hábiles del término legal según Ley 1755/2015
-  fechaTerminoSuspendido  DateTime? // suspensión del término
+  diasTerminoLegal        Int?      // dÃ­as hÃ¡biles del tÃ©rmino legal segÃºn Ley 1755/2015
+  fechaTerminoSuspendido  DateTime? // suspensiÃ³n del tÃ©rmino
   fechaTerminoReanudado   DateTime?
   vencido                 Boolean   @default(false)
   cerradoEn               DateTime?
@@ -464,8 +464,8 @@ model PQRS {
   motivoCierre            String?   @db.Text
   metadata                Json?     // datos flexibles por tipo
 
-  // ── Ventanilla Única (solo activo si el módulo VU está habilitado) ──
-  colorSemaforo       VuColorSemaforo? // calculado en runtime, persiste para búsquedas
+  // â”€â”€ Ventanilla Ãšnica (solo activo si el mÃ³dulo VU estÃ¡ habilitado) â”€â”€
+  colorSemaforo       VuColorSemaforo? // calculado en runtime, persiste para bÃºsquedas
   vuAsignacion        VuAsignacionIA? // sugerencia automatica IA (no la asignacion real)
   vuRespuestas        VuRespuesta[]
   vuChat              VuChatMensaje[]
@@ -500,7 +500,7 @@ model HistorialPQRS {
 }
 
 // ==========================================
-// CONFIGURACIÓN DEL SITIO
+// CONFIGURACIÃ“N DEL SITIO
 // ==========================================
 
 model ConfiguracionSitio {
@@ -569,7 +569,7 @@ model BannerPopup {
 
 // ==========================================
 // IDENTIDAD INSTITUCIONAL DEL TENANT (singleton)
-// Contenido editable por el admin del tenant — reemplaza datos hardcoded
+// Contenido editable por el admin del tenant â€” reemplaza datos hardcoded
 // ==========================================
 
 model IdentidadInstitucional {
@@ -611,7 +611,7 @@ model IdentidadInstitucional {
 
   // SEO metadata para layout root
   seoTitle         String?
-  seoTitleTemplate String? // ej: "%s | Personería de X"
+  seoTitleTemplate String? // ej: "%s | PersonerÃ­a de X"
   seoDescription   String? @db.Text
   seoKeywords      String? // CSV
   seoOgImageUrl    String?
@@ -633,7 +633,7 @@ model IdentidadInstitucional {
 }
 
 // ==========================================
-// SEDES FÍSICAS DE LA ENTIDAD
+// SEDES FÃSICAS DE LA ENTIDAD
 // ==========================================
 
 model Sede {
@@ -658,7 +658,7 @@ model Sede {
 }
 
 // ==========================================
-// CANALES DE ATENCIÓN AL CIUDADANO
+// CANALES DE ATENCIÃ“N AL CIUDADANO
 // ==========================================
 
 model CanalAtencion {
@@ -712,7 +712,7 @@ model Funcionario {
   activo              Boolean @default(true)
   formacionAcademica  String? @db.Text
   experiencia         String? @db.Text
-  tipoVinculacion     String? // "Elección Popular", "Carrera Administrativa", "Contratista"
+  tipoVinculacion     String? // "ElecciÃ³n Popular", "Carrera Administrativa", "Contratista"
   visibleEnDirectorio Boolean @default(true)
 
   createdAt DateTime @default(now())
@@ -769,7 +769,7 @@ model Evento {
 }
 
 // ==========================================
-// AUDITORÍA Y LOGS
+// AUDITORÃA Y LOGS
 // ==========================================
 
 model RegistroAuditoria {
@@ -791,7 +791,7 @@ model RegistroAuditoria {
 }
 
 // ==========================================
-// MIPG Y FURAG (Modelo Integrado de Planeación y Gestión)
+// MIPG Y FURAG (Modelo Integrado de PlaneaciÃ³n y GestiÃ³n)
 // ==========================================
 
 model MipgDimension {
@@ -864,7 +864,7 @@ model MipgEvidencia {
   subidoPorId String
   subidoPor   Usuario @relation(fields: [subidoPorId], references: [id])
 
-  // Puente → Gestión Documental: evidencia apuntando a un documento radicado oficialmente
+  // Puente â†’ GestiÃ³n Documental: evidencia apuntando a un documento radicado oficialmente
   gdDocumentoId String?      @unique
   gdDocumento   GdDocumento? @relation(fields: [gdDocumentoId], references: [id])
 
@@ -894,11 +894,11 @@ model MipgEvaluacion {
 }
 
 // ==========================================
-// GESTIÓN DOCUMENTAL AGN-COMPATIBLE (Fase 5)
-// Basado en estándar Orfeo NG / AGN
+// GESTIÃ“N DOCUMENTAL AGN-COMPATIBLE (Fase 5)
+// Basado en estÃ¡ndar Orfeo NG / AGN
 // ==========================================
 
-// --- TRD: Tablas de Retención Documental ---
+// --- TRD: Tablas de RetenciÃ³n Documental ---
 
 model GdTrdDependencia {
   id          String  @id @default(cuid())
@@ -907,7 +907,7 @@ model GdTrdDependencia {
   descripcion String?
   activa      Boolean @default(true)
 
-  // Estructura jerárquica
+  // Estructura jerÃ¡rquica
   padreId String?
   padre   GdTrdDependencia?  @relation("SubDependencias", fields: [padreId], references: [id])
   hijas   GdTrdDependencia[] @relation("SubDependencias")
@@ -939,8 +939,8 @@ model GdTrdSubserie {
   id                 String             @id @default(cuid())
   codigo             String // Ej: "1.1", "1.2"
   nombre             String
-  tiempoGestion      Int                @default(2) // Años en Archivo de Gestión
-  tiempoCentral      Int                @default(3) // Años en Archivo Central
+  tiempoGestion      Int                @default(2) // AÃ±os en Archivo de GestiÃ³n
+  tiempoCentral      Int                @default(3) // AÃ±os en Archivo Central
   soporteFisico      Boolean            @default(false)
   soporteElectronico Boolean            @default(true)
   disposicion        GdDisposicionFinal @default(CONSERVACION_TOTAL)
@@ -959,7 +959,7 @@ model GdTrdSubserie {
 model GdTrdTipoDocumental {
   id          String        @id @default(cuid())
   nombre      String
-  diasTramite Int           @default(15) // Días hábiles para respuesta
+  diasTramite Int           @default(15) // DÃ­as hÃ¡biles para respuesta
   activo      Boolean       @default(true)
   subserieId  String
   subserie    GdTrdSubserie @relation(fields: [subserieId], references: [id], onDelete: Cascade)
@@ -968,13 +968,13 @@ model GdTrdTipoDocumental {
   @@map("gd_trd_tipos_documentales")
 }
 
-// --- Motor de Radicación ---
+// --- Motor de RadicaciÃ³n ---
 
 model GdConsecutivo {
   id        String         @id @default(cuid())
   anio      Int
   tipo      GdTipoRadicado
-  codigoDep String // Código dependencia receptora
+  codigoDep String // CÃ³digo dependencia receptora
   ultimo    Int            @default(0)
 
   @@unique([anio, tipo, codigoDep])
@@ -1003,7 +1003,7 @@ model GdRadicado {
   folios           Int              @default(1)
   prioridad        GdPrioridad      @default(NORMAL)
   fechaVencimiento DateTime?
-  radicadoOrigen   String? // Número radicado externo de origen
+  radicadoOrigen   String? // NÃºmero radicado externo de origen
   observacion      String?          @db.Text
   estado           GdEstadoRadicado @default(EN_TRAMITE)
   isRadicado       Boolean          @default(true) // false = consecutivo interno
@@ -1022,7 +1022,7 @@ model GdRadicado {
   creadorId    String
   creador      Usuario @relation("GdCreador", fields: [creadorId], references: [id])
 
-  // ─── Fase 1: Radicados padre/hijo (RadiRadicadosAsociados Orfeo) ───
+  // â”€â”€â”€ Fase 1: Radicados padre/hijo (RadiRadicadosAsociados Orfeo) â”€â”€â”€
   padreId       String?
   padre         GdRadicado?  @relation("HijosRadicado", fields: [padreId], references: [id])
   hijos         GdRadicado[] @relation("HijosRadicado")
@@ -1034,8 +1034,8 @@ model GdRadicado {
   informados    GdRadicadoInformado[]
   vobos         GdVoBo[]
 
-  // ─── Puentes de Integración ───
-  // → Ventanilla Única / PQRS nativo
+  // â”€â”€â”€ Puentes de IntegraciÃ³n â”€â”€â”€
+  // â†’ Ventanilla Ãšnica / PQRS nativo
   pqrs PQRS?
 
   // Expedientes a los que pertenece
@@ -1044,14 +1044,14 @@ model GdRadicado {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // ─── Índices de performance (soporta 300k+ radicados/año) ───────────────
+  // â”€â”€â”€ Ãndices de performance (soporta 300k+ radicados/aÃ±o) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   @@index([estado, createdAt(sort: Desc)])      // Bandeja por estado
   @@index([tipo, estado])                        // Filtros combinados tipo+estado
   @@index([tramitadorId, estado])               // Bandeja del funcionario
   @@index([dependenciaId, estado])              // Bandeja de dependencia
   @@index([prioridad, estado, createdAt(sort: Desc)]) // Urgentes primero
-  @@index([fechaVencimiento, estado])           // Detección de vencidos
-  @@index([createdAt(sort: Desc)])              // Orden cronológico general
+  @@index([fechaVencimiento, estado])           // DetecciÃ³n de vencidos
+  @@index([createdAt(sort: Desc)])              // Orden cronolÃ³gico general
   @@map("gd_radicados")
 }
 
@@ -1082,11 +1082,11 @@ model GdDocumento {
   radicadoId String
   radicado   GdRadicado @relation(fields: [radicadoId], references: [id], onDelete: Cascade)
 
-  // ─── Puente → MIPG ───
+  // â”€â”€â”€ Puente â†’ MIPG â”€â”€â”€
   // Una evidencia MIPG puede referenciar un documento radicado oficialmente
   evidenciaMipg MipgEvidencia?
 
-  // ─── Firma Electrónica ───
+  // â”€â”€â”€ Firma ElectrÃ³nica â”€â”€â”€
   firmaQr GdFirmaQr?
 
   createdAt DateTime @default(now())
@@ -1096,7 +1096,7 @@ model GdDocumento {
 
 model GdExpediente {
   id            String             @id @default(cuid())
-  codigo        String             @unique // [Dep]-[Serie]-[Subserie]-[Año]-[Consecutivo]
+  codigo        String             @unique // [Dep]-[Serie]-[Subserie]-[AÃ±o]-[Consecutivo]
   nombre        String
   descripcion   String?            @db.Text
   fechaApertura DateTime           @default(now())
@@ -1110,7 +1110,7 @@ model GdExpediente {
   subserieId    String?
   subserie      GdTrdSubserie?   @relation(fields: [subserieId], references: [id])
 
-  radicados GdRadicado[] // Relación NxM implicita
+  radicados GdRadicado[] // RelaciÃ³n NxM implicita
   indices   GdIndiceElectronico[]
 
   creadorId String
@@ -1120,7 +1120,7 @@ model GdExpediente {
   updatedAt DateTime   @updatedAt
   gaCarpeta GaCarpeta?
 
-  // FRISCO: bienes vinculados a este expediente (módulo vertical SAE)
+  // FRISCO: bienes vinculados a este expediente (mÃ³dulo vertical SAE)
   friscoBienes FriscoBien[]
 
   @@map("gd_expedientes")
@@ -1128,7 +1128,7 @@ model GdExpediente {
 
 model GdIndiceElectronico {
   id           String @id @default(cuid())
-  hashCierre   String // Hash resultante del manifiesto XML del índice
+  hashCierre   String // Hash resultante del manifiesto XML del Ã­ndice
   documentoUrl String // URL al PDF final certificado
 
   expedienteId String
@@ -1143,7 +1143,7 @@ model GdIndiceElectronico {
 }
 
 // ==========================================
-// GESTIÓN DE ARCHIVO FÍSICO Y PRÉSTAMOS
+// GESTIÃ“N DE ARCHIVO FÃSICO Y PRÃ‰STAMOS
 // ==========================================
 
 model GaEdificio {
@@ -1217,7 +1217,7 @@ model GaCarpeta {
 
   prestamos GaPrestamo[]
 
-  // FRISCO: bienes cuya documentación física reposa en esta carpeta
+  // FRISCO: bienes cuya documentaciÃ³n fÃ­sica reposa en esta carpeta
   friscoBienes FriscoBien[]
 
   @@map("ga_carpetas")
@@ -1286,7 +1286,7 @@ model GdLogTransaccion {
   @@map("gd_log_transacciones")
 }
 
-// ─── Fase 1: Usuarios Informados (CC — RadiInformados Orfeo) ─────────────────
+// â”€â”€â”€ Fase 1: Usuarios Informados (CC â€” RadiInformados Orfeo) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 model GdRadicadoInformado {
   id         String     @id @default(cuid())
   radicadoId String
@@ -1302,7 +1302,7 @@ model GdRadicadoInformado {
   @@map("gd_radicados_informados")
 }
 
-// ─── Fase 1: VoBo Multi-nivel ────────────────────────────────────────────────
+// â”€â”€â”€ Fase 1: VoBo Multi-nivel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 model GdVoBo {
   id          String         @id @default(cuid())
   radicadoId  String
@@ -1337,10 +1337,10 @@ enum GaEstadoPrestamo {
 enum GdEstadoExpediente {
   ABIERTO
   CERRADO
-  TRANSFERIDO               // Legacy — equivale a TRANSFERIDO_CENTRAL
+  TRANSFERIDO               // Legacy â€” equivale a TRANSFERIDO_CENTRAL
   TRANSFERIDO_CENTRAL       // En Archivo Central
-  TRANSFERIDO_HISTORICO     // En Archivo Histórico
-  ELIMINADO                 // Disposición final: eliminación
+  TRANSFERIDO_HISTORICO     // En Archivo HistÃ³rico
+  ELIMINADO                 // DisposiciÃ³n final: eliminaciÃ³n
 }
 
 enum PlantillaPagina {
@@ -1455,7 +1455,7 @@ enum EstadoEvidencia {
   RECHAZADA
 }
 
-// ─── Enums Gestión Documental (Fase 5) ───
+// â”€â”€â”€ Enums GestiÃ³n Documental (Fase 5) â”€â”€â”€
 
 enum GdTipoRadicado {
   ENTRADA
@@ -1536,15 +1536,15 @@ enum GdDisposicionFinal {
 // FASE 3: PLATAFORMA NACIONAL
 // ==========================================
 
-// ─── 3.1 Plan Config (cuotas locales por tenant) ─────────────────────────────
+// â”€â”€â”€ 3.1 Plan Config (cuotas locales por tenant) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 model GdPlanConfig {
   id                 String      @id @default(cuid())
   nivel              GdPlanNivel @default(BASICO)
-  limiteRadicados    Int         @default(50000)   // Radicados/año
+  limiteRadicados    Int         @default(50000)   // Radicados/aÃ±o
   limiteSedes        Int         @default(1)
   apiPublica         Boolean     @default(false)
   slaHoras           Int         @default(72)       // SLA respuesta en horas
-  radicadosActuales  Int         @default(0)        // Conteo acumulado año actual
+  radicadosActuales  Int         @default(0)        // Conteo acumulado aÃ±o actual
   anioActual         Int         @default(2026)
   activo             Boolean     @default(true)
   fechaVencimiento   DateTime?
@@ -1556,15 +1556,15 @@ model GdPlanConfig {
 }
 
 enum GdPlanNivel {
-  BASICO        // 50k rad/año, 1 sede, sin API pública
-  PROFESIONAL   // 200k rad/año, 3 sedes, API lectura
+  BASICO        // 50k rad/aÃ±o, 1 sede, sin API pÃºblica
+  PROFESIONAL   // 200k rad/aÃ±o, 3 sedes, API lectura
   ENTERPRISE    // ilimitado, N sedes, API completa, SLA
 }
 
-// ─── 3.3 API Keys (autenticación API pública REST) ────────────────────────────
+// â”€â”€â”€ 3.3 API Keys (autenticaciÃ³n API pÃºblica REST) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 model GdApiKey {
   id          String    @id @default(cuid())
-  nombre      String                        // "App Ventanilla Medellín"
+  nombre      String                        // "App Ventanilla MedellÃ­n"
   keyHash     String    @unique             // bcrypt hash del API key
   keyPrefix   String                        // primeros 8 chars para identificar
   permisos    Json      @default("[]")      // ["radicados:read","radicados:write"]
@@ -1585,7 +1585,7 @@ model GdApiKey {
   @@map("gd_api_keys")
 }
 
-// ─── 3.3 API Logs (registro de uso API pública) ──────────────────────────────
+// â”€â”€â”€ 3.3 API Logs (registro de uso API pÃºblica) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 model GdApiLog {
   id        String   @id @default(cuid())
   metodo    String   // GET, POST
@@ -1604,7 +1604,7 @@ model GdApiLog {
   @@map("gd_api_logs")
 }
 
-// ─── 3.4 SIGEP Cache (caché local directorio funcionarios) ────────────────────
+// â”€â”€â”€ 3.4 SIGEP Cache (cachÃ© local directorio funcionarios) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 model GdSigepCache {
   id           String   @id @default(cuid())
   cedula       String   @unique
@@ -1615,7 +1615,7 @@ model GdSigepCache {
   email        String?
   telefono     String?
   datosJson    Json?    // Respuesta completa de SIGEP
-  expiraEn     DateTime // TTL: cuándo revalidar
+  expiraEn     DateTime // TTL: cuÃ¡ndo revalidar
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -1626,14 +1626,14 @@ model GdSigepCache {
 }
 
 // ==========================================
-// MÓDULO VENTANILLA ÚNICA (VU)
+// MÃ“DULO VENTANILLA ÃšNICA (VU)
 // Activo solo si el tenant tiene ventanilla_unica.activo = true
 // ==========================================
 
-/// Semáforo de vencimientos legales (CPACA / Ley 1437)
+/// SemÃ¡foro de vencimientos legales (CPACA / Ley 1437)
 enum VuColorSemaforo {
   VERDE      // > 40% del tiempo disponible
-  AMARILLO   // 20–40% del tiempo disponible
+  AMARILLO   // 20â€“40% del tiempo disponible
   ROJO       // < 20% del tiempo disponible
   NEGRO      // Vencido
 }
@@ -1641,14 +1641,14 @@ enum VuColorSemaforo {
 /// 6 tipos de respuesta formal definidos en la normativa colombiana
 enum VuTipoRespuesta {
   COMPETENTE    // Respuesta de fondo por la entidad competente
-  REMISION      // Remisión a entidad competente (Art. 21 Ley 1437)
-  INSISTENCIA   // Insistencia del ciudadano ante negativa de información
+  REMISION      // RemisiÃ³n a entidad competente (Art. 21 Ley 1437)
+  INSISTENCIA   // Insistencia del ciudadano ante negativa de informaciÃ³n
   TRASLADO      // Traslado por falta de competencia
-  DESISTIMIENTO // Desistimiento tácito o expreso del ciudadano
+  DESISTIMIENTO // Desistimiento tÃ¡cito o expreso del ciudadano
   IMPROCEDENTE  // Solicitud manifiestamente improcedente
 }
 
-/// Datos demográficos para reporte FURAG POL06
+/// Datos demogrÃ¡ficos para reporte FURAG POL06
 enum VuGenero {
   MASCULINO
   FEMENINO
@@ -1673,19 +1673,19 @@ enum VuCondicionVulnerabilidad {
   PRIMERA_INFANCIA
 }
 
-/// Asignación automática realizada por el motor de IA (Groq / LLaMA 3.3 70B)
+/// AsignaciÃ³n automÃ¡tica realizada por el motor de IA (Groq / LLaMA 3.3 70B)
 model VuAsignacionIA {
   id              String   @id @default(cuid())
   modelo          String   // ej: "llama-3.3-70b-versatile"
   tokensPrompt    Int      @default(0)
   tokensRespuesta Int      @default(0)
-  razon           String   @db.Text  // Explicación del modelo
-  confianza       Float    @default(0) // 0.0 – 1.0
+  razon           String   @db.Text  // ExplicaciÃ³n del modelo
+  confianza       Float    @default(0) // 0.0 â€“ 1.0
   dependenciaSugerida String?
   funcionarioSugerido String?
   prioridadSugerida   PrioridadPQRS?
   tipoDetectado       TipoPQRS?
-  diasTerminoLegal    Int?    // Días hábiles calculados por el modelo
+  diasTerminoLegal    Int?    // DÃ­as hÃ¡biles calculados por el modelo
 
   pqrsId String @unique
   pqrs   PQRS   @relation(fields: [pqrsId], references: [id], onDelete: Cascade)
@@ -1702,7 +1702,7 @@ model VuRespuesta {
   contenido       String           @db.Text
   archivoUrl      String?          // PDF de respuesta en R2
   entidadDestino  String?          // Para REMISION y TRASLADO
-  radicadoDestino String?          // Número radicado en entidad destino
+  radicadoDestino String?          // NÃºmero radicado en entidad destino
   firmadoPor      String?          // Nombre del funcionario firmante
   firmaQrUrl      String?          // URL del QR de firma digital
 
@@ -1718,7 +1718,7 @@ model VuRespuesta {
   @@map("vu_respuestas")
 }
 
-/// Chat bidireccional ciudadano ↔ funcionario
+/// Chat bidireccional ciudadano â†” funcionario
 model VuChatMensaje {
   id        String   @id @default(cuid())
   contenido String   @db.Text
@@ -1739,8 +1739,8 @@ model VuChatMensaje {
   @@map("vu_chat_mensajes")
 }
 
-/// Datos demográficos del ciudadano (recopilados voluntariamente al radicar)
-/// Alimentan directamente la Política 06 del MIPG (Atención al Ciudadano / PQRSD)
+/// Datos demogrÃ¡ficos del ciudadano (recopilados voluntariamente al radicar)
+/// Alimentan directamente la PolÃ­tica 06 del MIPG (AtenciÃ³n al Ciudadano / PQRSD)
 model VuDemografia {
   id                   String                    @id @default(cuid())
   genero               VuGenero                  @default(PREFIERE_NO_DECIR)
@@ -1782,7 +1782,7 @@ enum CategoriaFaq {
 }
 
 // ==========================================
-// VENTANILLA UNICA — MODELOS EXTENDIDOS
+// VENTANILLA UNICA â€” MODELOS EXTENDIDOS
 // (todos prefijados Vu* y con @@map("vu_...") )
 // ==========================================
 
@@ -1927,7 +1927,7 @@ model VuConfiguracionSLA {
 }
 
 /// Settings de runtime del modulo VU (IA, notificaciones, calendario, identidad, etc.)
-/// La clave es String libre — extensible sin migracion. Ejemplos:
+/// La clave es String libre â€” extensible sin migracion. Ejemplos:
 ///  HOLIDAYS, BUSINESS_HOURS, ATTENTION_DAYS, IA_HABILITADA, IA_MODELO,
 ///  IA_UMBRAL_CONFIANZA, NOTIF_EMAIL_HABILITADO, MAX_CASE_LOAD, etc.
 model VuConfiguracionSistema {
@@ -2143,25 +2143,25 @@ model VuRutaTokenExterno {
 }
 
 // ============================================================================
-// FRISCO — Bienes en proceso de extinción de dominio (módulo vertical SAE)
+// FRISCO â€” Bienes en proceso de extinciÃ³n de dominio (mÃ³dulo vertical SAE)
 // ----------------------------------------------------------------------------
-// Activado por el módulo `frisco_bienes`. Cada bien queda vinculado a un
-// expediente documental (GdExpediente) y, opcionalmente, a su ubicación
-// física en archivo (GaCarpeta) cuando aplica. Tablas pensadas para soportar
-// el ciclo: ingreso por orden judicial → custodia → contratos → destinación.
+// Activado por el mÃ³dulo `frisco_bienes`. Cada bien queda vinculado a un
+// expediente documental (GdExpediente) y, opcionalmente, a su ubicaciÃ³n
+// fÃ­sica en archivo (GaCarpeta) cuando aplica. Tablas pensadas para soportar
+// el ciclo: ingreso por orden judicial â†’ custodia â†’ contratos â†’ destinaciÃ³n.
 // ============================================================================
 
 model FriscoBien {
   id              String   @id @default(cuid())
   codigo          String   @unique                 // consecutivo interno
-  folioMatricula  String?                          // SNR — inmuebles
+  folioMatricula  String?                          // SNR â€” inmuebles
   placa           String?                          // automotores
   tipo            FriscoTipoBien
   estadoJuridico  FriscoEstadoJuridico @default(EN_PROCESO)
   estadoFisico    FriscoEstadoFisico?  @default(SIN_VERIFICAR)
 
   descripcion     String   @db.Text
-  ubicacion       String?                          // dirección textual
+  ubicacion       String?                          // direcciÃ³n textual
   latitud         Float?
   longitud        Float?
 
@@ -2169,11 +2169,11 @@ model FriscoBien {
   monedaAvaluo    String?  @default("COP")
   fechaAvaluo     DateTime?
 
-  numeroProceso   String?                          // proceso de extinción
+  numeroProceso   String?                          // proceso de extinciÃ³n
   fechaIngreso    DateTime @default(now())
   juzgado         String?
 
-  // Vínculos a documentación
+  // VÃ­nculos a documentaciÃ³n
   expedienteId    String?
   expediente      GdExpediente? @relation(fields: [expedienteId], references: [id])
   carpetaFisicaId String?
@@ -2212,9 +2212,9 @@ enum FriscoTipoBien {
 }
 
 enum FriscoEstadoJuridico {
-  EN_PROCESO   // proceso activo de extinción
+  EN_PROCESO   // proceso activo de extinciÃ³n
   CAUTELAR     // medida cautelar vigente
-  EXTINTO      // sentencia de extinción ejecutoriada
+  EXTINTO      // sentencia de extinciÃ³n ejecutoriada
   DEVUELTO     // devuelto al propietario original
 }
 
@@ -2227,13 +2227,13 @@ enum FriscoEstadoFisico {
   SIN_VERIFICAR
 }
 
-// ─── Depositario: custodio temporal de un bien ────────────────────────────────
+// â”€â”€â”€ Depositario: custodio temporal de un bien â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 model FriscoDepositario {
   id          String   @id @default(cuid())
   tipoPersona FriscoTipoPersona
   nombre      String
-  documento   String                              // cédula o NIT
+  documento   String                              // cÃ©dula o NIT
   email       String?
   telefono    String?
   direccion   String?
@@ -2266,7 +2266,7 @@ enum FriscoTipoPersona {
   JURIDICA
 }
 
-// ─── Portal externo del depositario: acceso por token + reportes mensuales ───
+// â”€â”€â”€ Portal externo del depositario: acceso por token + reportes mensuales â”€â”€â”€
 
 model FriscoPortalAcceso {
   id            String   @id @default(cuid())
@@ -2308,7 +2308,7 @@ model FriscoReporteDepositario {
   @@map("frisco_reportes_depositario")
 }
 
-// ─── Análisis IA del reporte (sugiere, humano decide) ────────────────────────
+// â”€â”€â”€ AnÃ¡lisis IA del reporte (sugiere, humano decide) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 model FriscoReporteAnalisisIA {
   id          String   @id @default(cuid())
@@ -2322,10 +2322,10 @@ model FriscoReporteAnalisisIA {
   modelo      String                                   // ej: "llama-3.3-70b-versatile"
   proveedor   String                                   // groq | shipu | fallback
   promptVersion String                                 // ej: "frisco-reporte-v1"
-  raw         Json?                                    // payload bruto del modelo (auditoría)
+  raw         Json?                                    // payload bruto del modelo (auditorÃ­a)
   tokensPrompt    Int?
   tokensRespuesta Int?
-  errorMsg    String?  @db.Text                        // si fallback determinístico se activó
+  errorMsg    String?  @db.Text                        // si fallback determinÃ­stico se activÃ³
   revisadoPor String?                                  // userId que valida/override
   revisadoEn  DateTime?
 
@@ -2341,7 +2341,7 @@ enum FriscoReporteUrgencia {
   CRITICA
 }
 
-// ─── Contrato sobre el bien (arrendamiento, administración, comodato) ─────────
+// â”€â”€â”€ Contrato sobre el bien (arrendamiento, administraciÃ³n, comodato) â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 model FriscoContrato {
   id     String              @id @default(cuid())
@@ -2397,7 +2397,7 @@ enum FriscoEstadoContrato {
   SUSPENDIDO
 }
 
-// ─── Destinación final del bien (1:1 al cerrar ciclo) ─────────────────────────
+// â”€â”€â”€ DestinaciÃ³n final del bien (1:1 al cerrar ciclo) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 model FriscoDestinacion {
   id     String                @id @default(cuid())
@@ -2406,9 +2406,9 @@ model FriscoDestinacion {
 
   tipo               FriscoTipoDestinacion
   fecha              DateTime
-  beneficiario       String?                      // víctima, entidad, comprador
+  beneficiario       String?                      // vÃ­ctima, entidad, comprador
   valorRealizacion   Decimal? @db.Decimal(18, 2)
-  actoAdministrativo String?                      // resolución / decreto
+  actoAdministrativo String?                      // resoluciÃ³n / decreto
   observaciones      String?  @db.Text
 
   createdAt DateTime @default(now())
@@ -2426,7 +2426,7 @@ enum FriscoTipoDestinacion {
   DEVOLUCION
 }
 
-// ─── Interoperabilidad externa (SNR / Fiscalía / IGAC) ────────────────────────
+// â”€â”€â”€ Interoperabilidad externa (SNR / FiscalÃ­a / IGAC) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 model FriscoInteropLog {
   id        String                 @id @default(cuid())
@@ -2434,8 +2434,8 @@ model FriscoInteropLog {
   bienId    String?
   bien      FriscoBien? @relation(fields: [bienId], references: [id], onDelete: SetNull)
 
-  consulta  Json                                       // parámetros de entrada
-  respuesta Json?                                      // payload remoto si éxito
+  consulta  Json                                       // parÃ¡metros de entrada
+  respuesta Json?                                      // payload remoto si Ã©xito
   exito     Boolean
   errorMsg  String?  @db.Text
   latenciaMs Int?
@@ -2454,13 +2454,13 @@ enum FriscoInteropServicio {
   IGAC
 }
 
-// ╔════════════════════════════════════════════════════════════════════════════╗
-// ║ Módulo Contabilidad Pública (CGN / NICSP)                                  ║
-// ║ Motor de doble partida + Plan Único de Cuentas público.                    ║
-// ║ Habilita después: presupuesto, tesorería, nómina, contratación.            ║
-// ╚════════════════════════════════════════════════════════════════════════════╝
+// â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
+// â•‘ MÃ³dulo Contabilidad PÃºblica (CGN / NICSP)                                  â•‘
+// â•‘ Motor de doble partida + Plan Ãšnico de Cuentas pÃºblico.                    â•‘
+// â•‘ Habilita despuÃ©s: presupuesto, tesorerÃ­a, nÃ³mina, contrataciÃ³n.            â•‘
+// â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-// ─── Plan Único de Cuentas (jerárquico, según CGN) ───────────────────────────
+// â”€â”€â”€ Plan Ãšnico de Cuentas (jerÃ¡rquico, segÃºn CGN) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 model CpPlanCuenta {
   id          String   @id @default(cuid())
@@ -2473,7 +2473,7 @@ model CpPlanCuenta {
   parent      CpPlanCuenta?  @relation("CpJerarquia", fields: [parentId], references: [id])
   hijos       CpPlanCuenta[] @relation("CpJerarquia")
   activa      Boolean  @default(true)
-  permiteMovimientos Boolean @default(false)          // sólo cuentas de detalle reciben asientos
+  permiteMovimientos Boolean @default(false)          // sÃ³lo cuentas de detalle reciben asientos
 
   asientos    CpAsiento[]
 
@@ -2496,7 +2496,7 @@ enum CpTipoCuenta {
   ORDEN        // cuentas de orden / control
 }
 
-// ─── Periodo contable (mensual o anual) ─────────────────────────────────────
+// â”€â”€â”€ Periodo contable (mensual o anual) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 model CpPeriodoContable {
   id        String   @id @default(cuid())
@@ -2521,10 +2521,10 @@ model CpPeriodoContable {
 enum CpEstadoPeriodo {
   ABIERTO
   CERRADO
-  AJUSTE       // sólo SUPER_ADMIN puede registrar comprobantes
+  AJUSTE       // sÃ³lo SUPER_ADMIN puede registrar comprobantes
 }
 
-// ─── Tercero auxiliar (NIT/CC, proveedor, contratista, beneficiario, etc.) ───
+// â”€â”€â”€ Tercero auxiliar (NIT/CC, proveedor, contratista, beneficiario, etc.) â”€â”€â”€
 
 model CpAuxiliarTercero {
   id          String   @id @default(cuid())
@@ -2555,7 +2555,7 @@ enum CpTipoDocumento {
   OTRO
 }
 
-// ─── Comprobante contable (encabezado del asiento) ───────────────────────────
+// â”€â”€â”€ Comprobante contable (encabezado del asiento) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 model CpComprobante {
   id          String   @id @default(cuid())
@@ -2572,7 +2572,7 @@ model CpComprobante {
 
   // Trazabilidad
   fuenteModulo  String?                                // p.ej. "frisco", "presupuesto", "nomina"
-  fuenteRef     String?                                // id en el módulo origen
+  fuenteRef     String?                                // id en el mÃ³dulo origen
   creadoPor     String?
   anuladoEn     DateTime?
   anuladoPor    String?
@@ -2588,7 +2588,7 @@ model CpComprobante {
 }
 
 enum CpTipoComprobante {
-  CONTABLE        // genérico
+  CONTABLE        // genÃ©rico
   EGRESO
   INGRESO
   AJUSTE
@@ -2601,7 +2601,7 @@ enum CpEstadoComprobante {
   ANULADO
 }
 
-// ─── Asiento (línea de débito/crédito) ──────────────────────────────────────
+// â”€â”€â”€ Asiento (lÃ­nea de dÃ©bito/crÃ©dito) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 model CpAsiento {
   id            String   @id @default(cuid())
@@ -2623,13 +2623,13 @@ model CpAsiento {
   @@map("cp_asientos")
 }
 
-// ╔════════════════════════════════════════════════════════════════════════════╗
-// ║ MÓDULO: Ejecución presupuestal (presupuesto_ejecucion)                     ║
-// ║ Cadena clásica del gasto público: CDP → RP → Obligación → Pago.            ║
-// ║ Cada paso afecta saldos del rubro. El Pago genera el comprobante contable. ║
-// ╚════════════════════════════════════════════════════════════════════════════╝
+// â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
+// â•‘ MÃ“DULO: EjecuciÃ³n presupuestal (presupuesto_ejecucion)                     â•‘
+// â•‘ Cadena clÃ¡sica del gasto pÃºblico: CDP â†’ RP â†’ ObligaciÃ³n â†’ Pago.            â•‘
+// â•‘ Cada paso afecta saldos del rubro. El Pago genera el comprobante contable. â•‘
+// â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-// ─── Rubro presupuestal (jerárquico, gastos/ingresos por fuente) ─────────────
+// â”€â”€â”€ Rubro presupuestal (jerÃ¡rquico, gastos/ingresos por fuente) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 model PsuRubro {
   id          String   @id @default(cuid())
@@ -2637,13 +2637,13 @@ model PsuRubro {
   nombre      String
   tipo        PsuTipoRubro                                // GASTO | INGRESO
   nivel       Int                                         // 1=clase 2=grupo 3=cuenta 4=auxiliar
-  fuente      String?                                     // SGP, propios, regalías, etc.
+  fuente      String?                                     // SGP, propios, regalÃ­as, etc.
   programa    String?
   proyecto    String?
   parentId    String?
   parent      PsuRubro?  @relation("PsuJerarquia", fields: [parentId], references: [id])
   hijos       PsuRubro[] @relation("PsuJerarquia")
-  permiteMovimientos Boolean @default(false)              // sólo hojas
+  permiteMovimientos Boolean @default(false)              // sÃ³lo hojas
   activa      Boolean  @default(true)
 
   apropiaciones PsuApropiacion[]
@@ -2662,13 +2662,13 @@ enum PsuTipoRubro {
   INGRESO
 }
 
-// ─── Apropiación: techo presupuestal por rubro y vigencia ────────────────────
+// â”€â”€â”€ ApropiaciÃ³n: techo presupuestal por rubro y vigencia â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 model PsuApropiacion {
   id          String   @id @default(cuid())
   rubroId     String
   rubro       PsuRubro @relation(fields: [rubroId], references: [id])
-  vigencia    Int                                         // año
+  vigencia    Int                                         // aÃ±o
   apropiacionInicial Decimal @db.Decimal(18, 2) @default(0)
   adiciones          Decimal @db.Decimal(18, 2) @default(0)
   reducciones        Decimal @db.Decimal(18, 2) @default(0)
@@ -2683,7 +2683,7 @@ model PsuApropiacion {
   @@map("psu_apropiaciones")
 }
 
-// ─── CDP: Certificado de Disponibilidad Presupuestal ─────────────────────────
+// â”€â”€â”€ CDP: Certificado de Disponibilidad Presupuestal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 model PsuCdp {
   id          String   @id @default(cuid())
@@ -2693,7 +2693,7 @@ model PsuCdp {
   rubroId     String
   rubro       PsuRubro @relation(fields: [rubroId], references: [id])
   valor       Decimal  @db.Decimal(18, 2)
-  objeto      String   @db.Text                           // descripción del gasto
+  objeto      String   @db.Text                           // descripciÃ³n del gasto
   estado      PsuEstadoDoc @default(VIGENTE)
   creadoPor   String?
   anuladoEn   DateTime?
@@ -2713,10 +2713,10 @@ model PsuCdp {
 enum PsuEstadoDoc {
   VIGENTE
   ANULADO
-  AGOTADO        // todo el valor está comprometido en pasos siguientes
+  AGOTADO        // todo el valor estÃ¡ comprometido en pasos siguientes
 }
 
-// ─── RP: Registro Presupuestal (compromiso) — afecta a un CDP ────────────────
+// â”€â”€â”€ RP: Registro Presupuestal (compromiso) â€” afecta a un CDP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 model PsuRp {
   id          String   @id @default(cuid())
@@ -2744,7 +2744,7 @@ model PsuRp {
   @@map("psu_rps")
 }
 
-// ─── Obligación: cuenta por pagar reconocida — afecta a un RP ────────────────
+// â”€â”€â”€ ObligaciÃ³n: cuenta por pagar reconocida â€” afecta a un RP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 model PsuObligacion {
   id          String   @id @default(cuid())
@@ -2769,7 +2769,7 @@ model PsuObligacion {
   @@map("psu_obligaciones")
 }
 
-// ─── Pago: ejecución del pago — genera comprobante contable ──────────────────
+// â”€â”€â”€ Pago: ejecuciÃ³n del pago â€” genera comprobante contable â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 model PsuPago {
   id          String   @id @default(cuid())
@@ -2782,9 +2782,9 @@ model PsuPago {
   referencia  String?                                     // egreso, transferencia, cheque
   estado      PsuEstadoDoc @default(VIGENTE)
 
-  // Vínculo a contabilidad (CpComprobante generado automáticamente)
+  // VÃ­nculo a contabilidad (CpComprobante generado automÃ¡ticamente)
   comprobanteId String?
-  cuentaBancoId String?                                   // cuenta CP del débito de banco/caja
+  cuentaBancoId String?                                   // cuenta CP del dÃ©bito de banco/caja
 
   creadoPor   String?
   anuladoEn   DateTime?
@@ -2805,14 +2805,14 @@ enum PsuMedioPago {
   OTRO
 }
 
-// ╔════════════════════════════════════════════════════════════════════════════╗
-// ║ MÓDULO: Nómina pública (nomina_publica)                                    ║
-// ║ Maneja empleados (planta y contratistas), conceptos de devengado y         ║
-// ║ deducción (PUC CGC + rubros CCPET A.1), liquidación mensual, integración   ║
-// ║ con presupuesto (Obligación/Pago) y contabilidad (CpComprobante).          ║
-// ╚════════════════════════════════════════════════════════════════════════════╝
+// â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
+// â•‘ MÃ“DULO: NÃ³mina pÃºblica (nomina_publica)                                    â•‘
+// â•‘ Maneja empleados (planta y contratistas), conceptos de devengado y         â•‘
+// â•‘ deducciÃ³n (PUC CGC + rubros CCPET A.1), liquidaciÃ³n mensual, integraciÃ³n   â•‘
+// â•‘ con presupuesto (ObligaciÃ³n/Pago) y contabilidad (CpComprobante).          â•‘
+// â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-// ─── Empleado / vinculado ────────────────────────────────────────────────────
+// â”€â”€â”€ Empleado / vinculado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 model NomEmpleado {
   id              String   @id @default(cuid())
@@ -2839,7 +2839,7 @@ model NomEmpleado {
   afp             String?
   arl             String?
   cajaCompensacion String?
-  // Información tributaria
+  // InformaciÃ³n tributaria
   retencionFuenteAplica Boolean @default(true)
 
   liquidaciones NomLiquidacion[]
@@ -2854,35 +2854,35 @@ model NomEmpleado {
 }
 
 enum NomTipoVinculacion {
-  PLANTA            // empleado público de carrera o libre nombramiento
+  PLANTA            // empleado pÃºblico de carrera o libre nombramiento
   TRABAJADOR_OFICIAL
-  CONTRATISTA       // OPS — prestación de servicios
+  CONTRATISTA       // OPS â€” prestaciÃ³n de servicios
   SUPERNUMERARIO
   APRENDIZ
 }
 
-// ─── Concepto de nómina (devengado o deducción) ──────────────────────────────
+// â”€â”€â”€ Concepto de nÃ³mina (devengado o deducciÃ³n) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 model NomConcepto {
   id          String   @id @default(cuid())
   codigo      String   @unique                                // NC-001, NC-002
   nombre      String
   tipo        NomTipoConcepto
-  // Base de cálculo
+  // Base de cÃ¡lculo
   formula     NomFormulaConcepto @default(FIJO)
   porcentaje  Decimal? @db.Decimal(6, 4)                      // ej 0.04 = 4%
   valorFijo   Decimal? @db.Decimal(18, 2)
   // Aplica a
-  aplicaA     NomTipoVinculacion[]                            // a quiénes aplica
+  aplicaA     NomTipoVinculacion[]                            // a quiÃ©nes aplica
   // Comportamiento contable / tributario
-  baseRetencion Boolean @default(false)                       // suma a base retención
+  baseRetencion Boolean @default(false)                       // suma a base retenciÃ³n
   baseAportes   Boolean @default(false)                       // suma a IBC
   constitutivoSalario Boolean @default(true)
-  // Cuenta CGC asociada (gasto si devengado, pasivo si deducción)
+  // Cuenta CGC asociada (gasto si devengado, pasivo si deducciÃ³n)
   cuentaContableCodigo String?                                // ej "510101", "243603"
-  // Rubro CCPET asociado (sólo devengados)
+  // Rubro CCPET asociado (sÃ³lo devengados)
   rubroCcpetCodigo     String?                                // ej "2.1.1.01.01.01.01"
-  // Orden de aplicación dentro de la liquidación
+  // Orden de aplicaciÃ³n dentro de la liquidaciÃ³n
   orden       Int      @default(100)
   activo      Boolean  @default(true)
 
@@ -2895,21 +2895,21 @@ model NomConcepto {
 }
 
 enum NomTipoConcepto {
-  DEVENGADO            // sueldo, prima, bonificación, auxilio
-  DEDUCCION_EMPLEADO   // pensión 4%, salud 4%, retefuente, embargos
-  APORTE_PATRONAL      // pensión 12%, salud 8.5%, ARL, parafiscales
-  PRESTACION_SOCIAL    // cesantías, intereses, primas (provisiones)
+  DEVENGADO            // sueldo, prima, bonificaciÃ³n, auxilio
+  DEDUCCION_EMPLEADO   // pensiÃ³n 4%, salud 4%, retefuente, embargos
+  APORTE_PATRONAL      // pensiÃ³n 12%, salud 8.5%, ARL, parafiscales
+  PRESTACION_SOCIAL    // cesantÃ­as, intereses, primas (provisiones)
 }
 
 enum NomFormulaConcepto {
   FIJO                 // valorFijo en el empleado (manual)
   PORCENTAJE_SUELDO    // porcentaje * salarioBasico
   PORCENTAJE_DEVENGADO // porcentaje * suma devengados constitutivos
-  PORCENTAJE_IBC       // porcentaje * Ingreso Base de Cotización
-  CALCULO_ESPECIAL     // ej cesantías: prom 12 meses, vacaciones: días*salario/30
+  PORCENTAJE_IBC       // porcentaje * Ingreso Base de CotizaciÃ³n
+  CALCULO_ESPECIAL     // ej cesantÃ­as: prom 12 meses, vacaciones: dÃ­as*salario/30
 }
 
-// ─── Periodo de nómina ───────────────────────────────────────────────────────
+// â”€â”€â”€ Periodo de nÃ³mina â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 model NomNominaPeriodo {
   id          String   @id @default(cuid())
@@ -2934,12 +2934,12 @@ model NomNominaPeriodo {
 
 enum NomEstadoPeriodo {
   ABIERTO          // se puede liquidar
-  LIQUIDADO        // ya liquidado, sólo lectura
+  LIQUIDADO        // ya liquidado, sÃ³lo lectura
   PAGADO           // pagado a empleados (genera comprobantes)
   CERRADO          // cerrado contablemente
 }
 
-// ─── Liquidación (1 por empleado por periodo) ────────────────────────────────
+// â”€â”€â”€ LiquidaciÃ³n (1 por empleado por periodo) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 model NomLiquidacion {
   id          String   @id @default(cuid())
@@ -2952,11 +2952,11 @@ model NomLiquidacion {
   totalDeducciones Decimal @db.Decimal(18, 2) @default(0)
   totalAportesPatronales Decimal @db.Decimal(18, 2) @default(0)
   netoPagar      Decimal @db.Decimal(18, 2) @default(0)
-  // Días liquidados
+  // DÃ­as liquidados
   diasLiquidados Int @default(30)
   // Salario base usado
   salarioBasico  Decimal @db.Decimal(18, 2)
-  // Vínculos a presupuesto / contabilidad
+  // VÃ­nculos a presupuesto / contabilidad
   obligacionId   String?
   comprobanteId  String?
 
@@ -2970,7 +2970,7 @@ model NomLiquidacion {
   @@map("nom_liquidaciones")
 }
 
-// ─── Detalle de liquidación (línea por concepto aplicado) ────────────────────
+// â”€â”€â”€ Detalle de liquidaciÃ³n (lÃ­nea por concepto aplicado) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 model NomLiquidacionDetalle {
   id            String   @id @default(cuid())
@@ -2979,7 +2979,7 @@ model NomLiquidacionDetalle {
   conceptoId    String
   concepto      NomConcepto @relation(fields: [conceptoId], references: [id])
   valor         Decimal  @db.Decimal(18, 2)
-  base          Decimal? @db.Decimal(18, 2)                   // base usada para el cálculo
+  base          Decimal? @db.Decimal(18, 2)                   // base usada para el cÃ¡lculo
   observacion   String?
 
   createdAt DateTime @default(now())
@@ -2989,7 +2989,7 @@ model NomLiquidacionDetalle {
   @@map("nom_liquidacion_detalles")
 }
 
-// ─── Novedad (vacaciones, licencia, ausencia, incapacidad) ───────────────────
+// â”€â”€â”€ Novedad (vacaciones, licencia, ausencia, incapacidad) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 model NomNovedad {
   id          String   @id @default(cuid())
@@ -3000,7 +3000,7 @@ model NomNovedad {
   fechaFin    DateTime
   dias        Int
   observacion String?
-  valor       Decimal? @db.Decimal(18, 2)                     // si aplica (ej. liquidación de vacaciones)
+  valor       Decimal? @db.Decimal(18, 2)                     // si aplica (ej. liquidaciÃ³n de vacaciones)
   aprobada    Boolean @default(false)
   aprobadaPor String?
 
@@ -3023,7 +3023,7 @@ enum NomTipoNovedad {
   PERMISO
 }
 
-// ─── Pago de pasivos de nómina (EPS/AFP/DIAN/parafiscales) ───────────────────
+// â”€â”€â”€ Pago de pasivos de nÃ³mina (EPS/AFP/DIAN/parafiscales) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 model NomPagoPasivo {
   id              String   @id @default(cuid())
@@ -3035,7 +3035,7 @@ model NomPagoPasivo {
   terceroNit      String?
   valor           Decimal  @db.Decimal(18, 2)
   fecha           DateTime
-  cuentaBancoCodigo String                                       // banco que pagó
+  cuentaBancoCodigo String                                       // banco que pagÃ³
   comprobanteId   String?                                        // CpComprobante creado
   observacion     String?
   creadoPor       String?
@@ -3047,16 +3047,16 @@ model NomPagoPasivo {
   @@map("nom_pagos_pasivos")
 }
 
-// ╔════════════════════════════════════════════════════════════════════════════╗
-// ║ MÓDULO: Reportes a entes de control (reportes_control)                     ║
-// ║ Genera snapshots periódicos para CHIP (CGN), FUT (DNP), Ley 617,           ║
-// ║ persistidos como JSON descargable para mapear a las plantillas oficiales.  ║
-// ╚════════════════════════════════════════════════════════════════════════════╝
+// â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
+// â•‘ MÃ“DULO: Reportes a entes de control (reportes_control)                     â•‘
+// â•‘ Genera snapshots periÃ³dicos para CHIP (CGN), FUT (DNP), Ley 617,           â•‘
+// â•‘ persistidos como JSON descargable para mapear a las plantillas oficiales.  â•‘
+// â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 model RcReporteGenerado {
   id           String   @id @default(cuid())
   tipo         RcTipoReporte
-  // Identificación del corte (uno de los dos según el tipo):
+  // IdentificaciÃ³n del corte (uno de los dos segÃºn el tipo):
   periodoContableId String?                                  // CHIP_BALANCE / CHIP_ACTIVIDAD
   vigencia          Int?                                     // FUT_INGRESOS / FUT_GASTOS / LEY_617
   // Resultado
@@ -3075,7 +3075,747 @@ model RcReporteGenerado {
 enum RcTipoReporte {
   CHIP_BALANCE       // Balance General CGN: saldos clase 1, 2, 3 al cierre del periodo
   CHIP_ACTIVIDAD     // Estado de Actividad CGN: ingresos (clase 4) y gastos (clase 5)
-  FUT_INGRESOS       // Ejecución de ingresos por rubro CCPET
-  FUT_GASTOS         // Ejecución de gastos: apropiación / comprometido / obligado / pagado
-  LEY_617            // Indicador gastos de funcionamiento sobre ICLD (40% para personerías)
+  FUT_INGRESOS       // EjecuciÃ³n de ingresos por rubro CCPET
+  FUT_GASTOS         // EjecuciÃ³n de gastos: apropiaciÃ³n / comprometido / obligado / pagado
+  LEY_617            // Indicador gastos de funcionamiento sobre ICLD (40% para personerÃ­as)
+}
+
+
+// ╔═══════════════════════════════════════════════════════════════════════════════
+// ║ MÓDULO: Tesorería (tesoreria)                                               ║
+// ║ Gestión de cuentas bancarias institucionales, movimientos y conciliación    ║
+// ║ con extractos. Integra con CpComprobante (contabilidad) y PsuPago           ║
+// ║ (presupuesto) para cruzar libros.                                           ║
+// ╚═══════════════════════════════════════════════════════════════════════════════
+
+// ─── Cuenta bancaria de la entidad ───────────────────────────────────────────
+
+model TesoCuenta {
+  id             String   @id @default(cuid())
+  nombre         String                                         // "Cuenta corriente Banco Popular"
+  banco          String                                         // "Banco Popular"
+  nitBanco       String?
+  numeroCuenta   String                                         // número de cuenta (sin espacios)
+  tipo           TesoCuentaTipo @default(CORRIENTE)
+  moneda         String  @default("COP")
+  activa         Boolean @default(true)
+  descripcion    String?
+  // Cuenta contable CGC asociada (111*) – opcional si contabilidad está activa
+  cuentaContableCodigo String?
+
+  movimientos    TesoMovimiento[]
+  extractos      TesoExtracto[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([activa])
+  @@map("teso_cuentas")
+}
+
+enum TesoCuentaTipo {
+  CORRIENTE
+  AHORROS
+  INVERSION_TEMPORAL    // CDT / títulos de tesorería
+  FONDOS_ESPECIALES     // SGP, regalías, fideicomisos
+}
+
+// ─── Movimiento (línea del libro de tesorería) ────────────────────────────────
+
+model TesoMovimiento {
+  id             String   @id @default(cuid())
+  cuentaId       String
+  cuenta         TesoCuenta @relation(fields: [cuentaId], references: [id])
+  tipo           TesoTipoMovimiento
+  fecha          DateTime
+  valor          Decimal  @db.Decimal(18, 2)
+  descripcion    String
+  numero         String?                                        // número interno (OR, OE, rec, etc.)
+  tercero        String?
+  terceroNit     String?
+  // Cruce con otros módulos
+  comprobanteId  String?                                        // → CpComprobante
+  pagoPresupId   String?                                        // → PsuPago
+  // Conciliación
+  conciliado     Boolean @default(false)
+  conciliadoEn   DateTime?
+  extractoLineaId String?                                       // → TesoExtractoLinea
+  creadoPor      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([cuentaId, fecha])
+  @@index([conciliado])
+  @@index([comprobanteId])
+  @@map("teso_movimientos")
+}
+
+enum TesoTipoMovimiento {
+  INGRESO       // crédito en banco
+  EGRESO        // débito en banco
+}
+
+// ─── Extracto bancario (carga periódica para conciliar) ──────────────────────
+
+model TesoExtracto {
+  id          String   @id @default(cuid())
+  cuentaId    String
+  cuenta      TesoCuenta @relation(fields: [cuentaId], references: [id])
+  periodo     String                                           // "2025-04" (YYYY-MM)
+  saldoInicial Decimal @db.Decimal(18, 2)
+  saldoFinal   Decimal @db.Decimal(18, 2)
+  cargadoPor   String?
+  observacion  String?
+
+  lineas      TesoExtractoLinea[]
+
+  createdAt DateTime @default(now())
+
+  @@unique([cuentaId, periodo])
+  @@index([cuentaId])
+  @@map("teso_extractos")
+}
+
+model TesoExtractoLinea {
+  id          String   @id @default(cuid())
+  extractoId  String
+  extracto    TesoExtracto @relation(fields: [extractoId], references: [id], onDelete: Cascade)
+  fecha       DateTime
+  descripcion String
+  referencia  String?
+  debito      Decimal? @db.Decimal(18, 2)
+  credito     Decimal? @db.Decimal(18, 2)
+  saldo       Decimal? @db.Decimal(18, 2)
+  // Conciliación
+  conciliada     Boolean @default(false)
+  movimientoId   String?                                      // → TesoMovimiento.id (cuando concilia)
+
+  @@index([extractoId])
+  @@index([conciliada])
+  @@map("teso_extracto_lineas")
+}
+
+
+// ╔═══════════════════════════════════════════════════════════════════════════════
+// ║ MÓDULO: Contratación pública (contratacion)                                 ║
+// ║ Procesos contractuales Ley 80/1150: licitación, selección abreviada,        ║
+// ║ mínima cuantía, contratación directa. Ciclo: precontractual → contrato      ║
+// ║ → liquidación. Integra con CDP/RP del módulo presupuesto.                  ║
+// ╚═══════════════════════════════════════════════════════════════════════════════
+
+model ConProceso {
+  id               String   @id @default(cuid())
+  numero           String   @unique
+  modalidad        ConModalidad
+  estado           ConEstadoProceso @default(PLANEACION)
+  objeto           String
+  vigencia         Int
+  valorEstimado    Decimal  @db.Decimal(18, 2)
+  cdpId            String?
+  cdpNumero        String?
+  rubroNombre      String?
+  fechaAviso       DateTime?
+  fechaCierre      DateTime?
+  fechaAdjudicacion DateTime?
+  supervisorNombre String?
+  supervisorCargo  String?
+  dependencia      String?
+  creadoPor        String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  contratos        ConContrato[]
+  documentos       ConDocumento[]
+
+  @@index([estado])
+  @@index([vigencia])
+  @@index([modalidad])
+  @@map("con_procesos")
+}
+
+enum ConModalidad {
+  LICITACION_PUBLICA
+  SELECCION_ABREVIADA
+  CONCURSO_MERITOS
+  CONTRATACION_DIRECTA
+  MINIMA_CUANTIA
+  ASOCIACION_PUBLICO_PRIVADA
+}
+
+enum ConEstadoProceso {
+  PLANEACION
+  CONVOCATORIA
+  EVALUACION
+  ADJUDICADO
+  CONTRATADO
+  LIQUIDADO
+  DESIERTO
+  REVOCADO
+}
+
+model ConContrato {
+  id                   String   @id @default(cuid())
+  procesoId            String
+  proceso              ConProceso @relation(fields: [procesoId], references: [id])
+  numero               String   @unique
+  tipo                 ConTipoContrato
+  estado               ConEstadoContrato @default(SUSCRITO)
+  contratistaNombre    String
+  contratistaDoc       String
+  contratistaEmail     String?
+  contratistaTelefono  String?
+  valorContrato        Decimal  @db.Decimal(18, 2)
+  valorAdiciones       Decimal  @db.Decimal(18, 2) @default(0)
+  plazoMeses           Int?
+  fechaSuscripcion     DateTime
+  fechaInicio          DateTime?
+  fechaTerminacion     DateTime?
+  fechaLiquidacion     DateTime?
+  rpId                 String?
+  rpNumero             String?
+  supervisorNombre     String?
+  observacion          String?
+  creadoPor            String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  documentos           ConDocumento[]
+  adiciones            ConAdicion[]
+
+  @@index([procesoId])
+  @@index([estado])
+  @@index([fechaTerminacion])
+  @@map("con_contratos")
+}
+
+enum ConTipoContrato {
+  PRESTACION_SERVICIOS
+  COMPRAVENTA
+  SUMINISTRO
+  OBRA_PUBLICA
+  CONSULTORIA
+  INTERADMINISTRATIVO
+  CONCESION
+  ARRENDAMIENTO
+  COMODATO
+  CONVENIO
+  OTRO
+}
+
+enum ConEstadoContrato {
+  SUSCRITO
+  EN_EJECUCION
+  SUSPENDIDO
+  TERMINADO
+  LIQUIDADO
+  INCUMPLIDO
+}
+
+model ConAdicion {
+  id            String   @id @default(cuid())
+  contratoId    String
+  contrato      ConContrato @relation(fields: [contratoId], references: [id])
+  tipo          ConTipoAdicion
+  numero        String
+  valor         Decimal? @db.Decimal(18, 2)
+  plazoMeses    Int?
+  fecha         DateTime
+  justificacion String
+  createdAt     DateTime @default(now())
+
+  @@index([contratoId])
+  @@map("con_adiciones")
+}
+
+enum ConTipoAdicion {
+  ADICION_VALOR
+  PROROGA
+  ADICION_VALOR_Y_PROROGA
+  SUSPENSION
+  REINICIO
+}
+
+model ConDocumento {
+  id          String   @id @default(cuid())
+  procesoId   String?
+  proceso     ConProceso? @relation(fields: [procesoId], references: [id])
+  contratoId  String?
+  contrato    ConContrato? @relation(fields: [contratoId], references: [id])
+  tipo        ConTipoDocumento
+  nombre      String
+  url         String?
+  fechaDoc    DateTime?
+  observacion String?
+  creadoPor   String?
+  createdAt   DateTime @default(now())
+
+  @@index([procesoId])
+  @@index([contratoId])
+  @@map("con_documentos")
+}
+
+enum ConTipoDocumento {
+  ESTUDIO_PREVIO
+  AVISO_CONVOCATORIA
+  PLIEGO_CONDICIONES
+  ADENDA
+  PROPUESTA_OFERENTE
+  INFORME_EVALUACION
+  ACTO_ADJUDICACION
+  CONTRATO
+  POLIZA
+  ACTA_INICIO
+  INFORME_SUPERVISION
+  ACTA_SUSPENSION
+  ACTA_REINICIO
+  ACTA_TERMINACION
+  ACTA_LIQUIDACION
+  OTRO
+}
+
+// ============================================================================
+// ACTIVOS BIENES — Inventario institucional de bienes muebles e inmuebles
+// ----------------------------------------------------------------------------
+// Activado por el módulo ctivos_bienes. Cubre el ciclo completo:
+// ingreso → asignación → mantenimiento → traslado → baja.
+// ============================================================================
+
+model ActivoBien {
+  id              String           @id @default(cuid())
+  codigo          String           @unique        // placa o código institucional
+  nombre          String
+  descripcion     String?
+  categoria       ActivoCategoria
+  tipo            String?                         // ej: "Laptop", "Escritorio"
+  marca           String?
+  modelo          String?
+  serial          String?
+  color           String?
+  // Valoración
+  valorAdquisicion Decimal?        @db.Decimal(18, 2)
+  fechaAdquisicion DateTime?
+  vidaUtilAnios   Int?
+  // Ubicación y responsable
+  dependenciaId   String?          // GdTrdDependencia.id si GD activo
+  dependenciaNombre String?        // nombre libre cuando GD no activo
+  responsableId   String?          // User.id
+  responsableNombre String?
+  ubicacion       String?          // descripción libre de ubicación física
+  // Estado del bien
+  estado          ActivoEstado     @default(EN_SERVICIO)
+  // Imagen
+  imagenUrl       String?
+  // Observaciones
+  observaciones   String?
+  creadoPor       String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  asignaciones    ActivoAsignacion[]
+  mantenimientos  ActivoMantenimiento[]
+  movimientos     ActivoMovimiento[]
+
+  @@index([codigo])
+  @@index([estado])
+  @@index([categoria])
+  @@map("activos_bienes")
+}
+
+model ActivoAsignacion {
+  id          String   @id @default(cuid())
+  activoId    String
+  activo      ActivoBien @relation(fields: [activoId], references: [id], onDelete: Cascade)
+  // A quién se asigna
+  funcionarioId   String?
+  funcionarioNombre String
+  dependenciaNombre String?
+  // Fechas
+  fechaInicio DateTime
+  fechaFin    DateTime?
+  // Acta
+  actaNumero  String?
+  observacion String?
+  creadoPor   String?
+  createdAt   DateTime @default(now())
+
+  @@index([activoId])
+  @@index([fechaInicio])
+  @@map("activos_asignaciones")
+}
+
+model ActivoMantenimiento {
+  id          String   @id @default(cuid())
+  activoId    String
+  activo      ActivoBien @relation(fields: [activoId], references: [id], onDelete: Cascade)
+  tipo        ActivoTipoMantenimiento
+  fecha       DateTime
+  descripcion String
+  proveedor   String?
+  costo       Decimal? @db.Decimal(18, 2)
+  proximoMantenimiento DateTime?
+  creadoPor   String?
+  createdAt   DateTime @default(now())
+
+  @@index([activoId])
+  @@map("activos_mantenimientos")
+}
+
+model ActivoMovimiento {
+  id          String   @id @default(cuid())
+  activoId    String
+  activo      ActivoBien @relation(fields: [activoId], references: [id], onDelete: Cascade)
+  tipo        ActivoTipoMovimiento
+  fecha       DateTime
+  descripcion String
+  // Origen/destino para traslados
+  origenDependencia  String?
+  destinoDependencia String?
+  actaNumero  String?
+  creadoPor   String?
+  createdAt   DateTime @default(now())
+
+  @@index([activoId])
+  @@map("activos_movimientos")
+}
+
+enum ActivoCategoria {
+  MUEBLE_ENSERE       // escritorios, sillas, archivadores
+  EQUIPO_COMPUTO      // laptops, desktops, impresoras
+  EQUIPO_COMUNICACION // teléfonos, radios, redes
+  EQUIPO_AUDIOVISUAL  // proyectores, televisores
+  MAQUINARIA_EQUIPO   // maquinaria especializada
+  VEHICULO            // carros, motos, bicicletas
+  INMUEBLE            // edificios, lotes propios
+  SEMOVIENTE          // animales (alcaldías rurales)
+  INTANGIBLE          // licencias, software perpetuo
+  OTRO
+}
+
+enum ActivoEstado {
+  EN_SERVICIO
+  EN_MANTENIMIENTO
+  EN_BODEGA
+  DADO_DE_BAJA
+  EXTRAVIADO
+}
+
+enum ActivoTipoMantenimiento {
+  PREVENTIVO
+  CORRECTIVO
+  GARANTIA
+}
+
+enum ActivoTipoMovimiento {
+  INGRESO          // entrada por primera vez
+  ASIGNACION       // entrega a funcionario
+  TRASLADO         // cambio de dependencia
+  DEVOLUCION       // retorno a bodega
+  BAJA             // retiro definitivo
+  REINTEGRO        // recuperación de perdido
+}
+
+// ============================================================================
+// ALMACÉN — Gestión de inventario de suministros y elementos de consumo
+// ----------------------------------------------------------------------------
+// Activado por el módulo lmacen. Cubre: artículos → entradas → salidas.
+// El stock actual se calcula como Σ entradas - Σ salidas en la aplicación.
+// ============================================================================
+
+model AlmArticulo {
+  id              String   @id @default(cuid())
+  codigo          String   @unique
+  nombre          String
+  descripcion     String?
+  unidad          String                     // ej: "Unidad", "Resma", "Litro"
+  categoria       AlmCategoria
+  marca           String?
+  stockMinimo     Int      @default(0)
+  stockActual     Int      @default(0)       // desnormalizado, actualizado en cada E/S
+  ubicacionBodega String?                    // estante/posición en bodega
+  activo          Boolean  @default(true)
+  imagenUrl       String?
+  creadoPor       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  entradas AlmEntrada[]
+  salidas  AlmSalida[]
+
+  @@index([codigo])
+  @@index([categoria])
+  @@index([activo])
+  @@map("alm_articulos")
+}
+
+model AlmEntrada {
+  id           String   @id @default(cuid())
+  articuloId   String
+  articulo     AlmArticulo @relation(fields: [articuloId], references: [id])
+  tipo         AlmTipoEntrada
+  cantidad     Int
+  valorUnitario Decimal? @db.Decimal(18, 2)
+  fechaEntrada DateTime
+  // Referencia documental
+  ordenCompraNumero String?
+  facturaNumero     String?
+  proveedor         String?
+  observacion       String?
+  creadoPor         String?
+  createdAt         DateTime @default(now())
+
+  @@index([articuloId])
+  @@index([fechaEntrada])
+  @@map("alm_entradas")
+}
+
+model AlmSalida {
+  id           String   @id @default(cuid())
+  articuloId   String
+  articulo     AlmArticulo @relation(fields: [articuloId], references: [id])
+  cantidad     Int
+  fechaSalida  DateTime
+  // Destino
+  dependenciaNombre String?
+  funcionarioNombre String?
+  // Referencia documental
+  actaNumero   String?
+  observacion  String?
+  creadoPor    String?
+  createdAt    DateTime @default(now())
+
+  @@index([articuloId])
+  @@index([fechaSalida])
+  @@map("alm_salidas")
+}
+
+enum AlmCategoria {
+  PAPELERIA_UTILES     // papel, esferos, carpetas
+  ASEO_CAFETERIA       // jabón, escobas, café
+  TONER_INSUMOS_TIC    // tóner, cables, mouse
+  HERRAMIENTAS         // destornilladores, llaves
+  MEDICAMENTOS         // botiquín
+  COMBUSTIBLE          // gasolina, ACPM
+  MATERIALES_OBRA      // cemento, pintura
+  OTRO
+}
+
+enum AlmTipoEntrada {
+  COMPRA
+  DONACION
+  REINTEGRO            // devolución de una salida
+  AJUSTE_POSITIVO      // corrección de inventario
+}
+
+// ============================================================================
+// OBSERVATORIO — Indicadores de gestión y tablero público
+// ----------------------------------------------------------------------------
+// Activado por el módulo observatorio. Permite publicar indicadores de
+// desempeño institucional con seguimiento histórico de mediciones.
+// ============================================================================
+
+model ObsIndicador {
+  id                String             @id @default(cuid())
+  codigo            String             @unique
+  nombre            String
+  descripcion       String?
+  unidad            String                         // ej: "%", "Casos", "Días"
+  categoria         ObsCategoria
+  periodicidad      ObsPeriodicidad
+  meta              Decimal            @db.Decimal(18, 4)
+  metaTipo          ObsMetaTipo        @default(MAYOR_ES_MEJOR)
+  dependenciaNombre String?
+  responsableNombre String?
+  // Publicación
+  publicado         Boolean            @default(true)
+  orden             Int                @default(0)
+  // Valor más reciente (desnormalizado para lectura rápida)
+  valorActual       Decimal?           @db.Decimal(18, 4)
+  fechaUltimaMedicion DateTime?
+  creadoPor         String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  mediciones ObsMedicion[]
+
+  @@index([categoria])
+  @@index([publicado])
+  @@map("obs_indicadores")
+}
+
+model ObsMedicion {
+  id           String       @id @default(cuid())
+  indicadorId  String
+  indicador    ObsIndicador @relation(fields: [indicadorId], references: [id], onDelete: Cascade)
+  valor        Decimal      @db.Decimal(18, 4)
+  fecha        DateTime
+  periodo      String                             // ej: "2025-T1", "2025-03", "2025"
+  fuente       String?
+  observacion  String?
+  creadoPor    String?
+  createdAt    DateTime     @default(now())
+
+  @@index([indicadorId])
+  @@index([fecha])
+  @@map("obs_mediciones")
+}
+
+enum ObsCategoria {
+  GESTION_INTERNA       // eficiencia administrativa
+  ATENCION_CIUDADANA    // tiempos de respuesta PQRSD
+  FINANCIERO            // ejecución presupuestal
+  CONTRATACION          // contratos suscritos vs plan
+  GESTION_DOCUMENTAL    // radicados atendidos
+  TALENTO_HUMANO        // capacitaciones, ausentismo
+  MIPG                  // cumplimiento MIPG/FURAG
+  OTRO
+}
+
+enum ObsPeriodicidad {
+  DIARIA
+  SEMANAL
+  MENSUAL
+  TRIMESTRAL
+  SEMESTRAL
+  ANUAL
+}
+
+enum ObsMetaTipo {
+  MAYOR_ES_MEJOR    // ej: % ejecución presupuestal — quiero llegar a 100%
+  MENOR_ES_MEJOR    // ej: días promedio de respuesta — quiero bajar
+  EXACTO            // ej: temperatura objetivo
+}
+
+// ============================================================================
+// RENTAS LOCALES — Gestión tributaria municipal (predial, ICA, estampillas…)
+// ----------------------------------------------------------------------------
+// Activado por el módulo entas_locales. Ciclo: concepto → contribuyente
+// → liquidación → pago. Soporta recaudo propio y acuerdos de pago.
+// ============================================================================
+
+model RenConcepto {
+  id           String          @id @default(cuid())
+  codigo       String          @unique
+  nombre       String
+  descripcion  String?
+  tipo         RenTipoConcepto
+  periodicidad RenPeriodicidad
+  tasaBase     Decimal?        @db.Decimal(10, 6)  // porcentaje o tarifa base
+  activo       Boolean         @default(true)
+  creadoPor    String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  liquidaciones RenLiquidacion[]
+
+  @@index([tipo])
+  @@map("ren_conceptos")
+}
+
+model RenContribuyente {
+  id           String   @id @default(cuid())
+  documento    String   @unique
+  tipoDoc      String   @default("NIT")   // CC, NIT, CE, PASAPORTE
+  nombre       String
+  razonSocial  String?
+  direccion    String?
+  telefono     String?
+  email        String?
+  activo       Boolean  @default(true)
+  creadoPor    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  liquidaciones RenLiquidacion[]
+
+  @@index([documento])
+  @@map("ren_contribuyentes")
+}
+
+model RenLiquidacion {
+  id               String              @id @default(cuid())
+  numero           String              @unique
+  conceptoId       String
+  concepto         RenConcepto         @relation(fields: [conceptoId], references: [id])
+  contribuyenteId  String
+  contribuyente    RenContribuyente    @relation(fields: [contribuyenteId], references: [id])
+  vigencia         Int                                       // año fiscal
+  periodo          String?                                   // "T1", "03", etc.
+  baseGravable     Decimal             @db.Decimal(18, 2)
+  tarifa           Decimal             @db.Decimal(10, 6)
+  impuesto         Decimal             @db.Decimal(18, 2)
+  intereses        Decimal             @default(0) @db.Decimal(18, 2)
+  descuentos       Decimal             @default(0) @db.Decimal(18, 2)
+  totalACobrar     Decimal             @db.Decimal(18, 2)
+  totalPagado      Decimal             @default(0) @db.Decimal(18, 2)
+  saldo            Decimal             @db.Decimal(18, 2)
+  estado           RenEstadoLiquidacion @default(PENDIENTE)
+  fechaVencimiento DateTime?
+  observacion      String?
+  creadoPor        String?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  pagos RenPago[]
+
+  @@index([contribuyenteId])
+  @@index([conceptoId])
+  @@index([vigencia])
+  @@index([estado])
+  @@map("ren_liquidaciones")
+}
+
+model RenPago {
+  id              String   @id @default(cuid())
+  liquidacionId   String
+  liquidacion     RenLiquidacion @relation(fields: [liquidacionId], references: [id])
+  valor           Decimal  @db.Decimal(18, 2)
+  fecha           DateTime
+  medioPago       RenMedioPago
+  referencia      String?         // número de recibo, transacción bancaria
+  observacion     String?
+  creadoPor       String?
+  createdAt       DateTime @default(now())
+
+  @@index([liquidacionId])
+  @@index([fecha])
+  @@map("ren_pagos")
+}
+
+enum RenTipoConcepto {
+  PREDIAL_UNIFICADO
+  INDUSTRIA_COMERCIO
+  SOBRETASA_GASOLINA
+  ESTAMPILLA
+  DELINEACION_URBANA
+  AVISOS_TABLEROS
+  PLUSVALIA
+  ALUMBRADO_PUBLICO
+  OTRO
+}
+
+enum RenPeriodicidad {
+  ANUAL
+  SEMESTRAL
+  TRIMESTRAL
+  MENSUAL
+  UNICA
+}
+
+enum RenEstadoLiquidacion {
+  PENDIENTE
+  PARCIAL
+  PAGADA
+  VENCIDA
+  EN_ACUERDO_PAGO
+  ANULADA
+}
+
+enum RenMedioPago {
+  EFECTIVO
+  TRANSFERENCIA
+  PSE
+  CHEQUE
+  DATAFONO
+  OTRO
 }

@@ -8,6 +8,7 @@
 
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
+import { after } from "next/server"
 import { z } from "zod"
 import { Prisma, FriscoEstadoFisico } from "@prisma/client"
 import { getTenantPrisma, getTenantId, isTenantModuleActive, MODULO_IDS } from "@/lib/tenant"
@@ -78,17 +79,19 @@ export async function POST(req: NextRequest, { params }: Params) {
     return r
   })
 
-  // Análisis IA: no-bloqueante. La sugerencia se persiste aparte en
-  // FriscoReporteAnalisisIA (upsert por reporteId). Si la IA falla, el
-  // helper aplica fallback determinístico — el reporte queda igual.
-  void dispararAnalisisIA({
-    reporteId:    reporte.id,
-    novedades:    data.novedades,
-    estadoBien:   data.estadoBien,
-    polizaVencida: acceso.depositario.polizaVigenteHasta != null &&
-                   acceso.depositario.polizaVigenteHasta.getTime() < Date.now(),
-    bienCodigo:   acceso.depositario.bien.codigo,
-    bienTipo:     acceso.depositario.bien.tipo,
+  // Análisis IA: se ejecuta DESPUÉS de enviar la respuesta al cliente.
+  // `after()` garantiza que la función completa incluso en Vercel serverless
+  // (reemplaza el patrón `void fire-and-forget` que podía cortarse antes de terminar).
+  after(async () => {
+    await dispararAnalisisIA({
+      reporteId:    reporte.id,
+      novedades:    data.novedades,
+      estadoBien:   data.estadoBien,
+      polizaVencida: acceso.depositario.polizaVigenteHasta != null &&
+                     acceso.depositario.polizaVigenteHasta.getTime() < Date.now(),
+      bienCodigo:   acceso.depositario.bien.codigo,
+      bienTipo:     acceso.depositario.bien.tipo,
+    })
   })
 
   return NextResponse.json({ ok: true, reporte: { id: reporte.id, periodo: reporte.periodo } }, { status: 201 })
