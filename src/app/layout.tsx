@@ -7,7 +7,7 @@ import { Footer } from "@/components/layout/footer";
 import { ClientWidgets } from "@/components/layout/client-widgets";
 import AuthProvider from "@/components/auth/auth-provider";
 import { headers } from "next/headers";
-import { getTenantInfo, getTenantPrisma } from "@/lib/tenant";
+import { getTenantInfo, getTenantPrisma, isTenantModuleActive, MODULO_IDS } from "@/lib/tenant";
 
 const nunitoSans = Nunito_Sans({
   variable: "--font-work-sans",
@@ -94,6 +94,7 @@ export default async function RootLayout({
   let tenantTelefono: string | null = null
   let tenantEmail: string | null = null
   let tenantCssVars = ''
+  let chatIaActivo = false
   if (!isSuperAdmin) {
     try {
       const tenant = await getTenantInfo()
@@ -115,6 +116,9 @@ export default async function RootLayout({
       })
       tenantTelefono = id?.telefonoConmutador ?? null
       tenantEmail = id?.emailContacto ?? null
+    } catch {}
+    try {
+      chatIaActivo = await isTenantModuleActive(MODULO_IDS.CHAT_IA_CIUDADANO)
     } catch {}
   }
 
@@ -193,7 +197,7 @@ export default async function RootLayout({
               <Footer />
 
               {/* Widgets cargados client-only via dynamic — evita hydration mismatch */}
-              <ClientWidgets />
+              <ClientWidgets chatIaActivo={chatIaActivo} nombreEntidad={tenantNombre} />
             </>
           )}
         </AuthProvider>

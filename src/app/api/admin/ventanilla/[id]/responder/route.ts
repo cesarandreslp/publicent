@@ -5,9 +5,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getTenantPrisma, isTenantModuleActive, MODULO_IDS } from '@/lib/tenant'
+import { getTenantPrisma, getTenantId, isTenantModuleActive, MODULO_IDS } from '@/lib/tenant'
 import { auth } from '@/lib/auth'
 import { sendMail } from '@/lib/mail'
+import { notificarCiudadano } from '@/lib/notifications'
 import type { VuTipoRespuesta } from '@prisma/client'
 
 const TIPOS_VALIDOS: VuTipoRespuesta[] = [
@@ -60,7 +61,7 @@ export async function POST(
 
     const pqrs = await prisma.pQRS.findUnique({
       where: { id: pqrsId },
-      select: { id: true, radicado: true, email: true, asunto: true, anonimo: true, estado: true },
+      select: { id: true, radicado: true, email: true, telefono: true, tipo: true, asunto: true, anonimo: true, estado: true },
     })
     if (!pqrs) {
       return NextResponse.json({ error: 'Radicado no encontrado' }, { status: 404 })
@@ -137,6 +138,25 @@ export async function POST(
           <p>Si tiene alguna inquietud adicional puede consultar el estado de su radicado en nuestro portal de atención ciudadana.</p>
         `,
       }).catch(e => console.error('[responder] Error enviando correo:', e instanceof Error ? e.message : e))
+    }
+
+    // Notificar al ciudadano por WhatsApp (si tiene teléfono y el tenant lo configuró).
+    // Fire-and-forget: no bloquea ni rompe la respuesta si WhatsApp falla.
+    if (!pqrs.anonimo && pqrs.telefono && nuevoEstado === 'RESPONDIDA') {
+      ;(async () => {
+        try {
+          const tenantId = await getTenantId()
+          const baseUrl = process.env.NEXTAUTH_URL || process.env.APP_URL || ''
+          await notificarCiudadano(tenantId, 'WHATSAPP', 'respondida', {
+            telefono: pqrs.telefono,
+            radicado: pqrs.radicado,
+            tipo: pqrs.tipo,
+            urlConsulta: `${baseUrl}/atencion-ciudadano/pqrsd/consulta?radicado=${encodeURIComponent(pqrs.radicado)}`,
+          })
+        } catch (e) {
+          console.error('[responder] Error notificando WhatsApp:', e instanceof Error ? e.message : e)
+        }
+      })()
     }
 
     return NextResponse.json({ id: respuesta.id, estado: nuevoEstado }, { status: 201 })

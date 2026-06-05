@@ -55,6 +55,92 @@ El plan se construyÃ³ en 4 acuerdos explÃ­citos:
 
 ## Plan de trabajo â€” Estado
 
+> **Módulos diferenciadores** (plan en `PLAN_MODULOS_DIFERENCIADORES.md`, raíz del repo padre).
+> Se construyen sobre el stack existente sin nuevas dependencias.
+
+### ✅ Módulo Diferenciador 1 — Chat IA Ciudadano (RAG) (cerrado 2026-06-05)
+
+Widget de chat flotante en el portal público que responde con el contenido real del tenant
+(transparencia, noticias, servicios, FAQ, páginas) vía RAG. Sin pgvector: recuperación por
+full-text search nativo de PostgreSQL (`to_tsvector`/`plainto_tsquery` español) + generación con `callIaJson` (Groq→Shipu).
+
+**Datos** — `ChatIaChunk` (fragmentos ~400 palabras, solape 50, índice por `tenantId`/`fuenteId`) y `ChatIaConversacion`. `prisma db push` aplicado (no migrate dev: requería reset).
+
+**Núcleo** — `src/lib/chat-ia.ts`: `indexarContenido` (borra+recrea chunks por fuenteId), `buscarChunksRelevantes` (FTS con `ts_rank`, top-5), `responderPregunta` (prompt con contexto+historial, pide JSON con respuesta+índices de fuentes usadas), `indexarTodoElTenant` (recorre noticias/páginas/contenido/FAQ/transparencia).
+
+**Módulo** — `chat_ia_ciudadano` registrado en `modules.ts` (categoría atención, tier ESTÁNDAR, `dependeDe: [SITIO_WEB]`). Guard `requireChatIa` en `frisco-guard.ts`.
+
+**APIs** — `POST /api/portal/chat` (público, rate-limit 20/h por IP en memoria, Zod), `POST /api/admin/chat-ia/indexar`, `GET /api/admin/chat-ia/stats`.
+
+**UI** — `ChatWidget.tsx` (380×520, ARIA dialog, Escape cierra, fuentes enlazadas) cargado vía `ClientWidgets` sólo si el módulo está activo (resuelto en `layout.tsx`). Panel admin en `/admin/chat-ia` (re-indexar, KPIs, top preguntas, conversaciones, export CSV). Entrada en sidebar.
+
+**Indexación automática** — fire-and-forget en POST/PATCH de noticias (publicadas) → `indexarContenido`.
+
+**Hallazgos**
+- Campos reales del schema difieren del plan: `Noticia.contenido`/`Contenido.contenido` son `Json` (HTML del editor) → se serializan a texto antes de fragmentar; `PreguntaFrecuente.publicada` (no `activo`); `DocumentoTransparencia.archivoUrl` (no `url`); `Contenido` usa `estado='PUBLICADO'` (no `publicado`).
+- El LLM devuelve `indices_fuentes_usadas` para citar sólo las fuentes realmente usadas (evita listar 5 chunks siempre).
+
+### ✅ Módulo Diferenciador 2 — Notificaciones WhatsApp (cerrado 2026-06-05)
+
+Canal WhatsApp (Meta Cloud API, gratis hasta 1.000 conv. servicio/mes) para PQRSD y Ventanilla Única.
+No es módulo de catálogo nuevo — extiende `pqrsd`/`ventanilla_unica`. Config por tenant cifrada en meta-DB (sin migración).
+
+**Config** — `TenantSecretos.whatsapp { phoneNumberId, accessToken, fromPhone }` en `encryption.ts` (cifrado AES-256-GCM existente).
+
+**Núcleo** — `src/lib/notifications/whatsapp.ts`: `sendWhatsApp(config, toPhone, template, components, idioma)` contra Graph API v18, `normalizarTelefonoCo` (E.164, antepone +57), `bodyParams` helper. No lanza: devuelve `{ success, messageId?, error? }`. `src/lib/notifications/index.ts`: `getWhatsAppConfig(tenantId)` (lee+descifra meta-DB) y `notificarCiudadano(tenantId, canal, evento, datos)` que mapea evento→plantilla (`pqrsd_radicado`/`pqrsd_respondida`/`pqrsd_por_vencer`).
+
+**Integración** — `pqrsd/route.ts` (al radicar, fire-and-forget), `ventanilla/[id]/responder` (al pasar a RESPONDIDA, tras el email), `cron/diario` (radicados activos con ≤3 días hábiles restantes → `pqrsd_por_vencer`; se amplió la condición de skip del fan-out para incluir pqrsd/VU).
+
+**Superadmin** — sección "Configuración WhatsApp" en `tenant-form.tsx` (Phone Number ID, Access Token password, número display) + botón "Enviar prueba" → `POST /api/superadmin/tenants/[id]/whatsapp-test` (usa plantilla `hello_world` de Meta para verificar credenciales). PATCH del tenant mergea `whatsapp` en secretos (token en blanco = conservar; borrar phoneNumberId = eliminar config). Token nunca se precarga.
+
+**Hallazgos**
+- El stub WHATSAPP del `NotificationService` (cola VU, `src/services/vu/`) se dejó intacto: su cola renderiza HTML libre, incompatible con las plantillas aprobadas que exige Cloud API fuera de la ventana de 24h. La integración se hace directa en las rutas vía `notificarCiudadano`, como pide el plan.
+- Campo de teléfono del PQRS es `telefono` (el plan decía `telefonoCiudadano`). Estados PQRS activos: `RECIBIDA`/`EN_TRAMITE`/`EN_REVISION` (no `EN_PROCESO`).
+
+### ✅ Módulo Diferenciador 3 — Función Disciplinaria (cerrado 2026-06-05)
+
+Vertical para personerías (`entidadesObjetivo: ['PERSONERIA']`). Cubre el trabajo jurídico-investigativo
+como Ministerio Público: procesos disciplinarios (Ley 1952/2019) con máquina de estados y control de
+términos en días hábiles, tutelas, visitas preventivas. Módulo `funcion_disciplinaria` (tier VERTICAL, `dependeDe: [GESTION_DOCUMENTAL]`).
+
+**Datos** — `DiscProceso`, `DiscActuacion`, `DiscDocumento` (FK opcional a proceso O tutela), `DiscTutela`, `DiscVisitaPreventiva`, `DiscConsecutivo` (numeración atómica) + 6 enums. Relaciones en `Usuario`. `prisma db push` aplicado.
+
+**Núcleo**
+- `disc-consecutivo.ts` — `generarNumeroProceso` ("001-2026-P"), `generarNumeroTutela` ("T-001-2026"), `generarNumeroVisita` ("VP-001-2026"), atómicos vía upsert sobre `DiscConsecutivo` (tenant+año+serie).
+- `disc-terminos.ts` — `calcularTerminoEtapa` (días hábiles por etapa, ordinario vs verbal), `calcularFechaVencimientoEtapa` (vía dias-habiles), tabla `TRANSICIONES_PROCESO` + `esTransicionValida`/`siguientesEstados`, `ACTUACION_POR_ESTADO`, `calcularSemaforoDiscipinario`.
+- `disc-labels.ts` — etiquetas/colores cliente-safe (sin server deps) reutilizadas en toda la UI.
+- `disc-interop/procuraduria.ts` — stub SIRI-PGN (pendiente credenciales).
+- Guard `requireDisc` en `frisco-guard.ts`. Schemas Zod (`discProceso*`, `discAvanzar`, `discActuacion`, `discDocumento`, `discTutela*`, `discVisita*`).
+
+**APIs** — `/api/admin/disc/`: procesos (GET/POST), procesos/[id] (GET/PATCH), procesos/[id]/avanzar (máquina de estados: valida transición, recalcula vencimiento, registra actuación automática, email al instructor en fallos), procesos/[id]/actuaciones, procesos/[id]/documentos, tutelas (+[id]), visitas (+[id]), estadisticas. Todas con guard + auditoría + Zod.
+
+**UI** — `/admin/disc`: dashboard con KPIs (abiertos/vencidos/tutelas activas/visitas) + tabs Procesos/Tutelas/Visitas con búsqueda y semáforo. Formularios `nuevo` para los 3. Detalle de proceso (2 columnas: datos + semáforo/timeline de actuaciones/avanzar etapa/documentos). Detalle de tutela y visita con edición de trámite/seguimiento. Enlace en sidebar.
+
+**Hallazgos**
+- Los identificadores de enum Prisma no aceptan tildes: `DESTITUCION_INHABILIDAD` (el plan escribía `DESTITUCIÓN_`).
+- `DiscDocumento` quedó con FK opcional tanto a `DiscProceso` como a `DiscTutela` (back-relation `TutelaDocumentos`) — el plan declaraba `DiscTutela.documentos` sin definir el lado inverso.
+- Los siguientes estados válidos se calculan en el server component del detalle (`siguientesEstados`) y se pasan al client, para no arrastrar `dias-habiles` (que hace fetch a la API de festivos) al bundle de cliente.
+- El semáforo en cliente usa `semaforoDesdeVencimiento` (días calendario sobre la fecha de vencimiento ya calculada en hábiles por el server) — evita recalcular días hábiles en el browser.
+
+### ✅ Módulo Diferenciador 4 — PILA para Nómina Pública (cerrado 2026-06-05)
+
+Enriquece `nomina_publica` (no es módulo de catálogo nuevo). Genera el **archivo plano PILA** (UGPP v10.2)
+y el **Certificado de Ingresos y Retenciones** (DIAN, art. 378 ET). Sin dependencias nuevas.
+
+**Datos** — Campos PILA en `NomEmpleado`: `codigoEPS`, `codigoAFP`, `codigoARL`, `codigoCajaComp`, `claseRiesgoARL` (1-5). Modelo `NominaPilaExport` (trazabilidad de entregas). `prisma db push` aplicado.
+
+**Núcleo** — `nomina-pila.ts`: `generarLineaPILA` (registro tipo 2, ~43 campos clave separados por `;`), `generarArchivoPILA` (línea tipo 1 aportante + N tipo 2, CRLF), `TARIFA_ARL` por clase de riesgo, `nombreArchivoPILA`. Los aportes se derivan del IBC × tarifa legal (salud 4/8.5%, pensión 4/12%, ARL por clase, caja 4%, SENA 2%, ICBF 3%) — exactamente lo que valida la UGPP.
+
+**APIs** — `GET /api/admin/nom/pila?periodoId=` (cruza liquidaciones+empleado, IBC = Σ devengados constitutivos del periodo, excluye CONTRATISTA/OPS, descarga .txt, registra `NominaPilaExport`). `GET /api/admin/nom/certificado-retenciones?empleadoId=&anio=` (HTML imprimible con membrete de IdentidadInstitucional, NIT del tenant meta, totales del año, declaración DIAN). Ambos gateados por `nomina_publica` + SUPER_ADMIN/ADMIN.
+
+**UI** — En `/admin/nomina`: botón "PILA" (descarga directa) en periodos no-ABIERTO; columna "Certificado" por empleado (año anterior, abre HTML para imprimir/PDF); campos de códigos PILA agregados al modal de empleado. Schemas Zod + rutas create/update de empleado extendidas.
+
+**Hallazgos**
+- `NomEmpleado` ya tenía nombres de administradoras (`eps`/`afp`/`arl`) pero PILA exige los **códigos numéricos** UGPP — campos nuevos separados.
+- El aportante (NIT + razón social) se lee de la meta-DB (`prismaMeta.tenant`), no de `TenantInfo` (que no expone `nit`).
+- Certificados masivos en ZIP: descartado (evita dependencia JSZip), se usa descarga individual por empleado como prevé el plan.
+- Retención en la fuente sigue en 0 (placeholder del motor) — pendiente tablas UVT DIAN; el certificado lo documenta.
+
 ### âœ… Fase 0 â€” Refactor de fundamentos (cerrada)
 
 - [x] CatÃ¡logo de 29 mÃ³dulos en `src/lib/modules.ts` con helper `areDepsActive()`.
@@ -708,6 +794,40 @@ Casos donde IA **NO** entra (definidos explÃ­citamente):
 - AprobaciÃ³n de comprobante.
 - Cierre de perÃ­odo contable.
 - CÃ¡lculo de saldos.
+
+---
+
+### ✅ Módulo Diferenciador 5 — Integración SECOP II / lectura (cerrado 2026-06-05)
+
+Sincronización de **lectura** con SECOP II: trae los procesos y contratos que la entidad ya tiene publicados en SECOP, para visibilidad y conciliación con lo registrado internamente. Activa el conector del módulo `integraciones_estado` ya existente.
+
+**⚠ Corrección de premisa (importante):** El plan original asumía publicar/escribir en SECOP vía una API OAuth de CCE. **Eso no existe como API pública** — publicar en SECOP II es transaccional dentro de la plataforma. Lo que SÍ existe es **lectura** de los datos de SECOP en el portal de datos abiertos `datos.gov.co` (Socrata). Las credenciales que el cliente generó resultaron ser **API Keys de Socrata** (key id + secret, HTTP Basic Auth), no credenciales OAuth de CCE. El módulo se reorientó a lectura/conciliación. Verificado en vivo: 199 procesos reales de Personería de Buga recuperados por NIT.
+
+**Config** — `TenantSecretos.secop { clientId, clientSecret, nit }` cifrado en meta-DB (`clientId`=API Key ID, `clientSecret`=API Key Secret de datos.gov.co). Superadmin UI: sección "Integración SECOP II (consulta vía datos.gov.co)" con API Key ID / NIT / API Key Secret + botón "Verificar conexión SECOP" → `POST /api/superadmin/tenants/[id]/secop-test` (hace `count(*)` de procesos por NIT). Credenciales de `personeria-buga` ya cargadas y verificadas.
+
+**Datos** — Campos en `ConProceso` reutilizados para conciliación: `secopId` (id_del_proceso de SECOP), `secopUrl` (urlproceso), `secopEstado` (`'SECOP: <fase>'`), `secopSyncAt`. `secopDocId` en `ConDocumento` queda vestigial (sin uso en el modelo de lectura). `prisma db push` aplicado.
+
+**Núcleo** — `src/lib/integraciones/secop.ts` (Socrata Basic Auth):
+- `getSecopConfig(tenantId)` (descifra meta-DB), `normalizarNitSecop` (`"815.000.290-6"` → `"815000290"`).
+- `consultarProcesosSecop` (dataset `p6dx-8zbt`), `consultarContratosSecop` (dataset `jbjy-vk9h`), `contarProcesosSecop`, `verificarCredencialesSecop`.
+- Datasets/base overrideables por env: `SECOP_PROCESOS_DATASET`, `SECOP_CONTRATOS_DATASET`, `SECOP_RESOURCE_BASE`.
+- `requireIntegracionesEstado` en `frisco-guard.ts`.
+
+**APIs**
+- `GET /api/admin/contratacion/secop?tipo=procesos|contratos` — lista registros de la entidad en SECOP; para procesos marca `enPublicEnt` (match referencia==numero interno).
+- `POST /api/admin/contratacion/sincronizar-secop` — concilia: pagina todos los procesos de SECOP, cruza por `numero==referencia` y guarda `secopId/secopUrl/secopEstado/secopSyncAt` en los procesos internos. Devuelve `{ totalSecop, totalInterno, conciliados, soloEnSecop }`.
+- `POST /api/superadmin/tenants/[id]/secop-test` — verifica credenciales Socrata.
+
+**UI** — `client-page.tsx` contratación: botón "Sincronizar con SECOP II" en encabezado (solo si `integraciones_estado` activo), badge "En SECOP" en tabla (verde si conciliado), fila expandida muestra estado/fecha de conciliación + link real a SECOP, nuevo tab "Publicado en SECOP" que lista en vivo los procesos de la entidad marcando cuáles están en PublicEnt y cuáles solo en SECOP.
+
+**Hallazgos**
+- Las API Keys de datos.gov.co se autentican con HTTP Basic (`base64(keyId:keySecret)`), no OAuth.
+- El NIT en datos.gov.co va sin puntos ni dígito de verificación (`nit_entidad=815000290`).
+- Datasets SECOP II: `p6dx-8zbt` (Procesos de Contratación), `jbjy-vk9h` (Contratos Electrónicos). Campos defensivos por si Socrata renombra columnas.
+- ✅ Migración + credenciales aplicadas el 2026-06-05 sobre `neondb` (único tenant `personeria-buga`). NIT del tenant rellenado (`815.000.290-6`). E2E verificado: `verificarCredencialesSecop → {ok, total:199}`.
+- Pendiente futuro: si se requiere publicación real en SECOP II, exige convenio/integración B2B formal con CCE (fuera de alcance de API pública).
+- ✅ Activación: módulos `contratacion` e `integraciones_estado` activados en `personeria-buga` (2026-06-05, plan PROFESIONAL los permite) → la página de Contratación y el tab "Publicado en SECOP" quedan visibles. **Estándar para futuras activaciones: hacerlo desde Superadmin → Módulos activos** (esta vez se hizo por meta-DB por premura). Nota: la caché de tenant en el server desplegado puede tardar el TTL en reflejar el cambio si no se reinvalida vía la ruta oficial.
+- Limitación menor conocida: el tab SECOP muestra **procesos**; la API soporta `?tipo=contratos` (`jbjy-vk9h`) pero no está surfaced en UI y su mapeo de campos no se verificó contra el dataset real. Mejora futura.
 
 ---
 

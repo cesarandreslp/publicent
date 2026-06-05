@@ -18,6 +18,8 @@ export default async function ContratacionPage() {
   const activo = await isTenantModuleActive(MODULO_IDS.CONTRATACION)
   if (!activo) redirect("/admin")
 
+  const secopActivo = await isTenantModuleActive(MODULO_IDS.INTEGRACIONES_ESTADO)
+
   const prisma = await getTenantPrisma()
   const vigenciaActual = new Date().getFullYear()
 
@@ -52,6 +54,7 @@ export default async function ContratacionPage() {
         totalContratos,
         valorTotal: Number(valorTotal._sum.valorContrato ?? 0) + Number(valorTotal._sum.valorAdiciones ?? 0),
       }}
+      secopActivo={secopActivo}
     />
   )
 }

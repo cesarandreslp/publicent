@@ -74,6 +74,11 @@ export async function POST(req: Request) {
         afp: d.afp ?? null,
         arl: d.arl ?? null,
         cajaCompensacion: d.cajaCompensacion ?? null,
+        codigoEPS: d.codigoEPS ?? null,
+        codigoAFP: d.codigoAFP ?? null,
+        codigoARL: d.codigoARL ?? null,
+        codigoCajaComp: d.codigoCajaComp ?? null,
+        claseRiesgoARL: d.claseRiesgoARL ?? null,
         retencionFuenteAplica: d.retencionFuenteAplica ?? true,
       },
     })

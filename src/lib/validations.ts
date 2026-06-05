@@ -714,6 +714,12 @@ export const nomEmpleadoCreateSchema = z.object({
   afp: z.string().max(80).optional().nullable(),
   arl: z.string().max(80).optional().nullable(),
   cajaCompensacion: z.string().max(80).optional().nullable(),
+  // Códigos PILA (UGPP)
+  codigoEPS: z.string().max(20).optional().nullable(),
+  codigoAFP: z.string().max(20).optional().nullable(),
+  codigoARL: z.string().max(20).optional().nullable(),
+  codigoCajaComp: z.string().max(20).optional().nullable(),
+  claseRiesgoARL: z.number().int().min(1).max(5).optional().nullable(),
   retencionFuenteAplica: z.boolean().optional(),
 })
 
@@ -1113,4 +1119,112 @@ export const renPagoSchema = z.object({
   medioPago:     z.enum(REN_MEDIO_PAGO),
   referencia:    z.string().max(100).optional(),
   observacion:   z.string().max(500).optional(),
+})
+// --- Chat IA Ciudadano --------------------------------------------------------
+
+export const chatMensajeSchema = z.object({
+  rol:   z.enum(['user', 'assistant']),
+  texto: z.string().max(2000),
+})
+
+export const chatPreguntaSchema = z.object({
+  pregunta:  z.string().min(1).max(500),
+  historial: z.array(chatMensajeSchema).max(10).default([]),
+  sessionId: z.string().uuid(),
+})
+
+// ─── FUNCIÓN DISCIPLINARIA ──────────────────────────────────────────────────────
+
+const DISC_TIPO_PROCESO = ["DISCIPLINARIO_ORDINARIO", "DISCIPLINARIO_VERBAL", "QUEJA_CIUDADANA", "DERECHO_PETICION_INTERNO"] as const
+const DISC_CALIFICACION = ["GRAVISIMA", "GRAVE", "LEVE"] as const
+const DISC_SANCION = ["DESTITUCION_INHABILIDAD", "SUSPENSION_INHABILIDAD", "SUSPENSION", "MULTA", "AMONESTACION_ESCRITA", "ARCHIVO"] as const
+const DISC_ESTADO_PROCESO = ["INDAGACION_PRELIMINAR", "INVESTIGACION_DISCIPLINARIA", "PLIEGO_DE_CARGOS", "DESCARGOS", "PERIODO_PRUEBAS", "ALEGATOS", "FALLO_PRIMERA_INSTANCIA", "RECURSO_APELACION", "FALLO_SEGUNDA_INSTANCIA", "EJECUTORIADO", "ARCHIVADO"] as const
+const DISC_ESTADO_TUTELA = ["RECIBIDA", "EN_TRAMITE", "FALLADA", "IMPUGNADA", "EJECUTORIADA", "EN_CUMPLIMIENTO", "CUMPLIDA", "CERRADA"] as const
+
+export const discProcesoCreateSchema = z.object({
+  tipo:                z.enum(DISC_TIPO_PROCESO),
+  quejoso:             z.string().max(300).optional().nullable(),
+  anonima:             z.boolean().optional().default(false),
+  disciplinadoNombre:  z.string().min(2).max(300),
+  disciplinadoCargo:   z.string().min(2).max(300),
+  disciplinadoEntidad: z.string().min(2).max(300),
+  hechos:              z.string().min(10).max(8000),
+  normaInfringida:     z.string().max(500).optional().nullable(),
+  calificacionFalta:   z.enum(DISC_CALIFICACION).optional().nullable(),
+  fechaQueja:          z.string().datetime(),
+  instructorId:        z.string().cuid().optional().nullable(),
+  expedienteGdId:      z.string().cuid().optional().nullable(),
+})
+
+export const discProcesoUpdateSchema = z.object({
+  quejoso:             z.string().max(300).optional().nullable(),
+  disciplinadoNombre:  z.string().min(2).max(300).optional(),
+  disciplinadoCargo:   z.string().min(2).max(300).optional(),
+  disciplinadoEntidad: z.string().min(2).max(300).optional(),
+  hechos:              z.string().min(10).max(8000).optional(),
+  normaInfringida:     z.string().max(500).optional().nullable(),
+  calificacionFalta:   z.enum(DISC_CALIFICACION).optional().nullable(),
+  sancion:             z.enum(DISC_SANCION).optional().nullable(),
+  sancionDetalle:      z.string().max(2000).optional().nullable(),
+  instructorId:        z.string().cuid().optional().nullable(),
+  expedienteGdId:      z.string().cuid().optional().nullable(),
+})
+
+export const discAvanzarSchema = z.object({
+  nuevoEstado:  z.enum(DISC_ESTADO_PROCESO),
+  motivoAvance: z.string().max(2000).optional(),
+})
+
+export const discActuacionSchema = z.object({
+  tipo:        z.string().min(2).max(100),
+  descripcion: z.string().min(2).max(4000),
+  fecha:       z.string().datetime().optional(),
+})
+
+export const discDocumentoSchema = z.object({
+  nombre:  z.string().min(2).max(300),
+  tipo:    z.string().min(2).max(50),
+  url:     z.string().url().optional().nullable(),
+  gdDocId: z.string().cuid().optional().nullable(),
+})
+
+export const discTutelaCreateSchema = z.object({
+  accionante:       z.string().min(2).max(300),
+  accionado:        z.string().min(2).max(300),
+  derechoVulnerado: z.string().min(2).max(500),
+  juzgado:          z.string().max(300).optional().nullable(),
+  fechaRecepcion:   z.string().datetime(),
+  fechaVencimiento: z.string().datetime().optional().nullable(),
+  procesoId:        z.string().cuid().optional().nullable(),
+  funcionarioId:    z.string().cuid().optional().nullable(),
+  observaciones:    z.string().max(2000).optional().nullable(),
+})
+
+export const discTutelaUpdateSchema = z.object({
+  estado:             z.enum(DISC_ESTADO_TUTELA).optional(),
+  juzgado:            z.string().max(300).optional().nullable(),
+  fechaVencimiento:   z.string().datetime().optional().nullable(),
+  fechaFallo:         z.string().datetime().optional().nullable(),
+  falloSentido:       z.string().max(50).optional().nullable(),
+  impugnada:          z.boolean().optional(),
+  fechaImpugnacion:   z.string().datetime().optional().nullable(),
+  estadoCumplimiento: z.string().max(50).optional().nullable(),
+  observaciones:      z.string().max(2000).optional().nullable(),
+  funcionarioId:      z.string().cuid().optional().nullable(),
+})
+
+export const discVisitaCreateSchema = z.object({
+  entidadVisitada:   z.string().min(2).max(300),
+  dependencia:       z.string().max(300).optional().nullable(),
+  fecha:             z.string().datetime(),
+  objetivo:          z.string().min(2).max(2000),
+  hallazgos:         z.string().min(2).max(8000),
+  recomendaciones:   z.string().max(8000).optional().nullable(),
+  compromisos:       z.string().max(8000).optional().nullable(),
+  fechaSeguimiento:  z.string().datetime().optional().nullable(),
+  funcionarioId:     z.string().cuid().optional().nullable(),
+})
+
+export const discVisitaUpdateSchema = discVisitaCreateSchema.partial().extend({
+  estadoSeguimiento: z.string().max(50).optional().nullable(),
 })

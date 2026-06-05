@@ -83,6 +83,12 @@ model Usuario {
   vuConfigSistemaActualizadas   VuConfiguracionSistema[]  @relation("VuConfigSistemaActualizadoPor")
   vuDocumentosSubidos           VuDocumento[]             @relation("VuDocumentoSubidoPor")
 
+  // Función disciplinaria (vertical personerías)
+  discProcesosComoInstructor DiscProceso[]          @relation("DiscProcesosComoInstructor")
+  discActuaciones            DiscActuacion[]        @relation("DiscActuacionesComoUsuario")
+  discTutelas                DiscTutela[]           @relation("DiscTutelasComoFuncionario")
+  discVisitas                DiscVisitaPreventiva[] @relation("DiscVisitasComoFuncionario")
+
   @@map("usuarios")
 }
 
@@ -2839,6 +2845,12 @@ model NomEmpleado {
   afp             String?
   arl             String?
   cajaCompensacion String?
+  // CÃ³digos PILA de las administradoras (UGPP) â€” necesarios para el archivo plano
+  codigoEPS       String?                                      // ej "EPS037"
+  codigoAFP       String?                                      // ej "230301"
+  codigoARL       String?                                      // ej "14-1"
+  codigoCajaComp  String?                                      // ej "CCF21"
+  claseRiesgoARL  Int?                                         // 1..5 (define la tarifa ARL)
   // InformaciÃ³n tributaria
   retencionFuenteAplica Boolean @default(true)
 
@@ -3228,6 +3240,12 @@ model ConProceso {
   contratos        ConContrato[]
   documentos       ConDocumento[]
 
+  // Integración SECOP II (módulo integraciones_estado)
+  secopId          String?    // ID del proceso en SECOP II
+  secopUrl         String?    // URL pública en SECOP II
+  secopEstado      String?    // 'PUBLICADO' | 'ERROR'
+  secopSyncAt      DateTime?  // última sincronización exitosa
+
   @@index([estado])
   @@index([vigencia])
   @@index([modalidad])
@@ -3348,6 +3366,7 @@ model ConDocumento {
   fechaDoc    DateTime?
   observacion String?
   creadoPor   String?
+  secopDocId  String?   // ID del documento en SECOP II
   createdAt   DateTime @default(now())
 
   @@index([procesoId])
@@ -3818,4 +3837,273 @@ enum RenMedioPago {
   CHEQUE
   DATAFONO
   OTRO
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MÓDULO: chat_ia_ciudadano
+// RAG sobre contenido institucional del tenant para chat público
+// ═══════════════════════════════════════════════════════════════
+
+model ChatIaChunk {
+  id            String   @id @default(cuid())
+  tenantId      String
+  /// 'transparencia' | 'noticia' | 'servicio' | 'pagina' | 'faq'
+  fuente        String
+  fuenteId      String
+  titulo        String
+  contenido     String
+  url           String?
+  actualizadoEn DateTime @updatedAt
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([tenantId, fuenteId])
+  @@map("chat_ia_chunks")
+}
+
+model ChatIaConversacion {
+  id        String   @id @default(cuid())
+  tenantId  String
+  sessionId String
+  /// [{ rol: 'user'|'assistant', texto: string }]
+  mensajes  Json
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+  @@map("chat_ia_conversaciones")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MÓDULO: funcion_disciplinaria  (vertical personerías)
+// Marco legal: Ley 734/2002, Ley 1952/2019 (CDU)
+// ═══════════════════════════════════════════════════════════════
+
+model DiscProceso {
+  id                  String            @id @default(cuid())
+  tenantId            String
+  numero              String // ej: "001-2026-P" (consecutivo anual)
+  anio                Int
+  /// Tipo de proceso
+  tipo                DiscTipoProceso
+  /// Estado actual en la máquina de estados disciplinaria
+  estado              DiscEstadoProceso @default(INDAGACION_PRELIMINAR)
+  /// Nombre del quejoso (puede ser anónimo)
+  quejoso             String?
+  /// Si es anónima
+  anonima             Boolean           @default(false)
+  /// Disciplinado (servidor público investigado)
+  disciplinadoNombre  String
+  disciplinadoCargo   String
+  disciplinadoEntidad String // entidad donde labora el disciplinado
+  /// Hechos que originan el proceso
+  hechos              String
+  /// Norma presuntamente infringida
+  normaInfringida     String?
+  /// Calificación provisional de la falta
+  calificacionFalta   DiscCalificacion?
+  /// Sanción impuesta (si hay fallo)
+  sancion             DiscTipoSancion?
+  sancionDetalle      String?
+  /// Vínculo con GD (expediente electrónico AGN)
+  expedienteGdId      String?
+  /// Fechas clave
+  fechaQueja          DateTime
+  fechaApertura       DateTime? // apertura investigación formal
+  fechaPliegoCargos   DateTime?
+  fechaDescargos      DateTime?
+  fechaFallo          DateTime?
+  fechaEjecutoria     DateTime?
+  /// Término total en días hábiles (calculado según tipo/falta)
+  terminoDiasHabiles  Int?
+  fechaVencimiento    DateTime? // calculado al abrir cada etapa
+  /// Funcionario instructor asignado
+  instructorId        String?
+  instructor          Usuario?          @relation("DiscProcesosComoInstructor", fields: [instructorId], references: [id])
+  /// Relaciones
+  actuaciones         DiscActuacion[]
+  documentos          DiscDocumento[]
+  tutelas             DiscTutela[]
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, estado])
+  @@index([tenantId, instructorId])
+  @@map("disc_procesos")
+}
+
+model DiscActuacion {
+  id          String      @id @default(cuid())
+  procesoId   String
+  proceso     DiscProceso @relation(fields: [procesoId], references: [id], onDelete: Cascade)
+  tipo        String // ej: "AUTO_APERTURA", "CITACION", "DESCARGOS", "FALLO_PRIMERA", etc.
+  descripcion String
+  fecha       DateTime    @default(now())
+  usuarioId   String
+  usuario     Usuario     @relation("DiscActuacionesComoUsuario", fields: [usuarioId], references: [id])
+
+  @@index([procesoId])
+  @@map("disc_actuaciones")
+}
+
+model DiscDocumento {
+  id        String       @id @default(cuid())
+  procesoId String?
+  proceso   DiscProceso? @relation(fields: [procesoId], references: [id], onDelete: Cascade)
+  tutelaId  String?
+  tutela    DiscTutela?  @relation("TutelaDocumentos", fields: [tutelaId], references: [id], onDelete: Cascade)
+  nombre    String
+  tipo      String // 'QUEJA' | 'PRUEBA' | 'AUTO' | 'FALLO' | 'RECURSO' | 'OTRO'
+  url       String? // URL en storage
+  gdDocId   String? // vínculo con GdDocumento si está en GD
+  createdAt DateTime     @default(now())
+
+  @@index([procesoId])
+  @@index([tutelaId])
+  @@map("disc_documentos")
+}
+
+/// Tutelas tramitadas por la personería (función de Ministerio Público)
+model DiscTutela {
+  id                 String           @id @default(cuid())
+  tenantId           String
+  numero             String // ej: "T-001-2026"
+  anio               Int
+  /// Accionante (quien interpone la tutela)
+  accionante         String
+  /// Accionado (entidad o persona demandada)
+  accionado          String
+  /// Derecho fundamental vulnerado
+  derechoVulnerado   String
+  /// Juzgado que la tramita
+  juzgado            String?
+  estado             DiscEstadoTutela @default(RECIBIDA)
+  /// Fecha en que se recibió para acompañamiento
+  fechaRecepcion     DateTime
+  /// Fecha límite de respuesta (10 días hábiles desde notificación)
+  fechaVencimiento   DateTime?
+  /// Fecha en que el juzgado notificó el fallo
+  fechaFallo         DateTime?
+  /// Sentido del fallo
+  falloSentido       String? // 'CONCEDIDA' | 'IMPUGNADA' | 'NEGADA'
+  /// Si se impugnó
+  impugnada          Boolean          @default(false)
+  fechaImpugnacion   DateTime?
+  /// Estado de cumplimiento del fallo
+  estadoCumplimiento String? // 'PENDIENTE' | 'EN_CUMPLIMIENTO' | 'CUMPLIDA' | 'INCUMPLIDA'
+  observaciones      String?
+  /// Proceso disciplinario relacionado (si hay)
+  procesoId          String?
+  proceso            DiscProceso?     @relation(fields: [procesoId], references: [id])
+  funcionarioId      String?
+  funcionario        Usuario?         @relation("DiscTutelasComoFuncionario", fields: [funcionarioId], references: [id])
+  documentos         DiscDocumento[]  @relation("TutelaDocumentos")
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, estado])
+  @@map("disc_tutelas")
+}
+
+/// Actas de visita preventiva (función preventiva de la personería)
+model DiscVisitaPreventiva {
+  id                String   @id @default(cuid())
+  tenantId          String
+  numero            String // consecutivo: "VP-001-2026"
+  entidadVisitada   String
+  dependencia       String?
+  fecha             DateTime
+  objetivo          String
+  hallazgos         String
+  recomendaciones   String?
+  compromisos       String?
+  fechaSeguimiento  DateTime?
+  estadoSeguimiento String? // 'PENDIENTE' | 'EN_PROCESO' | 'CUMPLIDO'
+  funcionarioId     String
+  funcionario       Usuario  @relation("DiscVisitasComoFuncionario", fields: [funcionarioId], references: [id])
+  createdAt         DateTime @default(now())
+
+  @@unique([tenantId, numero])
+  @@index([tenantId])
+  @@map("disc_visitas_preventivas")
+}
+
+/// Consecutivo atómico por tenant/año/serie (P=proceso, T=tutela, VP=visita)
+model DiscConsecutivo {
+  id       String @id @default(cuid())
+  tenantId String
+  anio     Int
+  serie    String // 'P' | 'T' | 'VP'
+  ultimo   Int    @default(0)
+
+  @@unique([tenantId, anio, serie])
+  @@map("disc_consecutivos")
+}
+
+// ─── Enums disciplinaria ────────────────────────────────────────────────────
+
+enum DiscTipoProceso {
+  DISCIPLINARIO_ORDINARIO // Ley 1952/2019
+  DISCIPLINARIO_VERBAL // procedimiento verbal (faltas gravísimas flagrantes)
+  QUEJA_CIUDADANA // queja que puede devenir en disciplinario
+  DERECHO_PETICION_INTERNO // petición de servidor público vs. entidad
+}
+
+enum DiscEstadoProceso {
+  INDAGACION_PRELIMINAR // etapa previa, max 6 meses prorrogables
+  INVESTIGACION_DISCIPLINARIA // apertura formal
+  PLIEGO_DE_CARGOS // cargos formulados
+  DESCARGOS // periodo de descargos del disciplinado
+  PERIODO_PRUEBAS // práctica de pruebas
+  ALEGATOS // alegatos de conclusión
+  FALLO_PRIMERA_INSTANCIA
+  RECURSO_APELACION
+  FALLO_SEGUNDA_INSTANCIA
+  EJECUTORIADO // fallo en firme
+  ARCHIVADO // archivo por cualquier causa legal
+}
+
+enum DiscCalificacion {
+  GRAVISIMA
+  GRAVE
+  LEVE
+}
+
+enum DiscTipoSancion {
+  DESTITUCION_INHABILIDAD
+  SUSPENSION_INHABILIDAD
+  SUSPENSION
+  MULTA
+  AMONESTACION_ESCRITA
+  ARCHIVO // sin sanción
+}
+
+enum DiscEstadoTutela {
+  RECIBIDA
+  EN_TRAMITE
+  FALLADA
+  IMPUGNADA
+  EJECUTORIADA
+  EN_CUMPLIMIENTO
+  CUMPLIDA
+  CERRADA
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MÓDULO: PILA para nómina (enriquece nomina_publica)
+// Registro de entregas del archivo plano PILA por periodo (trazabilidad)
+// ═══════════════════════════════════════════════════════════════
+
+model NominaPilaExport {
+  id             String   @id @default(cuid())
+  tenantId       String
+  periodoId      String
+  generadoEn     DateTime @default(now())
+  generadoPor    String // userId
+  totalEmpleados Int
+  archivoNombre  String // "PILA_2026_01.txt"
+
+  @@index([tenantId, periodoId])
+  @@map("nomina_pila_exports")
 }

@@ -85,6 +85,24 @@ export interface TenantSecretos {
     pass: string
     from?: string  // remitente; si falta se usa `user`
   }
+  /**
+   * Configuración de WhatsApp (Meta Cloud API) del tenant.
+   * Se usa para notificar a ciudadanos de PQRSD / Ventanilla Única.
+   */
+  whatsapp?: {
+    phoneNumberId: string   // ID del número emisor en Meta
+    accessToken:   string   // token de acceso (permanente o de sistema)
+    fromPhone:     string   // número emisor en formato legible (display)
+  }
+  /**
+   * Credenciales OAuth del conector SECOP II (Colombia Compra Eficiente).
+   * Se usa para publicar procesos y contratos en SECOP II automáticamente.
+   */
+  secop?: {
+    clientId:     string   // Client ID de CCE
+    clientSecret: string   // Client Secret de CCE
+    nit:          string   // NIT de la entidad registrado en SECOP
+  }
 }
 
 /**

@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { FileText, Plus, Loader2, X, ChevronDown, ChevronUp, Paperclip, GitMerge, CalendarClock, Sparkles } from "lucide-react"
+import { Plus, Loader2, X, ChevronDown, ChevronUp, Paperclip, GitMerge, CalendarClock, Sparkles, ExternalLink, RefreshCw } from "lucide-react"
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -10,7 +10,14 @@ type Proceso = {
   id: string; numero: string; modalidad: string; estado: string; objeto: string
   vigencia: number; valorEstimado: number; cdpNumero: string | null
   dependencia: string | null; supervisorNombre: string | null
-  fechaCierre: string | null; _count: { contratos: number; documentos: number }
+  fechaCierre: string | null
+  secopId: string | null; secopUrl: string | null; secopEstado: string | null; secopSyncAt: string | null
+  _count: { contratos: number; documentos: number }
+}
+
+type SecopProcesoUI = {
+  idProceso: string; referencia: string; objeto: string; fase: string
+  modalidad: string; valor: number; url: string | null; enPublicEnt: boolean
 }
 type Contrato = {
   id: string; numero: string; tipo: string; estado: string
@@ -422,6 +429,12 @@ function DocumentoModal({ procesoId, contratoId, onClose, onSave }: {
 }
 
 // ─── Fila expandible de proceso ───────────────────────────────────────────────
+function BadgeSecop({ proceso }: { proceso: Proceso }) {
+  if (proceso.secopUrl || proceso.secopId)
+    return <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">En SECOP</span>
+  return <span className="text-xs text-gray-400">—</span>
+}
+
 function ProcesoFila({ proceso, onRefresh }: { proceso: Proceso; onRefresh: () => void }) {
   const [expanded, setExpanded] = useState(false)
   const [modalContrato, setModalContrato] = useState(false)
@@ -463,10 +476,13 @@ function ProcesoFila({ proceso, onRefresh }: { proceso: Proceso; onRefresh: () =
         <td className="px-4 py-3 text-center text-sm text-gray-500">
           {proceso._count.contratos} / {proceso._count.documentos}
         </td>
+        <td className="px-4 py-3 text-center">
+          <BadgeSecop proceso={proceso} />
+        </td>
       </tr>
       {expanded && (
         <tr>
-          <td colSpan={5} className="bg-gray-50 px-6 py-4 border-b">
+          <td colSpan={6} className="bg-gray-50 px-6 py-4 border-b">
             <div className="space-y-3">
               <div className="flex items-center gap-3 flex-wrap">
                 <span className="text-sm font-medium text-gray-600">Cambiar estado:</span>
@@ -494,17 +510,46 @@ function ProcesoFila({ proceso, onRefresh }: { proceso: Proceso; onRefresh: () =
               {proceso.cdpNumero && (
                 <p className="text-xs text-gray-500">CDP: {proceso.cdpNumero} · Dependencia: {proceso.dependencia ?? '—'} · Supervisor: {proceso.supervisorNombre ?? '—'}</p>
               )}
+
+              {/* Sección SECOP II (lectura — conciliación con datos.gov.co) */}
+              <div className="border-t border-gray-200 pt-3 mt-1">
+                <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">SECOP II</p>
+                {proceso.secopUrl || proceso.secopId ? (
+                  <div className="flex items-center gap-3 flex-wrap text-xs">
+                    <span className="text-gray-600">
+                      {proceso.secopEstado ?? 'Publicado en SECOP'}
+                      {proceso.secopSyncAt && (
+                        <span className="text-gray-400"> · conciliado {fmtDate(proceso.secopSyncAt)}</span>
+                      )}
+                    </span>
+                    {proceso.secopUrl && (
+                      <a
+                        href={proceso.secopUrl}
+                        target="_blank" rel="noreferrer"
+                        onClick={(ev) => ev.stopPropagation()}
+                        className="flex items-center gap-1 text-indigo-600 hover:text-indigo-800"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" /> Ver en SECOP II
+                      </a>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-400">
+                    Sin conciliar con SECOP. Usa &quot;Sincronizar con SECOP II&quot; arriba para cruzar por número de proceso.
+                  </p>
+                )}
+              </div>
             </div>
           </td>
         </tr>
       )}
       {modalContrato && (
-        <tr><td colSpan={5}>
+        <tr><td colSpan={6}>
           <ContratoModal proceso={proceso} onClose={() => setModalContrato(false)} onSave={() => { setModalContrato(false); onRefresh() }} />
         </td></tr>
       )}
       {modalDoc && (
-        <tr><td colSpan={5}>
+        <tr><td colSpan={6}>
           <DocumentoModal procesoId={proceso.id} onClose={() => setModalDoc(false)} onSave={() => { setModalDoc(false); onRefresh() }} />
         </td></tr>
       )}
@@ -559,18 +604,123 @@ function AlertasVencimientoPanel() {
   )
 }
 
+// ─── Panel SECOP II (lectura desde datos.gov.co) ──────────────────────────────
+
+const FASE_COLOR: Record<string, string> = {
+  'Fase de planeación': 'bg-gray-100 text-gray-700',
+  'Presentación de oferta': 'bg-blue-100 text-blue-800',
+  'Fase de ofertas': 'bg-blue-100 text-blue-800',
+  'Evaluación': 'bg-yellow-100 text-yellow-800',
+  'Adjudicado': 'bg-green-100 text-green-800',
+  'Celebración de contrato': 'bg-green-100 text-green-800',
+}
+
+function SecopPanel() {
+  const [registros, setRegistros] = useState<SecopProcesoUI[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch("/api/admin/contratacion/secop?tipo=procesos&limit=100")
+      .then(async r => {
+        const j = await r.json()
+        if (!r.ok) throw new Error(j.error ?? "Error consultando SECOP")
+        setRegistros(j.registros ?? [])
+      })
+      .catch(e => setError(e instanceof Error ? e.message : "Error consultando SECOP"))
+      .finally(() => setLoading(false))
+  }, [])
+
+  if (loading) return (
+    <p className="text-center text-sm text-gray-400 py-10 flex items-center justify-center gap-2">
+      <Loader2 className="w-4 h-4 animate-spin" /> Consultando SECOP II (datos.gov.co)…
+    </p>
+  )
+  if (error) return (
+    <div className="m-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+      {error}
+      <p className="text-xs text-red-500 mt-1">Verifica las credenciales SECOP del tenant en Superadmin.</p>
+    </div>
+  )
+  if (registros.length === 0) return (
+    <p className="text-center text-sm text-gray-400 py-10">No se encontraron procesos en SECOP para el NIT de la entidad.</p>
+  )
+
+  return (
+    <div>
+      <p className="px-4 py-2 text-xs text-gray-500 bg-slate-50 border-b">
+        Procesos publicados por la entidad en SECOP II (lectura desde datos.gov.co). El chip indica si el proceso ya existe en PublicEnt.
+      </p>
+      <table className="w-full text-sm">
+        <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+          <tr>
+            <th className="px-4 py-3 text-left">Referencia</th>
+            <th className="px-4 py-3 text-left">Objeto</th>
+            <th className="px-4 py-3 text-center">Fase</th>
+            <th className="px-4 py-3 text-right">Valor base</th>
+            <th className="px-4 py-3 text-center">En PublicEnt</th>
+            <th className="px-4 py-3 text-center">SECOP</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y">
+          {registros.map((r, i) => (
+            <tr key={`${r.referencia}-${i}`} className="hover:bg-gray-50">
+              <td className="px-4 py-3 font-medium text-gray-900">{r.referencia || '—'}</td>
+              <td className="px-4 py-3 text-gray-700 max-w-md truncate">{r.objeto}</td>
+              <td className="px-4 py-3 text-center">
+                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${FASE_COLOR[r.fase] ?? 'bg-gray-100 text-gray-600'}`}>
+                  {r.fase || '—'}
+                </span>
+              </td>
+              <td className="px-4 py-3 text-right text-gray-800">{r.valor > 0 ? fmt(r.valor) : '—'}</td>
+              <td className="px-4 py-3 text-center">
+                {r.enPublicEnt
+                  ? <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">✓ Sí</span>
+                  : <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">Solo en SECOP</span>}
+              </td>
+              <td className="px-4 py-3 text-center">
+                {r.url
+                  ? <a href={r.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 text-xs"><ExternalLink className="w-3.5 h-3.5" /> Abrir</a>
+                  : <span className="text-gray-300">—</span>}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 // ─── Componente principal ─────────────────────────────────────────────────────
-export default function ContratacionClient({ procesos, contratosRecientes, vigenciaActual, kpis }: {
+export default function ContratacionClient({ procesos, contratosRecientes, vigenciaActual, kpis, secopActivo }: {
   procesos: Proceso[]
   contratosRecientes: Contrato[]
   vigenciaActual: number
   kpis: { totalProcesos: number; totalContratos: number; valorTotal: number }
+  secopActivo: boolean
 }) {
   const router = useRouter()
   const [, startTransition] = useTransition()
   const [modalProceso, setModalProceso] = useState(false)
-  const [tab, setTab] = useState<"procesos" | "contratos">("procesos")
+  const [tab, setTab] = useState<"procesos" | "contratos" | "secop">("procesos")
   const [filtroEstado, setFiltroEstado] = useState("")
+  const [sincronizando, setSincronizando] = useState(false)
+  const [secopMsg, setSecopMsg] = useState<{ texto: string; ok: boolean } | null>(null)
+
+  async function sincronizarConSecop() {
+    setSincronizando(true); setSecopMsg(null)
+    try {
+      const res = await fetch("/api/admin/contratacion/sincronizar-secop", { method: "POST" })
+      const data = await res.json()
+      if (!res.ok) { setSecopMsg({ texto: data.error ?? "Error al sincronizar.", ok: false }); return }
+      setSecopMsg({ texto: data.mensaje ?? "Sincronización completada.", ok: true })
+      startTransition(() => router.refresh())
+    } catch {
+      setSecopMsg({ texto: "Error de red al sincronizar.", ok: false })
+    } finally {
+      setSincronizando(false)
+    }
+  }
 
   function refresh() {
     setModalProceso(false)
@@ -592,11 +742,26 @@ export default function ContratacionClient({ procesos, contratosRecientes, vigen
             <p className="text-sm text-gray-500">Vigencia {vigenciaActual} · Ley 80 / Ley 1150</p>
           </div>
         </div>
-        <button onClick={() => setModalProceso(true)}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">
-          <Plus className="w-4 h-4" /> Nuevo proceso
-        </button>
+        <div className="flex items-center gap-2">
+          {secopActivo && (
+            <button onClick={sincronizarConSecop} disabled={sincronizando}
+              className="flex items-center gap-2 border border-indigo-300 text-indigo-700 px-4 py-2 rounded-lg text-sm hover:bg-indigo-50 disabled:opacity-50">
+              {sincronizando ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+              Sincronizar con SECOP II
+            </button>
+          )}
+          <button onClick={() => setModalProceso(true)}
+            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">
+            <Plus className="w-4 h-4" /> Nuevo proceso
+          </button>
+        </div>
       </div>
+
+      {secopMsg && (
+        <div className={`text-sm rounded-lg px-4 py-2.5 ${secopMsg.ok ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+          {secopMsg.texto}
+        </div>
+      )}
 
       {/* KPIs */}
       <div className="grid grid-cols-3 gap-4">
@@ -620,10 +785,10 @@ export default function ContratacionClient({ procesos, contratosRecientes, vigen
       <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
         <div className="flex border-b items-center justify-between px-4">
           <div className="flex">
-            {(["procesos", "contratos"] as const).map(t => (
+            {(["procesos", "contratos", ...(secopActivo ? ["secop"] as const : [])] as const).map(t => (
               <button key={t} onClick={() => setTab(t)}
                 className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${tab === t ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
-                {t === "procesos" ? `Procesos (${procesos.length})` : `Contratos recientes`}
+                {t === "procesos" ? `Procesos (${procesos.length})` : t === "contratos" ? `Contratos recientes` : `Publicado en SECOP`}
               </button>
             ))}
           </div>
@@ -650,6 +815,7 @@ export default function ContratacionClient({ procesos, contratosRecientes, vigen
                     <th className="px-4 py-3 text-right">Valor estimado</th>
                     <th className="px-4 py-3 text-center">Estado</th>
                     <th className="px-4 py-3 text-center">Contratos / Docs</th>
+                    <th className="px-4 py-3 text-center">SECOP II</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -705,6 +871,8 @@ export default function ContratacionClient({ procesos, contratosRecientes, vigen
               </table>
             )
         )}
+
+        {tab === "secop" && <SecopPanel />}
       </div>
 
       {modalProceso && (

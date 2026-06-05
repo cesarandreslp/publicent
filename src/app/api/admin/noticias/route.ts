@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getTenantPrisma } from "@/lib/tenant"
+import { getTenantPrisma, getTenantId, isTenantModuleActive, MODULO_IDS } from "@/lib/tenant"
 import { checkApiRoles } from "@/lib/authorization"
 import type { EstadoPublicacion } from "@prisma/client"
 import { noticiaCreateSchema, validateBody } from "@/lib/validations"
+import { indexarContenido } from "@/lib/chat-ia"
 
 // GET - Listar todas las noticias con filtros
 export async function GET(request: NextRequest) {
@@ -156,6 +157,21 @@ export async function POST(request: NextRequest) {
         etiquetas: true,
       },
     })
+
+    // Indexar en Chat IA si el módulo está activo (fire-and-forget)
+    if (noticia.estado === 'PUBLICADO' && noticia.contenido) {
+      const contenidoStr = typeof noticia.contenido === 'string'
+        ? noticia.contenido
+        : JSON.stringify(noticia.contenido)
+      ;(async () => {
+        try {
+          if (await isTenantModuleActive(MODULO_IDS.CHAT_IA_CIUDADANO)) {
+            const tenantId = await getTenantId()
+            await indexarContenido(tenantId, 'noticia', noticia.id, noticia.titulo, contenidoStr, `/noticias/${noticia.slug}`)
+          }
+        } catch { /* indexación no crítica */ }
+      })()
+    }
 
     return NextResponse.json(noticia, { status: 201 })
   } catch (error) {

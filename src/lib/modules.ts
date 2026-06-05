@@ -66,6 +66,12 @@ export const MODULO_IDS = {
   PORTAL_EXTERNO:            'portal_externo',
   REPORTES_CONTROL:          'reportes_control',
   INTEGRACIONES_ESTADO:      'integraciones_estado',
+
+  // Atención ciudadana IA
+  CHAT_IA_CIUDADANO:         'chat_ia_ciudadano',
+
+  // Verticales sectoriales (personerías)
+  FUNCION_DISCIPLINARIA:     'funcion_disciplinaria',
 } as const
 
 export type ModuloId = (typeof MODULO_IDS)[keyof typeof MODULO_IDS]
@@ -201,6 +207,12 @@ export interface ModulosConfig {
   portal_externo:             ConfigBase
   reportes_control:           ConfigBase
   integraciones_estado:       ConfigBase
+
+  // Atención ciudadana IA
+  chat_ia_ciudadano:          ConfigBase
+
+  // Verticales sectoriales (personerías)
+  funcion_disciplinaria:      ConfigBase
 }
 
 // ─── Estado por defecto ───────────────────────────────────────────────────────
@@ -258,6 +270,10 @@ export const MODULOS_DEFAULT: ModulosConfig = {
   portal_externo:             off,
   reportes_control:           off,
   integraciones_estado:       off,
+
+  chat_ia_ciudadano:          off,
+
+  funcion_disciplinaria:      off,
 }
 
 // ─── Catálogo de módulos (UI superadmin + reglas de dependencia) ──────────────
@@ -584,6 +600,29 @@ export const MODULOS_CATALOGO: ModuloCatalogo[] = [
     categoria: 'integracion',
     tier: 'INTEGRACION',
     planesDisponibles: PLANES_AVANZADO,
+  },
+
+  // ── Chat IA Ciudadano ──────────────────────────────────────────────────────
+  {
+    id: MODULO_IDS.CHAT_IA_CIUDADANO,
+    nombre: 'Asistente IA ciudadano (Chat RAG)',
+    descripcion: 'Widget de chat flotante en el portal público que responde preguntas del ciudadano usando el contenido real del tenant (transparencia, noticias, servicios, FAQ) mediante recuperación semántica full-text y generación aumentada (RAG).',
+    categoria: 'atencion',
+    tier: 'ESTANDAR',
+    planesDisponibles: PLANES_ESTANDAR,
+    dependeDe: [MODULO_IDS.SITIO_WEB],
+  },
+
+  // ── Función Disciplinaria (vertical personerías) ────────────────────────────
+  {
+    id: MODULO_IDS.FUNCION_DISCIPLINARIA,
+    nombre: 'Función disciplinaria (personerías)',
+    descripcion: 'Gestión del trabajo jurídico-investigativo de la personería como Ministerio Público: procesos disciplinarios (Ley 1952/2019) con máquina de estados y control de términos, tutelas, visitas preventivas y conceptos. Cubre la función principal del cliente personería.',
+    categoria: 'atencion',
+    tier: 'VERTICAL',
+    planesDisponibles: PLANES_AVANZADO,
+    entidadesObjetivo: ['PERSONERIA'],
+    dependeDe: [MODULO_IDS.GESTION_DOCUMENTAL],
   },
 ]
 

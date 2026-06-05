@@ -449,6 +449,32 @@ const NAV_GROUPS: Array<{
           </svg>
         ),
       },
+      {
+        title: "Chat IA ciudadano",
+        href: "/admin/chat-ia",
+        externo: false,
+        modulo: MODULO_IDS.CHAT_IA_CIUDADANO,
+        badge: "Activo",
+        icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+              d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+          </svg>
+        ),
+      },
+      {
+        title: "Función disciplinaria",
+        href: "/admin/disc",
+        externo: false,
+        modulo: MODULO_IDS.FUNCION_DISCIPLINARIA,
+        badge: "Activo",
+        icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+              d="M3 6l9-3 9 3M5 10v8m14-8v8M4 18h16M12 7v11M9 10h.01M15 10h.01" />
+          </svg>
+        ),
+      },
     ],
   },]
 

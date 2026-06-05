@@ -33,6 +33,8 @@ import {
   type DepositarioSinReporte,
 } from "@/lib/alertas"
 import { sendMail } from "@/lib/mail"
+import { notificarCiudadano } from "@/lib/notifications"
+import { getDiasHabilesRestantes } from "@/lib/dias-habiles"
 
 export const dynamic = "force-dynamic"
 export const maxDuration = 60
@@ -86,24 +88,35 @@ export async function GET(req: NextRequest) {
     polizas: number
     contratos: number
     sinReporte: number
+    whatsappVencer: number
     emailEnviado: boolean
     error?: string
   }> = []
 
   for (const t of tenants) {
-    const fila = { tenant: t.nombre, polizas: 0, contratos: 0, sinReporte: 0, emailEnviado: false } as (typeof resumen)[number]
+    const fila = { tenant: t.nombre, polizas: 0, contratos: 0, sinReporte: 0, whatsappVencer: 0, emailEnviado: false } as (typeof resumen)[number]
     try {
       const modulos = resolveModulosConfig(t.modulosActivos)
       const friscoActivo  = isModuleActive(modulos, MODULO_IDS.FRISCO_BIENES)
       const contratacionActiva = isModuleActive(modulos, MODULO_IDS.CONTRATACION)
       const portalActivo  = isModuleActive(modulos, MODULO_IDS.PORTAL_EXTERNO)
+      const pqrsdActivo   = isModuleActive(modulos, MODULO_IDS.PQRSD) || isModuleActive(modulos, MODULO_IDS.VENTANILLA_UNICA)
 
-      if (!friscoActivo && !contratacionActiva) {
+      if (!friscoActivo && !contratacionActiva && !pqrsdActivo) {
         resumen.push(fila)
         continue
       }
 
       const prisma = await getOrCreateTenantClientById(t.id)
+
+      // 0. PQRSD próximas a vencer → WhatsApp directo al ciudadano (semáforo ROJO)
+      if (pqrsdActivo) {
+        try {
+          fila.whatsappVencer = await notificarPqrsPorVencer(prisma, t.id)
+        } catch (waErr) {
+          console.error(`[cron/whatsapp] ${t.nombre}:`, waErr instanceof Error ? waErr.message : waErr)
+        }
+      }
 
       // 1. Pólizas FRISCO (solo hitos para no spamear)
       let polizas: AlertaPoliza[] = []
@@ -160,6 +173,52 @@ export async function GET(req: NextRequest) {
     tenantsProcesados: tenants.length,
     resumen,
   })
+}
+
+// ─── PQRSD próximas a vencer → WhatsApp al ciudadano ──────────────────────────
+
+/**
+ * Busca radicados PQRSD activos próximos a vencer (≤ 3 días hábiles, semáforo ROJO)
+ * con teléfono del ciudadano, y envía la plantilla `pqrsd_por_vencer` por WhatsApp.
+ * Retorna el número de mensajes enviados con éxito.
+ */
+async function notificarPqrsPorVencer(
+  prisma: Awaited<ReturnType<typeof getOrCreateTenantClientById>>,
+  tenantId: string
+): Promise<number> {
+  const hoy = new Date()
+  // Ventana de búsqueda: vencimiento en los próximos 5 días calendario (cubre 3 hábiles).
+  const limite = new Date(hoy.getTime() + 5 * 24 * 60 * 60 * 1000)
+
+  const candidatos = await prisma.pQRS.findMany({
+    where: {
+      estado: { in: ["RECIBIDA", "EN_TRAMITE", "EN_REVISION"] },
+      anonimo: false,
+      telefono: { not: null },
+      fechaVencimiento: { gte: hoy, lte: limite },
+    },
+    select: { radicado: true, tipo: true, telefono: true, fechaVencimiento: true },
+    take: 200,
+  })
+
+  let enviados = 0
+  for (const p of candidatos) {
+    if (!p.telefono || !p.fechaVencimiento) continue
+    const diasRestantes = await getDiasHabilesRestantes(p.fechaVencimiento)
+    // Sólo radicados en zona ROJA: 0 a 3 días hábiles restantes.
+    if (diasRestantes < 0 || diasRestantes > 3) continue
+
+    const tipoLabel = p.tipo.charAt(0) + p.tipo.slice(1).toLowerCase()
+    const res = await notificarCiudadano(tenantId, "WHATSAPP", "por_vencer", {
+      telefono: p.telefono,
+      radicado: p.radicado,
+      tipo: tipoLabel,
+      diasRestantes,
+    })
+    if (res.whatsapp?.success) enviados++
+  }
+
+  return enviados
 }
 
 // ─── Plantilla del email-digest ───────────────────────────────────────────────

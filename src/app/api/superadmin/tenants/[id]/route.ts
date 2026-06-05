@@ -74,6 +74,12 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       smtpUser,
       smtpPass,
       smtpFrom,
+      whatsappPhoneNumberId,
+      whatsappAccessToken,
+      whatsappFromPhone,
+      secopClientId,
+      secopClientSecret,
+      secopNit,
     } = body
 
     const data: Record<string, unknown> = {}
@@ -101,9 +107,11 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     if (fechaVencimiento   !== undefined) data.fechaVencimiento   = fechaVencimiento ? new Date(fechaVencimiento) : null
     if (modulosActivos     !== undefined) data.modulosActivos     = modulosActivos
 
-    // Actualizar secretos cifrados (API keys IA + SMTP): merge para no borrar otros campos
+    // Actualizar secretos cifrados (API keys IA + SMTP + WhatsApp): merge para no borrar otros campos
     const tocaSmtp = smtpHost !== undefined || smtpUser !== undefined || smtpPass !== undefined || smtpFrom !== undefined || smtpPort !== undefined
-    if (groqApiKey !== undefined || shipuApiKey !== undefined || tocaSmtp) {
+    const tocaWhatsApp = whatsappPhoneNumberId !== undefined || whatsappAccessToken !== undefined || whatsappFromPhone !== undefined
+    const tocaSecop = secopClientId !== undefined || secopClientSecret !== undefined || secopNit !== undefined
+    if (groqApiKey !== undefined || shipuApiKey !== undefined || tocaSmtp || tocaWhatsApp || tocaSecop) {
       const tenantActual = await prismaMeta.tenant.findUnique({
         where: { id },
         select: { secretosEncriptados: true },
@@ -122,11 +130,35 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         smtp = host && user ? { host, port, user, pass, from } : undefined
       }
 
+      let whatsapp = secretosActuales.whatsapp
+      if (tocaWhatsApp) {
+        const phoneNumberId = whatsappPhoneNumberId !== undefined ? String(whatsappPhoneNumberId).trim() : whatsapp?.phoneNumberId ?? ""
+        // token en blanco en edición = conservar el actual
+        const accessToken = (whatsappAccessToken !== undefined && String(whatsappAccessToken).length > 0) ? String(whatsappAccessToken) : whatsapp?.accessToken ?? ""
+        const fromPhone = whatsappFromPhone !== undefined ? String(whatsappFromPhone).trim() : whatsapp?.fromPhone ?? ""
+        // Si limpian phoneNumberId, se elimina la config WhatsApp del tenant
+        whatsapp = phoneNumberId && accessToken ? { phoneNumberId, accessToken, fromPhone } : undefined
+      }
+
+      let secop = secretosActuales.secop
+      if (tocaSecop) {
+        const clientId = secopClientId !== undefined ? String(secopClientId).trim() : secop?.clientId ?? ""
+        // secret en blanco = conservar el actual
+        const clientSecret = (secopClientSecret !== undefined && String(secopClientSecret).length > 0)
+          ? String(secopClientSecret)
+          : secop?.clientSecret ?? ""
+        const nit = secopNit !== undefined ? String(secopNit).trim() : secop?.nit ?? ""
+        // Si limpian clientId se elimina la config SECOP del tenant
+        secop = clientId && clientSecret ? { clientId, clientSecret, nit } : undefined
+      }
+
       const secretosNuevos = {
         ...secretosActuales,
         ...(groqApiKey  !== undefined ? { groqApiKey:  groqApiKey  || undefined } : {}),
         ...(shipuApiKey !== undefined ? { shipuApiKey: shipuApiKey || undefined } : {}),
         ...(tocaSmtp ? { smtp } : {}),
+        ...(tocaWhatsApp ? { whatsapp } : {}),
+        ...(tocaSecop ? { secop } : {}),
       }
       data.secretosEncriptados = encryptSecretos(secretosNuevos)
     }

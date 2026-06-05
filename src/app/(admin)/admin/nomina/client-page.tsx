@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { Users, Calendar, Plus, X, Loader2, Calculator, Banknote, ListChecks } from "lucide-react"
+import { Users, Calendar, Plus, X, Loader2, Calculator, Banknote, ListChecks, Download, FileText } from "lucide-react"
 
 type Empleado = {
   id: string; documento: string; nombre: string; cargo: string;
@@ -128,6 +128,12 @@ export default function NominaClient({
                     {p.estado === 'LIQUIDADO' && !contabilidadActiva && (
                       <span className="text-xs text-slate-400">Activa contabilidad para pagar</span>
                     )}
+                    {p.estado !== 'ABIERTO' && (
+                      <a href={`/api/admin/nom/pila?periodoId=${p.id}`}
+                        className="ml-1 px-2 py-1 text-xs bg-slate-700 text-white rounded inline-flex items-center gap-1">
+                        <Download className="w-3 h-3" /> PILA
+                      </a>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -150,11 +156,12 @@ export default function NominaClient({
                 <th className="px-3 py-2">Cargo</th><th className="px-3 py-2">Vinculación</th>
                 <th className="px-3 py-2 text-right">Salario básico</th>
                 <th className="px-3 py-2">Estado</th>
+                <th className="px-3 py-2 text-right">Certificado</th>
               </tr>
             </thead>
             <tbody>
               {empleados.length === 0 && (
-                <tr><td colSpan={6} className="p-4 text-center text-slate-500">Sin empleados. Registra el primero con &quot;+ Empleado&quot;.</td></tr>
+                <tr><td colSpan={7} className="p-4 text-center text-slate-500">Sin empleados. Registra el primero con &quot;+ Empleado&quot;.</td></tr>
               )}
               {empleados.map(e => (
                 <tr key={e.id} className="border-t">
@@ -167,6 +174,13 @@ export default function NominaClient({
                     <span className={`text-xs px-2 py-0.5 rounded ${e.activo ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'}`}>
                       {e.activo ? 'Activo' : 'Retirado'}
                     </span>
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    <a href={`/api/admin/nom/certificado-retenciones?empleadoId=${e.id}&anio=${new Date().getFullYear() - 1}`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="px-2 py-1 text-xs bg-slate-100 text-slate-700 rounded inline-flex items-center gap-1 hover:bg-slate-200">
+                      <FileText className="w-3 h-3" /> {new Date().getFullYear() - 1}
+                    </a>
                   </td>
                 </tr>
               ))}
@@ -231,6 +245,11 @@ function EmpleadoModal({ onClose, onSaved }: { onClose: () => void; onSaved: () 
         tipoVinculacion: String(fd.get('tipoVinculacion')),
         fechaIngreso: new Date(String(fd.get('fechaIngreso'))).toISOString(),
         salarioBasico: Number(fd.get('salarioBasico')),
+        codigoEPS: fd.get('codigoEPS') ? String(fd.get('codigoEPS')) : null,
+        codigoAFP: fd.get('codigoAFP') ? String(fd.get('codigoAFP')) : null,
+        codigoARL: fd.get('codigoARL') ? String(fd.get('codigoARL')) : null,
+        codigoCajaComp: fd.get('codigoCajaComp') ? String(fd.get('codigoCajaComp')) : null,
+        claseRiesgoARL: fd.get('claseRiesgoARL') ? Number(fd.get('claseRiesgoARL')) : null,
       }
       const r = await fetch('/api/admin/nom/empleados', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
       if (!r.ok) { setErr((await r.json()).error ?? 'Error'); return }
@@ -266,6 +285,19 @@ function EmpleadoModal({ onClose, onSaved }: { onClose: () => void; onSaved: () 
           <label>Fecha de ingreso <input name="fechaIngreso" type="date" required className="w-full border rounded p-2" /></label>
           <label className="col-span-2">Salario básico <input name="salarioBasico" type="number" min={1} step={1000} required className="w-full border rounded p-2" /></label>
         </div>
+
+        <fieldset className="border-t pt-3 mt-1">
+          <legend className="text-xs font-semibold text-slate-500 mb-2">Códigos PILA (UGPP) — para el archivo plano de aportes</legend>
+          <div className="grid grid-cols-2 gap-3">
+            <label>Código EPS <input name="codigoEPS" placeholder="EPS037" className="w-full border rounded p-2" /></label>
+            <label>Código AFP <input name="codigoAFP" placeholder="230301" className="w-full border rounded p-2" /></label>
+            <label>Código ARL <input name="codigoARL" placeholder="14-1" className="w-full border rounded p-2" /></label>
+            <label>Código Caja <input name="codigoCajaComp" placeholder="CCF21" className="w-full border rounded p-2" /></label>
+            <label className="col-span-2">Clase de riesgo ARL (1–5)
+              <input name="claseRiesgoARL" type="number" min={1} max={5} placeholder="1" className="w-full border rounded p-2" />
+            </label>
+          </div>
+        </fieldset>
         {err && <p className="text-red-600 text-sm">{err}</p>}
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="px-3 py-2 border rounded">Cancelar</button>

@@ -16,6 +16,7 @@ import { getTenantPrisma, getTenantModulos, MODULO_IDS } from "@/lib/tenant"
 import { isModuleActive, getVentanillaConfig, getPqrsdConfig } from "@/lib/modules"
 import { TipoPQRS, VuColorSemaforo, VuGenero, VuZona, VuCondicionVulnerabilidad, Prisma } from "@prisma/client"
 import { pqrsPublicoSchema, validateBody } from "@/lib/validations"
+import { notificarCiudadano } from "@/lib/notifications"
 
 interface SeguimientoItem {
   fecha: string
@@ -339,6 +340,31 @@ async function guardarLocal(
     console.error("[PQRS→VU] Error en clasificación IA:", vuErr instanceof Error ? vuErr.message : String(vuErr))
   }
   // ────────────────────────────────────────────────────────────────────────────
+
+  // ─── Notificación WhatsApp al ciudadano (si configuró teléfono) ────────────
+  // Fire-and-forget: si WhatsApp no está configurado o falla, no afecta la radicación.
+  if (!payload.anonimo && payload.telefono) {
+    const tipoLabel = payload.tipo.charAt(0).toUpperCase() + payload.tipo.slice(1).toLowerCase()
+    const fechaVenceStr = fechaVencimiento
+      ? fechaVencimiento.toLocaleDateString("es-CO", { year: "numeric", month: "long", day: "numeric" })
+      : "por definir"
+    const baseUrl = process.env.NEXTAUTH_URL || process.env.APP_URL || ""
+    ;(async () => {
+      try {
+        const { getTenantId } = await import("@/lib/tenant")
+        const tenantId = await getTenantId()
+        await notificarCiudadano(tenantId, "WHATSAPP", "radicado", {
+          telefono: payload.telefono,
+          radicado,
+          tipo: tipoLabel,
+          fechaVencimiento: fechaVenceStr,
+          urlConsulta: `${baseUrl}/atencion-ciudadano/pqrsd/consulta?radicado=${encodeURIComponent(radicado)}`,
+        })
+      } catch (waErr) {
+        console.error("[PQRS→WhatsApp] Error notificando radicación:", waErr instanceof Error ? waErr.message : String(waErr))
+      }
+    })()
+  }
 
   return radicado
 }

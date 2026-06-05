@@ -39,6 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+ts_errors.txt
 
 /src/generated/prisma
 /src/generated/meta-client

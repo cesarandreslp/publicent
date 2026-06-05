@@ -34,6 +34,12 @@ interface TenantFormData {
   smtpUser?: string
   smtpPass?: string
   smtpFrom?: string
+  whatsappPhoneNumberId?: string
+  whatsappAccessToken?: string
+  whatsappFromPhone?: string
+  secopClientId?: string
+  secopClientSecret?: string
+  secopNit?: string
   modulosActivos?: {
     pqrsd?: boolean
     gestionDocumental?: boolean
@@ -149,6 +155,12 @@ export default function TenantForm({ initial = {} }: { initial?: TenantFormData 
     smtpUser:        initial.smtpUser ?? "",
     smtpPass:        "",
     smtpFrom:        initial.smtpFrom ?? "",
+    whatsappPhoneNumberId: initial.whatsappPhoneNumberId ?? "",
+    whatsappAccessToken:   "",
+    whatsappFromPhone:     initial.whatsappFromPhone ?? "",
+    secopClientId:     initial.secopClientId ?? "",
+    secopClientSecret: "",
+    secopNit:          initial.secopNit ?? "",
     modulosActivos: initial.modulosActivos ?? {
       pqrsd: true,
       gestionDocumental: false,
@@ -158,9 +170,52 @@ export default function TenantForm({ initial = {} }: { initial?: TenantFormData 
 
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState<string | null>(null)
+  const [waTestPhone, setWaTestPhone] = useState("")
+  const [waTestState, setWaTestState] = useState<{ loading: boolean; msg: string | null; ok: boolean }>({ loading: false, msg: null, ok: false })
+  const [secopTestState, setSecopTestState] = useState<{ loading: boolean; msg: string | null; ok: boolean }>({ loading: false, msg: null, ok: false })
 
   function set(key: keyof TenantFormData) {
     return (v: string) => setF((prev) => ({ ...prev, [key]: v }))
+  }
+
+  async function enviarPruebaWhatsApp() {
+    if (!initial.id) return
+    if (!waTestPhone.trim()) {
+      setWaTestState({ loading: false, msg: "Ingresa un número de prueba.", ok: false })
+      return
+    }
+    setWaTestState({ loading: true, msg: null, ok: false })
+    try {
+      const res = await fetch(`/api/superadmin/tenants/${initial.id}/whatsapp-test`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ toPhone: waTestPhone.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        setWaTestState({ loading: false, msg: data.error ?? "Error al enviar la prueba.", ok: false })
+        return
+      }
+      setWaTestState({ loading: false, msg: `Mensaje de prueba enviado (id: ${data.messageId ?? "—"}).`, ok: true })
+    } catch {
+      setWaTestState({ loading: false, msg: "Error de red al enviar la prueba.", ok: false })
+    }
+  }
+
+  async function verificarSecopConexion() {
+    if (!initial.id) return
+    setSecopTestState({ loading: true, msg: null, ok: false })
+    try {
+      const res = await fetch(`/api/superadmin/tenants/${initial.id}/secop-test`, { method: "POST" })
+      const data = await res.json()
+      if (!data.success) {
+        setSecopTestState({ loading: false, msg: data.error ?? "Error al verificar conexión.", ok: false })
+        return
+      }
+      setSecopTestState({ loading: false, msg: data.mensaje ?? "Conexión verificada.", ok: true })
+    } catch {
+      setSecopTestState({ loading: false, msg: "Error de red al verificar.", ok: false })
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -446,6 +501,156 @@ export default function TenantForm({ initial = {} }: { initial?: TenantFormData 
               Para eliminar el SMTP del tenant, borra el host y el usuario.
             </p>
           </div>
+        )}
+      </>)}
+
+      {section("Configuración WhatsApp (Meta Cloud API)", <>
+        <div className="sm:col-span-2">
+          <p className="text-xs text-slate-500 mb-4 leading-relaxed">
+            Canal de notificaciones WhatsApp para PQRSD y Ventanilla Única. Usa la API gratuita de
+            Meta Cloud (hasta 1.000 conversaciones de servicio/mes). El admin de la entidad debe
+            registrar y aprobar las plantillas <code className="text-slate-400">pqrsd_radicado</code>,{" "}
+            <code className="text-slate-400">pqrsd_respondida</code> y{" "}
+            <code className="text-slate-400">pqrsd_por_vencer</code> en su cuenta de Meta Business.
+          </p>
+        </div>
+        <Field
+          label="Phone Number ID"
+          name="whatsappPhoneNumberId"
+          value={f.whatsappPhoneNumberId!}
+          onChange={set("whatsappPhoneNumberId")}
+          placeholder="123456789012345"
+          hint="ID del número emisor en Meta (no el número visible)."
+        />
+        <Field
+          label="Número emisor (display)"
+          name="whatsappFromPhone"
+          value={f.whatsappFromPhone!}
+          onChange={set("whatsappFromPhone")}
+          placeholder="+57 300 123 4567"
+          hint="Número visible del emisor (referencia)."
+        />
+        <div className="sm:col-span-2">
+          <Field
+            label="Access Token"
+            name="whatsappAccessToken"
+            type="password"
+            value={f.whatsappAccessToken!}
+            onChange={set("whatsappAccessToken")}
+            placeholder="EAAG..."
+            hint="Token de acceso permanente o de sistema. Se almacena cifrado."
+          />
+        </div>
+        {isEdit && (
+          <>
+            <div className="sm:col-span-2">
+              <p className="text-xs text-amber-400/80 bg-amber-400/5 border border-amber-400/20 rounded-lg px-4 py-2.5">
+                ⚠ En modo edición, deja el token en blanco para conservar el actual.
+                Para eliminar WhatsApp del tenant, borra el Phone Number ID.
+              </p>
+            </div>
+            <div className="sm:col-span-2 border-t border-slate-800 pt-4">
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">Enviar mensaje de prueba</label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="tel"
+                  value={waTestPhone}
+                  onChange={(e) => setWaTestPhone(e.target.value)}
+                  placeholder="+57 300 123 4567"
+                  className="flex-1 px-4 py-2.5 bg-[#0a0f1e] border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={enviarPruebaWhatsApp}
+                  disabled={waTestState.loading}
+                  className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 text-white text-sm font-medium rounded-xl transition whitespace-nowrap"
+                >
+                  {waTestState.loading ? "Enviando…" : "Enviar prueba"}
+                </button>
+              </div>
+              <p className="mt-1.5 text-xs text-slate-500">
+                Usa la plantilla de prueba contra la config guardada. Guarda los cambios antes de probar credenciales nuevas.
+              </p>
+              {waTestState.msg && (
+                <p className={`mt-2 text-xs rounded-lg px-3 py-2 ${waTestState.ok ? "text-emerald-400 bg-emerald-400/5 border border-emerald-400/20" : "text-red-400 bg-red-400/5 border border-red-400/20"}`}>
+                  {waTestState.msg}
+                </p>
+              )}
+            </div>
+          </>
+        )}
+      </>)}
+
+      {section("Integración SECOP II (consulta vía datos.gov.co)", <>
+        <div className="sm:col-span-2">
+          <p className="text-xs text-slate-500 mb-4 leading-relaxed">
+            Sincroniza (lectura) los procesos y contratos que la entidad ya tiene publicados en
+            SECOP II, consultándolos desde el portal de datos abiertos del Estado. Requiere una
+            <strong className="text-slate-400"> API Key de Socrata</strong> generada en{" "}
+            <a
+              href="https://www.datos.gov.co/profile/edit/developer_settings"
+              target="_blank" rel="noreferrer"
+              className="text-blue-400 hover:underline"
+            >
+              datos.gov.co → perfil → API Keys
+            </a>. No publica en SECOP (eso es transaccional dentro de la plataforma).
+          </p>
+        </div>
+        <Field
+          label="API Key ID"
+          name="secopClientId"
+          value={f.secopClientId!}
+          onChange={set("secopClientId")}
+          placeholder="vrdnpg82f0o9qz8xrrctt5tw"
+          hint="API Key ID de datos.gov.co (Socrata)."
+        />
+        <Field
+          label="NIT de la entidad"
+          name="secopNit"
+          value={f.secopNit!}
+          onChange={set("secopNit")}
+          placeholder="815.000.290-6"
+          hint="NIT con el que la entidad publica en SECOP (se filtran sus registros)."
+        />
+        <div className="sm:col-span-2">
+          <Field
+            label="API Key Secret"
+            name="secopClientSecret"
+            type="password"
+            value={f.secopClientSecret!}
+            onChange={set("secopClientSecret")}
+            placeholder="••••••••"
+            hint="API Key Secret de datos.gov.co. Se almacena cifrado."
+          />
+        </div>
+        {isEdit && (
+          <>
+            <div className="sm:col-span-2">
+              <p className="text-xs text-amber-400/80 bg-amber-400/5 border border-amber-400/20 rounded-lg px-4 py-2.5">
+                ⚠ En modo edición, deja el API Key Secret en blanco para conservar el actual.
+                Para eliminar la integración SECOP, borra el API Key ID.
+              </p>
+            </div>
+            <div className="sm:col-span-2 border-t border-slate-800 pt-4">
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">Verificar conexión con SECOP II</label>
+              <p className="text-xs text-slate-500 mb-3">
+                Usa las credenciales ya guardadas (no las del formulario actual). Guarda primero si cambiaste el secreto.
+              </p>
+              <button
+                type="button"
+                onClick={verificarSecopConexion}
+                disabled={secopTestState.loading}
+                className="px-4 py-2.5 bg-blue-700 hover:bg-blue-600 disabled:bg-slate-700 text-white text-sm font-medium rounded-xl transition whitespace-nowrap"
+              >
+                {secopTestState.loading ? "Verificando…" : "Verificar conexión SECOP"}
+              </button>
+              {secopTestState.msg && (
+                <p className={`mt-2 text-xs rounded-lg px-3 py-2 ${secopTestState.ok ? "text-emerald-400 bg-emerald-400/5 border border-emerald-400/20" : "text-red-400 bg-red-400/5 border border-red-400/20"}`}>
+                  {secopTestState.msg}
+                </p>
+              )}
+            </div>
+          </>
         )}
       </>)}
 

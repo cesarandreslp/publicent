@@ -97,3 +97,17 @@ export function requireObservatorio(roles: Role[]) {
 export function requireRentasLocales(roles: Role[]) {
   return requireModule(MODULO_IDS.RENTAS_LOCALES, "Rentas locales", roles)
 }
+/** Gate para endpoints admin del chat IA ciudadano (m�dulo chat_ia_ciudadano). */
+export function requireChatIa(roles: Role[]) {
+  return requireModule(MODULO_IDS.CHAT_IA_CIUDADANO, "Chat IA ciudadano", roles)
+}
+
+/** Gate para endpoints admin de función disciplinaria (módulo funcion_disciplinaria). */
+export function requireDisc(roles: Role[]) {
+  return requireModule(MODULO_IDS.FUNCION_DISCIPLINARIA, "Función disciplinaria", roles)
+}
+
+/** Gate para endpoints del conector SECOP II y otros conectores de Estado (módulo integraciones_estado). */
+export function requireIntegracionesEstado(roles: Role[]) {
+  return requireModule(MODULO_IDS.INTEGRACIONES_ESTADO, "Integraciones Estado", roles)
+}

@@ -29,6 +29,8 @@ export default async function EditTenantPage({ params }: PageProps) {
   // SMTP no sensible para precargar (nunca el password)
   const secretos = decryptSecretos(tenant.secretosEncriptados)
   const smtp = secretos.smtp
+  const whatsapp = secretos.whatsapp
+  const secop = secretos.secop
 
   const TIPO_LABEL: Record<string, string> = {
     PERSONERIA:  "Personería",
@@ -105,6 +107,10 @@ export default async function EditTenantPage({ params }: PageProps) {
           smtpPort:             smtp?.port ? String(smtp.port) : "587",
           smtpUser:             smtp?.user ?? "",
           smtpFrom:             smtp?.from ?? "",
+          whatsappPhoneNumberId: whatsapp?.phoneNumberId ?? "",
+          whatsappFromPhone:     whatsapp?.fromPhone ?? "",
+          secopClientId:         secop?.clientId ?? "",
+          secopNit:              secop?.nit ?? "",
         }}
       />
 

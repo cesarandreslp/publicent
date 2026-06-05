@@ -179,4 +179,85 @@ admin/reportes-control, admin/tesoreria  (todas en su client-page.tsx)
 
 **Por qué es basura:**
 - **Nadie importa `@/hooks`** (el barrel). Los componentes importan los hooks directamente (`@/hooks/useAccessibility`, etc.).
-- Además está **incompleto**: no re-exporta `use-tenant-modulos` ni `useGdNotificacion
+- Además está **incompleto**: no re-exporta `use-tenant-modulos` ni `useGdNotificaciones`, así que ni siquiera cumpliría su propósito.
+
+**Acción recomendada:** eliminar `src/hooks/index.ts`. Los imports directos seguirán funcionando.
+
+**Riesgo:** nulo.
+
+---
+
+## 10. 🟡 Exports `type`/interface declarados pero no consumidos fuera de su archivo
+
+El análisis heurístico marcó ~176 símbolos exportados que solo aparecen en su archivo de definición. **La mayoría son `interface`/`type` usados internamente como tipos de parámetros** — exportarlos es innecesario pero **no es código muerto** y eliminar el `export` (no el tipo) es cosmético. No se recomienda una purga masiva por riesgo de falsos positivos.
+
+Candidatos razonables a **quitar el `export`** (dejar el símbolo, solo no exportarlo) si se quiere higiene de API interna, por archivo:
+
+- `src/lib/groq-client.ts`: `ClasificacionPQRSD`, `IaJsonResult` (si solo se usan dentro del módulo).
+- `src/lib/validations.ts`: `cpAsientoSchema`, `nomNovedadCreateSchema`, `psuApropiacionUpdateSchema` (esquemas zod no referenciados por endpoints).
+- `src/lib/upload.ts`: `OpcionesSubida`, `ResultadoSubida`, `validarArchivo` (verificar uno por uno).
+- `src/lib/alertas.ts`: `HITOS_ALERTA`; `src/lib/mail.ts`: `sendWelcomeEmail`.
+
+**Acción recomendada:** revisión caso a caso, baja prioridad. **No borrar en bloque** — alto riesgo de falso positivo (un `type` puede usarse vía inferencia o re-export).
+
+**Riesgo:** medio si se hace masivo; bajo si se hace uno a uno verificando con `tsc`.
+
+---
+
+## 11. 🟠 `src/app/(admin)/admin/test-editor/` — página playground en rutas de producción
+
+**Qué es:** `page.tsx` con el título *"Test de Block Editor"* / *"Prueba del Editor Tiptap — Escribe aquí…"*. Es un banco de pruebas del componente `BlockEditor` (Tiptap).
+
+**Por qué es residuo:** es una página de desarrollo montada dentro del grupo de rutas `(admin)`, es decir, **accesible en producción** bajo `/admin/test-editor`. No forma parte de ningún módulo del catálogo ni del menú.
+
+**Acción recomendada:** eliminar el directorio `src/app/(admin)/admin/test-editor/`. Si se quiere conservar para QA del editor, moverlo a Storybook o a un test de componente en `src/__tests__/`.
+
+**Riesgo:** nulo (no enlazado desde el sidebar ni otras vistas).
+
+---
+
+## Lo que NO es problema — y qué SÍ es producto vivo (revisado y confirmado)
+
+### Verificado como buen diseño (no tocar)
+
+- **Clientes de IA (`*-ia.ts`)** — `contabilidad-ia`, `contratacion-ia`, `frisco-bien-ia`, `frisco-interop-ia`, `frisco-reporte-ia`, `presupuesto-ia` **comparten correctamente** `callIaJson` de `groq-client.ts`. Buen diseño, **no hay duplicación** del cliente de IA.
+- **Cálculo de saldos** (`presupuesto-saldos.ts`, pasivos de nómina, tesorería) — sigue un patrón consistente "calcular al vuelo desde la fuente de verdad". No hay algoritmos contradictorios.
+- **`ModuloId` / `ModulosConfig`** — definidos una sola vez en `modules.ts`; `tenant.ts` y `module-registry.ts` solo **re-exportan/importan**. No es duplicación.
+- **`tsconfig.tsbuildinfo`** (456 KB) — artefacto de build, ya está en `.gitignore` y no rastreado. Correcto.
+- **`src/generated/meta-client/`** — código generado por Prisma (los `TODO` que aparecen ahí son de Prisma, no del proyecto). Ya gitignored.
+- **`/admin/gestor-documental`** — `redirect` deliberado a `/admin/gd` por compatibilidad de enlaces. Conservar.
+
+### Inventario de módulos confirmados (producto vivo)
+
+Para evitar confundir residuo con arquitectura: lo siguiente está implementado, cableado y **fuera del alcance de limpieza**.
+
+| Área | Estado en el código |
+|------|---------------------|
+| **CMS / sitio_web** | Modelos `MenuPrincipal`, `Pagina`, `SeccionPagina`, `Noticia`, `Slider`, `BannerPopup`, `ConfiguracionSitio`, `DocumentoTransparencia`, `Contenido`; UI en `contenido`, `noticias`, `paginas`, `slider`, `menu`, `transparencia`, `observatorio`. |
+| **PQRSD básico** | Módulo `pqrsd`, rutas `api/pqrsd/**`, UI `/admin/pqrs`. |
+| **Ventanilla Única (módulo especializado PQRS)** | Módulo `ventanilla_unica` (depende de `pqrsd`, admite `apiUrl` externa), UI `/admin/ventanilla/**`, modelos `Vu*`. Reemplaza/enriquece PQRSD al activarse. *(El residuo es solo `src/services/vu/`, no este módulo.)* |
+| **Gestión Documental (Orfeo NG / AGN)** | ~20 modelos `Gd*`, UI `/admin/gd/**`, integración transversal a TRD, radicados, expedientes y FRISCO. |
+| **Verticales SAE** | `frisco_bienes` (UI `/admin/frisco`), `frisco_interop` (SNR/Fiscalía/IGAC), `portal_externo` del depositario, `activos` (`api/admin/activos`, 5 rutas). Catálogo incluye además `sgbe_beneficiarios` y `esb_sectorial` (MinIgualdad). |
+| **Contable / financiero** | Rutas reales: `cp` (14), `psu` (11), `nom` (8), `teso` (8), `rc` (4), `contratacion` (8), `ren`/rentas (8). UI: contabilidad, presupuesto, nomina, tesoreria, contratacion, rentas, reportes-control. |
+| **Superadmin** | Grupo `(superadmin)` + `api/superadmin/**`: gestión de tenants, módulos por tenant con auto-siembra de catálogos, auth propia, informe mensual con IA. |
+
+> Conclusión: ningún módulo descrito por el autor es "basura". Todos los hallazgos de este informe son **copias huérfanas, archivos sueltos o residuos de desarrollo** que conviven con la arquitectura modular, sin formar parte de ella.
+
+---
+
+## Plan sugerido (orden seguro)
+
+1. **Sin riesgo, primero:** `ts_errors.txt`, `diag-vercel.mjs`, `src/scripts/test-gd-e2e.ts`, `src/hooks/index.ts`, `src/app/(admin)/admin/test-editor/`.
+2. **Huérfanos lib:** `src/lib/gestor-documental/types.ts` + 6 funciones muertas de `utils.ts` (+ ajustar `utils.test.ts`).
+3. **Refactor de duplicación:** `formatCOP` único reemplazando los 10 inline.
+4. **Decisión del autor — VU:** `src/services/vu/` → mover a `archive/` (recomendado) o eliminar si ya existe en su repo original. No es producto vivo, pero es la fuente original del proyecto VU.
+5. **Decisión del autor — scripts:** migraciones de `scripts/` (mover a `archive/` o borrar tras confirmar que ya se ejecutaron).
+6. **Opcional/cosmético:** quitar `export` de tipos internos (hallazgo 10), caso a caso.
+
+**Verificación tras cada paso:** `npm run lint` + `npx tsc --noEmit` (y `npm run test:run` para el paso 2, por el cambio en `utils.test.ts`).
+
+---
+
+### Cómo se obtuvieron estos hallazgos
+
+Sin acceso a `npm` (registro bloqueado), no se pudo usar `ts-prune`/`knip`. El análisis se hizo con scripts propios de detección de exports no importados y módulos huérfanos (resolución de imports `@/` y relativos), más `grep` dirigido para verificar cada hallazgo individualmente contra el código real antes de afirmarlo.
