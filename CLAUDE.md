@@ -29,6 +29,25 @@ DEBE ser uno de esos 4 identificadores** (la etiqueta legible va en `Rol.descrip
   La creación de tenant (`POST /api/superadmin/tenants`) solo crea el registro meta; el
   aprovisionamiento del tenant (push + `npm run db:seed`) es manual y usa este seed corregido.
 
+## 🏢 Plataforma (OSS Innovation) vs. cliente (tenant) — modelo por contrato
+
+**OSS Innovation = la plataforma SaaS. Personería de Buga = un cliente (tenant), no la plataforma.**
+Históricamente el código mezclaba ambos (seed con datos de Buga horneados, gating por "plan").
+Refactor en curso para separarlos:
+
+- **Seed parametrizado** (2026-06-06): `src/lib/seeders/tenant-seed.ts` → `seedTenant(prisma, params)`.
+  Separa lo **genérico de plataforma** (roles enum, taxonomía transparencia Res.1519, menú,
+  categorías noticias, festivos) de lo **específico del cliente** (admin + config del sitio),
+  que llega por parámetros. **Sin datos de Buga.** `prisma/seed.ts` es un wrapper que lee `TENANT_*`
+  del entorno (placeholders neutros si faltan). Reutilizable por el futuro aprovisionamiento automático.
+- **Activación por CONTRATO, no por plan** (2026-06-06): la contratación pública es por licitación,
+  así que el superadmin activa exactamente los módulos contratados. Se eliminó el gating por `plan`
+  en `PUT .../modulos` y en la UI `tenant-modulos.tsx` (el `plan` queda solo como dato de referencia;
+  el único bloqueo real es por dependencias de módulo / obligatorios).
+- **Pendiente (siguiente fase):** aprovisionamiento automático de tenants desde el superadmin
+  (crear BD vía Neon API + aplicar esquema SQL + `seedTenant` + activar módulos del contrato), y
+  recrear "Personería de Buga" como cliente limpio. **No borrar el tenant actual hasta tener eso.**
+
 ## VisiÃ³n del producto
 
 **Un solo producto comercializable** para el sector pÃºblico colombiano:

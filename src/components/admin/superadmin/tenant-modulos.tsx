@@ -264,10 +264,6 @@ function ModuloCard({
 
 // ─── Componente principal ──────────────────────────────────────────────────────
 
-const PLAN_RANK: Record<string, number> = {
-  BASICO: 0, ESTANDAR: 1, PROFESIONAL: 2, ENTERPRISE: 3,
-}
-
 const ORDEN_CATEGORIAS: ModuloCategoria[] = [
   'portal', 'atencion', 'documental', 'cumplimiento',
   'financiero', 'operativo', 'vertical', 'analitica', 'integracion',
@@ -280,8 +276,6 @@ export default function TenantModulos({ tenantId, plan, modulosRaw }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
-
-  const planRank = PLAN_RANK[plan] ?? 0
 
   // Agrupar por categoría preservando el orden definido
   const porCategoria = useMemo(() => {
@@ -311,10 +305,8 @@ export default function TenantModulos({ tenantId, plan, modulosRaw }: Props) {
       const next = { ...prev }
       for (const m of MODULOS_CATALOGO) {
         if (m.obligatorio) continue
-        const minPlan = m.planesDisponibles[0]
-        const disponible = planRank >= (PLAN_RANK[minPlan] ?? 0)
-        const debeEstar = set.has(m.id) && disponible
-        next[m.id] = { ...next[m.id], activo: debeEstar }
+        // Activación por contrato: el bundle activa exactamente sus módulos, sin límite de plan.
+        next[m.id] = { ...next[m.id], activo: set.has(m.id) }
       }
       return next
     })
@@ -356,8 +348,8 @@ export default function TenantModulos({ tenantId, plan, modulosRaw }: Props) {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm text-slate-400">
-            Plan actual:{" "}
-            <span className="text-white font-medium">{plan}</span>
+            Activación de módulos <span className="text-white font-medium">por contrato</span>
+            {plan ? <span className="text-slate-600"> · plan de referencia: {plan}</span> : null}
           </p>
         </div>
       </div>
@@ -382,7 +374,7 @@ export default function TenantModulos({ tenantId, plan, modulosRaw }: Props) {
           ))}
         </div>
         <p className="text-[11px] text-slate-600 mt-3">
-          Aplicar un bundle reemplaza la selección actual de módulos no obligatorios. Se respetan los límites del plan.
+          Aplicar un bundle reemplaza la selección actual de módulos no obligatorios. La activación final depende del contrato del cliente.
         </p>
       </div>
 
@@ -398,8 +390,9 @@ export default function TenantModulos({ tenantId, plan, modulosRaw }: Props) {
             </h2>
             <div className="space-y-3">
               {modulosCat.map((catalogo) => {
-                const minPlan = catalogo.planesDisponibles[0]
-                const disponiblePlan = planRank >= (PLAN_RANK[minPlan] ?? 0)
+                // Activación por contrato: no se limita por plan. El único bloqueo
+                // real es por dependencias de módulo o por ser obligatorio.
+                const disponiblePlan = true
                 const depsOk = areDepsActive(modulos, catalogo.id)
                 const depsFaltantes = (catalogo.dependeDe ?? [])
                   .filter((dep) => !modulos[dep]?.activo)

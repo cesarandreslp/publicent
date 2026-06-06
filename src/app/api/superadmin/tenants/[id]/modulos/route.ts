@@ -17,10 +17,6 @@ import {
 } from "@/lib/modules"
 import { superadminModuloSchema, validateBody } from "@/lib/validations"
 
-const PLAN_RANK: Record<string, number> = {
-  BASICO: 0, ESTANDAR: 1, PROFESIONAL: 2, ENTERPRISE: 3,
-}
-
 type Params = { params: Promise<{ id: string }> }
 
 // ─── GET /api/superadmin/tenants/[id]/modulos ─────────────────────────────────
@@ -82,20 +78,10 @@ export async function PUT(req: NextRequest, { params }: Params) {
     }
   }
 
-  // Validar acceso por plan: cada módulo activado debe estar disponible en el plan del tenant
-  const planRank = PLAN_RANK[tenant.plan] ?? 0
-  for (const cat of MODULOS_CATALOGO) {
-    const activoAhora = nueva[cat.id]?.activo === true
-    if (!activoAhora) continue
-    const minPlan = cat.planesDisponibles[0]
-    const minRank = PLAN_RANK[minPlan] ?? 0
-    if (planRank < minRank) {
-      return NextResponse.json(
-        { error: `El módulo "${cat.nombre}" requiere plan ${minPlan} o superior` },
-        { status: 400 }
-      )
-    }
-  }
+  // Activación por CONTRATO (no por plan): OSS Innovation (plataforma SaaS) activa
+  // exactamente los módulos que la entidad contrató. La contratación pública es por
+  // licitación, no por tiers comerciales — no se valida `plan`. Qué se activa es
+  // decisión del superadmin según el contrato de cada cliente.
 
   const updated = await prismaMeta.tenant.update({
     where: { id },
