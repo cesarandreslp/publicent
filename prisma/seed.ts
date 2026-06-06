@@ -16,14 +16,20 @@ async function main() {
   // ROLES DEL SISTEMA
   // ==========================================
   console.log('📋 Creando roles...')
-  
+
+  // IMPORTANTE: el `nombre` del rol DEBE ser uno de los identificadores del enum
+  // Role del código ('SUPER_ADMIN' | 'ADMIN' | 'EDITOR' | 'USER'), porque la
+  // autorización (src/lib/authorization.ts y src/lib/frisco-guard.ts) compara
+  // `session.user.role` (= rol.nombre) contra esos valores. Si se siembra con
+  // nombres legibles ("Super Administrador"), requireRoles lanza "No autorizado"
+  // y toda página admin devuelve 500. La etiqueta legible va en `descripcion`.
   const roles = await Promise.all([
     prisma.rol.upsert({
-      where: { nombre: 'Super Administrador' },
+      where: { nombre: 'SUPER_ADMIN' },
       update: {},
       create: {
-        nombre: 'Super Administrador',
-        descripcion: 'Acceso total al sistema',
+        nombre: 'SUPER_ADMIN',
+        descripcion: 'Super Administrador — acceso total al sistema',
         esProtegido: true,
         permisos: {
           usuarios: ['crear', 'leer', 'actualizar', 'eliminar'],
@@ -38,11 +44,11 @@ async function main() {
       }
     }),
     prisma.rol.upsert({
-      where: { nombre: 'Administrador' },
+      where: { nombre: 'ADMIN' },
       update: {},
       create: {
-        nombre: 'Administrador',
-        descripcion: 'Administración general del sitio',
+        nombre: 'ADMIN',
+        descripcion: 'Administrador — administración general del sitio',
         esProtegido: true,
         permisos: {
           usuarios: ['crear', 'leer', 'actualizar'],
@@ -55,37 +61,26 @@ async function main() {
       }
     }),
     prisma.rol.upsert({
-      where: { nombre: 'Editor' },
+      where: { nombre: 'EDITOR' },
       update: {},
       create: {
-        nombre: 'Editor',
-        descripcion: 'Gestión de contenidos y noticias',
+        nombre: 'EDITOR',
+        descripcion: 'Editor — gestión de contenidos, noticias y PQRS',
         esProtegido: false,
         permisos: {
           contenidos: ['crear', 'leer', 'actualizar'],
           transparencia: ['leer', 'actualizar'],
           noticias: ['crear', 'leer', 'actualizar'],
-        }
-      }
-    }),
-    prisma.rol.upsert({
-      where: { nombre: 'Funcionario PQRS' },
-      update: {},
-      create: {
-        nombre: 'Funcionario PQRS',
-        descripcion: 'Gestión de PQRS',
-        esProtegido: false,
-        permisos: {
           pqrs: ['leer', 'actualizar', 'responder'],
         }
       }
     }),
     prisma.rol.upsert({
-      where: { nombre: 'Consulta' },
+      where: { nombre: 'USER' },
       update: {},
       create: {
-        nombre: 'Consulta',
-        descripcion: 'Solo lectura',
+        nombre: 'USER',
+        descripcion: 'Consulta — solo lectura',
         esProtegido: false,
         permisos: {
           contenidos: ['leer'],
@@ -104,7 +99,7 @@ async function main() {
   // ==========================================
   console.log('👤 Creando usuario administrador...')
   
-  const adminRole = roles.find(r => r.nombre === 'Super Administrador')!
+  const adminRole = roles.find(r => r.nombre === 'SUPER_ADMIN')!
   const hashedPassword = await hash('Admin123*', 12)
   
   const admin = await prisma.usuario.upsert({

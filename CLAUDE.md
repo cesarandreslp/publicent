@@ -12,6 +12,23 @@
 
 ---
 
+## ⚠️ Convención de roles (crítico)
+
+`session.user.role` = `Rol.nombre` (sin mapeo; ver `auth.config.ts`). La autorización
+(`src/lib/authorization.ts` `requireRoles`, `src/lib/frisco-guard.ts`) compara ese valor
+contra el enum **`'SUPER_ADMIN' | 'ADMIN' | 'EDITOR' | 'USER'`**. Por tanto **`Rol.nombre`
+DEBE ser uno de esos 4 identificadores** (la etiqueta legible va en `Rol.descripcion`).
+
+- **Bug encontrado (2026-06-06):** el seed sembraba nombres legibles ("Super Administrador",
+  "Administrador", "Editor", "Consulta", "Funcionario PQRS"). En producción, al cargar una
+  página con `requireRoles`, el rol no coincidía → `throw "No autorizado"` → **500 en toda
+  página admin** (no era BD ni deploy). Las APIs con `checkApiRoles` devolvían 403.
+- **Fix datos** (tenant `personeria-buga`): roles renombrados a `SUPER_ADMIN`/`ADMIN`/`EDITOR`/`USER`.
+  Requiere **logout + login** (el rol viejo queda en el JWT hasta re-autenticar).
+- **Fix raíz** (`prisma/seed.ts`): ahora siembra los 4 roles con los identificadores del enum.
+  La creación de tenant (`POST /api/superadmin/tenants`) solo crea el registro meta; el
+  aprovisionamiento del tenant (push + `npm run db:seed`) es manual y usa este seed corregido.
+
 ## VisiÃ³n del producto
 
 **Un solo producto comercializable** para el sector pÃºblico colombiano:
