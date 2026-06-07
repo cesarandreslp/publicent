@@ -44,9 +44,19 @@ Refactor en curso para separarlos:
   así que el superadmin activa exactamente los módulos contratados. Se eliminó el gating por `plan`
   en `PUT .../modulos` y en la UI `tenant-modulos.tsx` (el `plan` queda solo como dato de referencia;
   el único bloqueo real es por dependencias de módulo / obligatorios).
-- **Pendiente (siguiente fase):** aprovisionamiento automático de tenants desde el superadmin
-  (crear BD vía Neon API + aplicar esquema SQL + `seedTenant` + activar módulos del contrato), y
-  recrear "Personería de Buga" como cliente limpio. **No borrar el tenant actual hasta tener eso.**
+- **Aprovisionamiento automático (2026-06-06, en `src/lib/provisioning/`):**
+  - `neon.ts` → `createNeonProject()` crea un proyecto Neon por tenant vía API (requiere `NEON_API_KEY`);
+    devuelve connection string directa (migraciones) y pooled (runtime).
+  - `schema-apply.ts` → ejecuta `prisma/provision-schema.sql` (DDL completo, regenerable con
+    `npm run db:provision-sql`) contra la BD nueva.
+  - `provision.ts` → `provisionTenant(params)`: Neon → esquema → `seedTenant` → seeds de módulos
+    contratados → registro en meta-BD con `modulosActivos`. Rollback (borra el proyecto Neon) si falla.
+  - CLI: `npm run provision-tenant scripts/tenant.example.json` (config JSON con entidad, admin,
+    contacto, módulos contratados). Es la vía confiable v1 (sin límites de serverless).
+  - **Pendiente:** botón en el superadmin que llame a `provisionTenant` (endpoint con `maxDuration`),
+    y recrear "Personería de Buga" como cliente demo limpio. El sitio de Buga es un DEMO (la salida a
+    producción es una fase contractual futura), así que se puede recrear sin riesgo.
+  - **Nota:** el sitio actual de Buga es DEMO; no borrar el tenant hasta validar el aprovisionamiento.
 
 ## VisiÃ³n del producto
 

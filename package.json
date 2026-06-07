@@ -18,6 +18,8 @@
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:seed": "npx tsx prisma/seed.ts",
+    "db:provision-sql": "prisma migrate diff --from-empty --to-schema prisma/schema.prisma --script -o prisma/provision-schema.sql",
+    "provision-tenant": "npx tsx scripts/provision-tenant.ts",
     "db:studio": "prisma studio",
     "db:generate": "prisma generate",
     "meta:migrate": "prisma migrate dev --config prisma.config.meta.ts",

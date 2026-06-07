@@ -1,0 +1,46 @@
+{
+  "entidad": {
+    "slug": "personeria-tulua",
+    "codigo": "76834-001",
+    "nombre": "Personería Municipal de Tuluá",
+    "nombreCorto": "Personería de Tuluá",
+    "tipoEntidad": "PERSONERIA",
+    "nit": "800.000.000-0",
+    "municipio": "Tuluá",
+    "departamento": "Valle del Cauca",
+    "codigoDivipola": "76834",
+    "slogan": "Defensores de los derechos ciudadanos"
+  },
+  "dominioPrincipal": "personeria-tulua.vercel.app",
+  "plan": "ENTERPRISE",
+  "contacto": {
+    "direccion": "Calle 25 # 25-04",
+    "ciudad": "Tuluá, Valle del Cauca",
+    "codigoPostal": "763022",
+    "telefono": "(602) 000 0000",
+    "email": "contacto@personeriatulua.gov.co",
+    "horario": "Lunes a Viernes: 8:00 a.m. - 12:00 m. y 2:00 p.m. - 6:00 p.m."
+  },
+  "admin": {
+    "email": "admin@personeriatulua.gov.co",
+    "nombre": "Administrador",
+    "apellido": "Sistema",
+    "cargo": "Administrador del Sistema"
+  },
+  "redes": {
+    "facebook": "",
+    "instagram": "",
+    "twitter": "",
+    "youtube": ""
+  },
+  "modulos": [
+    "pqrsd",
+    "ventanilla_unica",
+    "gestion_documental",
+    "contabilidad_publica",
+    "presupuesto_ejecucion"
+  ],
+  "neon": {
+    "region": "aws-us-east-1"
+  }
+}
