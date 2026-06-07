@@ -73,15 +73,24 @@ export default async function TenantsPage({ searchParams }: PageProps) {
           <h1 className="text-2xl font-bold text-white">Entidades / Tenants</h1>
           <p className="text-slate-400 text-sm mt-0.5">{total} entidad{total !== 1 ? "es" : ""} registrada{total !== 1 ? "s" : ""}</p>
         </div>
-        <Link
-          href="/superadmin/tenants/nuevo"
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-xl transition shadow-lg shadow-blue-500/20"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Nueva entidad
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/superadmin/tenants/aprovisionar"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-xl transition shadow-lg shadow-blue-500/20"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            Aprovisionar (automático)
+          </Link>
+          <Link
+            href="/superadmin/tenants/nuevo"
+            className="inline-flex items-center gap-2 px-4 py-2.5 border border-slate-700 text-slate-300 hover:bg-slate-800 text-sm font-medium rounded-xl transition"
+            title="Registro manual (BD existente)"
+          >
+            Manual
+          </Link>
+        </div>
       </div>
 
       {/* Buscador */}

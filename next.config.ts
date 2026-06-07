@@ -19,6 +19,10 @@ const nextConfig: NextConfig = {
     // arreglan los type errors uno a uno en la siguiente iteracion.
     ignoreBuildErrors: true,
   },
+  // Incluir el esquema SQL en la función serverless de aprovisionamiento (lo lee con fs)
+  outputFileTracingIncludes: {
+    "/api/superadmin/tenants/provision": ["./prisma/provision-schema.sql"],
+  },
   // ──────────────────────────────────────────────────────────────────────────
   // Imágenes: permitir dominios de todos los tenants
   // ──────────────────────────────────────────────────────────────────────────
