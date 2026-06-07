@@ -30,6 +30,25 @@ function apiKey(): string {
   return k
 }
 
+/**
+ * Resuelve el org_id de Neon. Las API keys de organización exigen org_id al crear
+ * proyectos. Se toma de `NEON_ORG_ID` si está definido; si no, se consulta la API.
+ */
+async function getOrgId(): Promise<string | undefined> {
+  const fromEnv = process.env.NEON_ORG_ID?.trim()
+  if (fromEnv) return fromEnv
+  try {
+    const res = await fetch(`${NEON_API}/users/me/organizations`, {
+      headers: { Authorization: `Bearer ${apiKey()}`, Accept: 'application/json' },
+    })
+    if (!res.ok) return undefined
+    const data = (await res.json()) as { organizations?: { id?: string }[] }
+    return data.organizations?.[0]?.id
+  } catch {
+    return undefined
+  }
+}
+
 /** Deriva el host pooled de Neon insertando "-pooler" en el id del endpoint. */
 function toPooled(uri: string): string {
   try {
@@ -54,6 +73,10 @@ export async function createNeonProject(
   nombre: string,
   region = 'aws-us-east-1'
 ): Promise<NeonProjectResult> {
+  const orgId = await getOrgId()
+  const project: Record<string, unknown> = { name: nombre, region_id: region }
+  if (orgId) project.org_id = orgId
+
   const res = await fetch(`${NEON_API}/projects`, {
     method: 'POST',
     headers: {
@@ -61,7 +84,7 @@ export async function createNeonProject(
       'Content-Type': 'application/json',
       Accept: 'application/json',
     },
-    body: JSON.stringify({ project: { name: nombre, region_id: region } }),
+    body: JSON.stringify({ project }),
   })
 
   if (!res.ok) {

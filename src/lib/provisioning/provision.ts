@@ -22,7 +22,7 @@ import {
 } from '@/lib/modules'
 import { seedTenant, type SeedTenantParams } from '@/lib/seeders/tenant-seed'
 import { createNeonProject, deleteNeonProject } from './neon'
-import { applyProvisionSchema } from './schema-apply'
+import { applyProvisionSchema, waitForDatabaseReady } from './schema-apply'
 
 const PLANES_VALIDOS = ['BASICO', 'ESTANDAR', 'PROFESIONAL', 'ENTERPRISE']
 
@@ -79,6 +79,23 @@ function generarPassword(): string {
   return randomBytes(9).toString('base64url') + 'A1*'
 }
 
+/** Reintenta una operación ante fallos de red transitorios (DNS, reset de conexión). */
+async function withRetry<T>(fn: () => Promise<T>, attempts = 6, delayMs = 3000): Promise<T> {
+  let ultimo: unknown
+  for (let i = 1; i <= attempts; i++) {
+    try {
+      return await fn()
+    } catch (e) {
+      ultimo = e
+      const msg = e instanceof Error ? e.message : String(e)
+      const transitorio = /EAI_AGAIN|ENOTFOUND|ECONNRESET|ETIMEDOUT|fetch failed|getaddrinfo|Closed|terminating connection/i.test(msg)
+      if (!transitorio || i === attempts) throw e
+      await new Promise((r) => setTimeout(r, delayMs))
+    }
+  }
+  throw ultimo
+}
+
 /** Construye el objeto modulosActivos con los módulos contratados (+ obligatorios) en true. */
 function construirModulosActivos(modulos: string[]): ModulosConfig {
   const cfg = resolveModulosConfig({})
@@ -125,7 +142,8 @@ export async function provisionTenant(p: ProvisionParams): Promise<ProvisionResu
   const neon = await createNeonProject(p.neon?.projectName ?? p.entidad.slug, p.neon?.region)
 
   try {
-    // 2. Aplicar esquema completo a la BD nueva (vía conexión directa)
+    // 2. Esperar a que el endpoint Neon nuevo resuelva DNS / arranque, y aplicar esquema
+    await waitForDatabaseReady(neon.directUrl)
     await applyProvisionSchema(neon.directUrl)
 
     // 3. Sembrar datos del tenant en la BD nueva
@@ -152,7 +170,7 @@ export async function provisionTenant(p: ProvisionParams): Promise<ProvisionResu
 
     // 4. Registrar el tenant en la meta-BD (connection string POOLED para runtime)
     const modulosActivos = construirModulosActivos(p.modulos)
-    const tenant = await prismaMeta.tenant.create({
+    const tenant = await withRetry(() => prismaMeta.tenant.create({
       data: {
         slug: p.entidad.slug,
         codigo: p.entidad.codigo,
@@ -171,7 +189,7 @@ export async function provisionTenant(p: ProvisionParams): Promise<ProvisionResu
         modulosActivos: modulosActivos as any,
       },
       select: { id: true },
-    })
+    }))
 
     // Evento de auditoría
     await prismaMeta.eventoTenant.create({
