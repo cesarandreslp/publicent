@@ -95,13 +95,14 @@ export interface TenantSecretos {
     fromPhone:     string   // número emisor en formato legible (display)
   }
   /**
-   * Credenciales OAuth del conector SECOP II (Colombia Compra Eficiente).
-   * Se usa para publicar procesos y contratos en SECOP II automáticamente.
+   * Credenciales del conector SECOP II (LECTURA vía datos.gov.co / Socrata).
+   * SECOP II no tiene API pública de escritura: la integración consulta y concilia
+   * lo que la entidad ya publicó, filtrando por NIT. No publica.
    */
   secop?: {
-    clientId:     string   // Client ID de CCE
-    clientSecret: string   // Client Secret de CCE
-    nit:          string   // NIT de la entidad registrado en SECOP
+    clientId:     string   // API Key ID de Socrata (datos.gov.co)
+    clientSecret: string   // API Key Secret de Socrata
+    nit:          string   // NIT de la entidad para filtrar sus registros
   }
 }
 
