@@ -150,7 +150,19 @@ real (Government One / OSS Innovation)** que crea clientes (tenants) limpios y a
 - ✅ Imagen destacada de noticias: upload real + `alt` (los renders públicos ya usan `alt={titulo}`).
 - ✅ Foco visible para navegación por teclado (`:focus-visible`, WCAG 2.4.7).
 
-### Accesibilidad — pendiente
+### ⚠️ Hallazgo crítico: subida de archivos del CMS no persistía en Vercel
+- `/api/upload` usaba `subirArchivo` → **filesystem local**, que en Vercel (serverless
+  efímero/solo-lectura) **no persiste**: los archivos subidos se perdían en producción.
+- Existía `src/lib/storage.ts` (`uploadFile`) con almacenamiento en nube real (S3/R2/GCS/Azure),
+  usado por gestión documental, pero el upload del CMS **no lo usaba**.
+- **Corregido:** `/api/upload` ahora usa `uploadFile()` con la `StorageConfig` del tenant
+  (igual que GD). **Pero requiere que cada tenant tenga almacenamiento en nube configurado**
+  (Superadmin → entidad → "Almacenamiento de Documentos" → R2/S3). Sin eso, el upload responde
+  422 con instrucción. **Buga demo aún no tiene storage configurado** → falta ese paso para que
+  el CMS suba imágenes en producción.
+
+### Accesibilidad / CMS — pendiente
+- **Configurar almacenamiento en nube** (R2/S3) para el/los tenants demo (decisión de proveedor + credenciales).
 - Jerarquía de encabezados (H1/H2), etiquetas en formularios (revisión componente a componente).
 - Metadatos en documentos (gestión documental / `LISTA_DOCUMENTOS`).
 - Biblioteca de medios **persistente** (hoy es por sesión; falta modelo + endpoint de listado).
