@@ -14,6 +14,7 @@ import {
   Loader2,
 } from "lucide-react"
 import { RichEditor } from "@/components/admin/shared"
+import { MediaLibraryModal } from "@/components/admin/media/media-library-modal"
 
 interface Categoria {
   id: string
@@ -51,6 +52,7 @@ export function NoticiaForm({ noticia, isEditing = false }: NoticiaFormProps) {
   const [activeTab, setActiveTab] = useState<"contenido" | "media" | "seo">(
     "contenido"
   )
+  const [showMedia, setShowMedia] = useState(false)
 
   const [formData, setFormData] = useState<NoticiaData>({
     titulo: noticia?.titulo || "",
@@ -256,26 +258,40 @@ export function NoticiaForm({ noticia, isEditing = false }: NoticiaFormProps) {
                       <ImageIcon className="inline h-4 w-4 mr-1" />
                       Imagen destacada
                     </label>
-                    <input
-                      type="url"
-                      value={formData.imagenDestacada}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          imagenDestacada: e.target.value,
-                        })
-                      }
-                      placeholder="URL de la imagen destacada"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003366] focus:border-transparent"
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="url"
+                        value={formData.imagenDestacada}
+                        onChange={(e) =>
+                          setFormData({ ...formData, imagenDestacada: e.target.value })
+                        }
+                        placeholder="Sube una imagen o pega su URL"
+                        className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003366] focus:border-transparent"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowMedia(true)}
+                        className="px-4 py-3 bg-[#003366] text-white rounded-lg text-sm font-medium hover:bg-[#002244] whitespace-nowrap"
+                      >
+                        Subir imagen
+                      </button>
+                    </div>
                     {formData.imagenDestacada && (
                       <img
                         src={formData.imagenDestacada}
-                        alt="Vista previa"
+                        alt={formData.titulo || "Imagen destacada de la noticia"}
                         className="mt-4 max-h-48 rounded-lg object-cover"
                       />
                     )}
                   </div>
+
+                  {showMedia && (
+                    <MediaLibraryModal
+                      isOpen={showMedia}
+                      onClose={() => setShowMedia(false)}
+                      onSelect={(url) => setFormData((p) => ({ ...p, imagenDestacada: url }))}
+                    />
+                  )}
 
                   {/* Video */}
                   <div>
