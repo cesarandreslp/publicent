@@ -2,7 +2,6 @@ import { notFound } from "next/navigation"
 import { prismaMeta } from "@/lib/prisma-meta"
 import TenantForm from "@/components/admin/superadmin/tenant-form"
 import TenantModulos from "@/components/admin/superadmin/tenant-modulos"
-import TenantUsuarios from "@/components/admin/superadmin/tenant-usuarios"
 import StorageConfigPanel from "@/components/admin/superadmin/storage-config-panel"
 import { resolveModulosConfig } from "@/lib/modules"
 import { decryptSecretos } from "@/lib/encryption"
@@ -131,21 +130,6 @@ export default async function EditTenantPage({ params }: PageProps) {
             plan={tenant.plan}
             modulosRaw={tenant.modulosActivos}
           />
-        </div>
-      </div>
-
-      {/* Usuarios del tenant */}
-      <div className="bg-[#111827] border border-slate-800 rounded-2xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-800">
-          <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">
-            Usuarios de la entidad
-          </h2>
-          <p className="text-xs text-slate-500 mt-1">
-            Crea o restablece las credenciales de los usuarios del tenant (admin inicial, etc.) sin entrar a su panel.
-          </p>
-        </div>
-        <div className="px-6 py-5">
-          <TenantUsuarios tenantId={tenant.id} />
         </div>
       </div>
 
