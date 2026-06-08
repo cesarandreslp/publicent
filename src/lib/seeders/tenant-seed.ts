@@ -410,6 +410,67 @@ export async function seedPaginasBase(prisma: any, params: SeedTenantParams) {
   return paginas.length
 }
 
+// ─── Contenido institucional base (identidad, sede, canales, FAQ) ────────────────
+// Varias páginas del portal (canales de atención, directorio, FAQ) leen estos
+// modelos. Sin datos, esas secciones aparecen vacías. Se siembra una base editable.
+export async function seedContenidoBase(prisma: any, params: SeedTenantParams) {
+  const { entidad, contacto } = params
+  const horario = contacto.horario ?? 'Lunes a Viernes: 8:00 a.m. - 12:00 m. y 2:00 p.m. - 6:00 p.m.'
+
+  // Identidad institucional (singleton por tenant) — transversal en todo el portal
+  await prisma.identidadInstitucional.upsert({
+    where: { singletonKey: 'default' },
+    update: {},
+    create: {
+      singletonKey: 'default',
+      nombreCompleto: entidad.nombre,
+      nombreCorto: entidad.nombreCorto,
+      eslogan: entidad.slogan ?? null,
+      direccionPrincipal: contacto.direccion,
+      ciudad: contacto.ciudad,
+      codigoPostal: contacto.codigoPostal ?? null,
+      telefonoConmutador: contacto.telefono,
+      telefonoPqrsd: contacto.telefono,
+      emailContacto: contacto.email,
+      emailPqrsd: contacto.email,
+      emailNotificaciones: contacto.email,
+    },
+  })
+
+  // Sede principal
+  if ((await prisma.sede.count()) === 0) {
+    await prisma.sede.create({
+      data: {
+        nombre: 'Sede Principal', esPrincipal: true, direccion: contacto.direccion,
+        ciudad: contacto.ciudad, telefono: contacto.telefono, email: contacto.email,
+        horarioAtencion: horario, orden: 0, activa: true,
+      },
+    })
+  }
+
+  // Canales de atención
+  if ((await prisma.canalAtencion.count()) === 0) {
+    const canales = [
+      { tipo: 'PRESENCIAL', nombre: 'Atención presencial', valor: contacto.direccion, orden: 1 },
+      { tipo: 'TELEFONICO', nombre: 'Línea telefónica', valor: contacto.telefono, orden: 2 },
+      { tipo: 'EMAIL', nombre: 'Correo institucional', valor: contacto.email, orden: 3 },
+    ]
+    for (const c of canales) await prisma.canalAtencion.create({ data: { ...c, activo: true } })
+  }
+
+  // Preguntas frecuentes base
+  if ((await prisma.preguntaFrecuente.count()) === 0) {
+    const faqs = [
+      { pregunta: '¿Cómo radico una PQRSD?', respuesta: 'Puede radicar su petición, queja, reclamo, sugerencia o denuncia en línea desde la sección Atención al Ciudadano de este portal, o presencialmente en nuestra sede. (Edite esta respuesta desde el panel.)', categoria: 'PQRSD', orden: 1 },
+      { pregunta: '¿Cuál es el horario de atención?', respuesta: horario, categoria: 'ATENCION', orden: 2 },
+      { pregunta: '¿Cómo accedo a información pública?', respuesta: 'Puede consultar la información pública en la sección de Transparencia y Acceso a la Información de este portal. (Edite esta respuesta desde el panel.)', categoria: 'ACCESO_INFORMACION', orden: 3 },
+    ]
+    for (const f of faqs) await prisma.preguntaFrecuente.create({ data: { ...f, publicada: true } })
+  }
+
+  return { identidad: 1 }
+}
+
 // ─── Orquestador ─────────────────────────────────────────────────────────────────
 export async function seedTenant(prisma: any, params: SeedTenantParams) {
   const roles = await seedRolesTenant(prisma)
@@ -419,6 +480,7 @@ export async function seedTenant(prisma: any, params: SeedTenantParams) {
   await seedMenu(prisma)
   await seedPaginasBase(prisma, params)
   await seedConfiguracion(prisma, params)
+  await seedContenidoBase(prisma, params)
   await seedCategoriasNoticias(prisma)
   await seedFestivos(prisma)
   return { adminEmail: admin.email, roles: roles.length }
