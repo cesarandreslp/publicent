@@ -57,7 +57,29 @@ export default auth(async function middleware(req: NextRequest & { auth: { user?
     return NextResponse.next({ request: { headers: reqHeaders } })
   }
 
-  const host   = req.headers.get("host") ?? ""
+  const host = (req.headers.get("host") ?? "").toLowerCase().split(":")[0]
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 0.5. Plataforma (Government One) — apex/www del dominio de plataforma.
+  // No es un tenant: muestra el landing del SaaS (con botón de ingreso), en vez
+  // de resolver una entidad. Configurable con PLATFORM_HOSTS.
+  // ──────────────────────────────────────────────────────────────────────────
+  const PLATFORM_HOSTS = (process.env.PLATFORM_HOSTS ??
+    "ossgovernmentone.lat,www.ossgovernmentone.lat")
+    .split(",").map((h) => h.trim().toLowerCase()).filter(Boolean)
+
+  if (PLATFORM_HOSTS.includes(host)) {
+    const reqHeaders = new Headers(req.headers)
+    reqHeaders.set("x-layout", "platform")
+    // La raíz sirve el landing; el resto de rutas de plataforma pasan tal cual.
+    if (req.nextUrl.pathname === "/") {
+      const url = req.nextUrl.clone()
+      url.pathname = "/plataforma"
+      return NextResponse.rewrite(url, { request: { headers: reqHeaders } })
+    }
+    return NextResponse.next({ request: { headers: reqHeaders } })
+  }
+
   const tenant = await getTenantByDomainEdge(host)
 
   // ──────────────────────────────────────────────────────────────────────────

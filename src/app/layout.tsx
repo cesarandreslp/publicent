@@ -86,6 +86,7 @@ export default async function RootLayout({
   const headersList = await headers();
   const layoutHint = headersList.get("x-layout");
   const isSuperAdmin = layoutHint === "superadmin";
+  const isPlatform = layoutHint === "platform";
 
   // Cargar identidad visual del tenant (solo en contexto de tenant activo)
   let tenantLogoUrl: string | null = null
@@ -95,7 +96,7 @@ export default async function RootLayout({
   let tenantEmail: string | null = null
   let tenantCssVars = ''
   let chatIaActivo = false
-  if (!isSuperAdmin) {
+  if (!isSuperAdmin && !isPlatform) {
     try {
       const tenant = await getTenantInfo()
       tenantLogoUrl = tenant.logoUrl ?? null
@@ -132,8 +133,8 @@ export default async function RootLayout({
   // Solo mostrar widgets públicos en el sitio público (no admin, no login, no superadmin)
   const isPublicSite = !isSuperAdmin && !isAdminRoute && !isAuthRoute;
 
-  // Panel de superadmin: shell mínimo sin componentes del tenant
-  if (isSuperAdmin) {
+  // Panel de superadmin o landing de plataforma: shell mínimo sin componentes del tenant
+  if (isSuperAdmin || isPlatform) {
     return (
       <html lang="es">
         <body className={`${nunitoSans.variable} font-sans antialiased`}>
