@@ -144,9 +144,14 @@ real (Government One / OSS Innovation)** que crea clientes (tenants) limpios y a
 
 ## 5. Pendientes
 
-### Accesibilidad (continúa el barrido)
-- Imagen destacada de noticias → upload real + alt.
-- Jerarquía de encabezados, navegación por teclado, foco visible, etiquetas de formularios.
+### Accesibilidad — hecho en esta sesión (commits posteriores a la bitácora inicial)
+- ✅ Contraste de desplegables (`7371aa1`).
+- ✅ Imágenes del editor con `alt` obligatorio + upload real (`36227b6`).
+- ✅ Imagen destacada de noticias: upload real + `alt` (los renders públicos ya usan `alt={titulo}`).
+- ✅ Foco visible para navegación por teclado (`:focus-visible`, WCAG 2.4.7).
+
+### Accesibilidad — pendiente
+- Jerarquía de encabezados (H1/H2), etiquetas en formularios (revisión componente a componente).
 - Metadatos en documentos (gestión documental / `LISTA_DOCUMENTOS`).
 - Biblioteca de medios **persistente** (hoy es por sesión; falta modelo + endpoint de listado).
 
