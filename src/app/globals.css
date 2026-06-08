@@ -420,3 +420,16 @@ select option:focus {
   color: #ffffff;            /* texto blanco al resaltar */
 }
 
+/* ── Foco visible para navegación por teclado (WCAG 2.4.7 / Res. 1519) ─────
+   Solo en foco por teclado (:focus-visible), no con el mouse. Garantiza que
+   botones, enlaces y campos muestren un indicador de foco claro y con contraste. */
+:focus-visible {
+  outline: 2px solid #2563eb;   /* blue-600 */
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+body.high-contrast :focus-visible {
+  outline: 3px solid #000;
+  outline-offset: 2px;
+}
+
