@@ -405,3 +405,18 @@ body.high-contrast .accessibility-toolbar * {
   border-color: revert !important;
 }
 
+/* ── Contraste en desplegables nativos (WCAG 2.1 / Res. 1519) ─────────────
+   Garantiza que las opciones de cualquier <select> sean legibles al desplegar
+   (evita texto claro sobre fondo claro) y que, al resaltarse en azul, el texto
+   pase a blanco. Aplica en toda la plataforma, en ambos temas. */
+select option {
+  background-color: #1e293b; /* slate-800 */
+  color: #f8fafc;            /* slate-50 */
+}
+select option:checked,
+select option:hover,
+select option:focus {
+  background-color: #2563eb; /* blue-600 */
+  color: #ffffff;            /* texto blanco al resaltar */
+}
+
