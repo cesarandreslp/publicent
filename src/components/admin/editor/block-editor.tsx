@@ -105,10 +105,11 @@ export function BlockEditor({
     },
   })
 
-  const handleInsertMedia = (url: string, type: 'image' | 'document' | 'other') => {
+  const handleInsertMedia = (url: string, type: 'image' | 'document' | 'other', alt?: string) => {
     if (editor) {
       if (type === 'image') {
-        editor.chain().focus().setImage({ src: url }).run()
+        // alt obligatorio (WCAG 1.1.1): la biblioteca lo exige antes de insertar.
+        editor.chain().focus().setImage({ src: url, alt: alt ?? '' }).run()
       } else {
         // Para documentos, creamos un enlace
         editor.chain().focus().setLink({ href: url }).insertContent(url).run()
