@@ -368,6 +368,48 @@ export async function seedFestivos(prisma: any) {
   return total
 }
 
+// ─── Páginas institucionales base (editables en el CMS) ──────────────────────────
+// El portal renderiza estas páginas con <PaginaContenido slug="..."> leyendo el
+// modelo `Pagina` por slug. Sin estos registros, el portal muestra un placeholder y
+// el admin de "Páginas" aparece vacío. Se siembran publicadas y editables.
+export async function seedPaginasBase(prisma: any, params: SeedTenantParams) {
+  const n = params.entidad.nombre
+  const nota = '<em>(Edite este contenido desde el panel de administración → Páginas.)</em>'
+  const paginas = [
+    {
+      slug: 'mision-vision', titulo: 'Misión y Visión',
+      descripcion: `Misión y visión de ${n}`,
+      html: `<h2>Misión</h2><p>${n} trabaja por la defensa, promoción y protección de los derechos humanos y el patrimonio público, velando por el cumplimiento de la Constitución y la ley. ${nota}</p><h2>Visión</h2><p>Ser una entidad reconocida por su gestión transparente y su compromiso con la ciudadanía. ${nota}</p>`,
+    },
+    {
+      slug: 'funciones', titulo: 'Funciones',
+      descripcion: `Funciones de ${n}`,
+      html: `<h2>Funciones</h2><p>Aquí se describen las funciones de ${n} conforme a la normatividad vigente. ${nota}</p>`,
+    },
+    {
+      slug: 'historia', titulo: 'Historia',
+      descripcion: `Reseña histórica de ${n}`,
+      html: `<h2>Historia</h2><p>Reseña histórica de ${n}. ${nota}</p>`,
+    },
+    {
+      slug: 'organigrama', titulo: 'Organigrama',
+      descripcion: `Estructura organizacional de ${n}`,
+      html: `<h2>Organigrama</h2><p>Estructura organizacional de ${n}. Puede describir las dependencias o cargar una imagen del organigrama. ${nota}</p>`,
+    },
+  ]
+  for (const p of paginas) {
+    await prisma.pagina.upsert({
+      where: { slug: p.slug },
+      update: {},
+      create: {
+        slug: p.slug, titulo: p.titulo, descripcion: p.descripcion,
+        contenido: { html: p.html }, plantilla: 'GENERICA', publicada: true,
+      },
+    })
+  }
+  return paginas.length
+}
+
 // ─── Orquestador ─────────────────────────────────────────────────────────────────
 export async function seedTenant(prisma: any, params: SeedTenantParams) {
   const roles = await seedRolesTenant(prisma)
@@ -375,6 +417,7 @@ export async function seedTenant(prisma: any, params: SeedTenantParams) {
   const admin = await seedAdminUsuario(prisma, superAdmin.id, params.admin)
   await seedTransparencia(prisma)
   await seedMenu(prisma)
+  await seedPaginasBase(prisma, params)
   await seedConfiguracion(prisma, params)
   await seedCategoriasNoticias(prisma)
   await seedFestivos(prisma)
