@@ -16,6 +16,16 @@ const nunitoSans = Nunito_Sans({
 });
 
 export async function generateMetadata(): Promise<Metadata> {
+  // Hosts de plataforma / superadmin: metadata neutral (sin tenant)
+  const layoutHint = (await headers()).get("x-layout")
+  if (layoutHint === "platform" || layoutHint === "superadmin") {
+    return {
+      title: { default: "Government One", template: "%s — Government One" },
+      description: "Government One — Plataforma SaaS para entidades públicas, por OSS Innovation.",
+      robots: { index: layoutHint === "platform", follow: layoutHint === "platform" },
+    }
+  }
+
   let identidad: Awaited<
     ReturnType<Awaited<ReturnType<typeof getTenantPrisma>>['identidadInstitucional']['findFirst']>
   > = null

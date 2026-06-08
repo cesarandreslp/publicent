@@ -1,7 +1,7 @@
 import Link from "next/link"
 
 export const metadata = {
-  title: "Government One — Plataforma SaaS para entidades públicas",
+  title: { absolute: "Government One — Plataforma SaaS para entidades públicas" },
   description: "Portales institucionales y módulos de gestión para entidades públicas colombianas: transparencia, PQRSD, gestión documental, contabilidad, presupuesto y más.",
 }
 
