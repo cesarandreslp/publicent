@@ -33,8 +33,9 @@
 - **Qué:** se excluye `/api/superadmin/auth` del gate de `sa_token` (junto a `/superadmin-login`)
   mediante `SA_PUBLIC_PATHS`. Validado en local: `POST /api/superadmin/auth → 200` y carga `/superadmin`.
 - **Dónde:** `src/middleware.ts`.
-- **Rama/commit:** `fix/superadmin-login-middleware` · `6f653ce`.
-- **Estado:** HECHO en repo · **PENDIENTE de desplegar a Vercel** (merge a `main`).
+- **Rama/commit:** `6f653ce` (merge a `main` en `fbf1759`).
+- **Estado:** ✅ **DESPLEGADO y VERIFICADO en producción** — `POST /api/superadmin/auth` responde
+  `401 {"error":"Credenciales inválidas"}` (antes `307` redirect). El panel de plataforma ya es accesible.
 
 ### HALLAZGO — 🟠 Captcha PQRSD desactivado en producción
 - **Qué:** sitekey de Cloudflare Turnstile dummy `1x00000000000000000000AA` hardcodeada → captcha anti-bot
@@ -97,6 +98,16 @@
 - **Nota:** el regex de `e2e/helpers.ts` `parseRadicado` (`/PGB-\d{4}-\d{5}/`) tampoco coincide con el
   formato real → corregir en una pasada de tests (PENDIENTE).
 - **Estado:** HECHO (código, verificado local).
+
+### DESPLIEGUE — Merge a `main` → producción (fbf1759)
+- **Qué se desplegó:** B01 (superadmin login), B02 (Turnstile fail-safe), B03 (pool tuning),
+  B07 (config 200), B08 (formato radicado) + bitácora + informe QA.
+- **Verificado en producción (URL real):**
+  - B01: `POST /api/superadmin/auth → 401` (antes 307 redirect). ✅
+  - B07: `/api/configuracion?clave=whatsapp → 200` (antes 404). ✅
+  - B08: la consulta muestra `PET-20260627-123456` / `TIPO-AAAAMMDD`. ✅
+- **Estado:** DESPLEGADO. Las llaves de Turnstile reales siguen PENDIENTES en Vercel (hasta entonces el
+  captcha cae al dummy, sin romper el formulario).
 
 ### PLAN — Próximos pasos
 1. Desplegar fix del superadmin a producción (merge `fix/superadmin-login-middleware` → `main`).
