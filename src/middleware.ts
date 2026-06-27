@@ -39,7 +39,10 @@ export default auth(async function middleware(req: NextRequest & { auth: { user?
     const token    = req.cookies.get(SA_COOKIE_NAME)?.value
     const saSession = token ? await verifySAToken(token) : null
 
-    if (!saSession && pathname !== "/superadmin-login") {
+    // El endpoint de login del superadmin NO puede exigir token (círculo vicioso):
+    // es justamente el que emite el sa_token. Se excluye del gate de autenticación.
+    const SA_PUBLIC_PATHS = ["/superadmin-login", "/api/superadmin/auth"]
+    if (!saSession && !SA_PUBLIC_PATHS.includes(pathname)) {
       const url = new URL("/superadmin-login", req.url)
       url.searchParams.set("callbackUrl", pathname)
       return NextResponse.redirect(url)
