@@ -46,6 +46,16 @@
 - **Estado:** MITIGADO en código · PENDIENTE (recomendado) usar el connection string POOLED de Neon
   (`-pooler`) en el `databaseUrl` de cada tenant.
 
+### DECISIÓN — Reclasificación de pendientes tras investigarlos (2026-06-27)
+- **B04 (rol "Funcionario PQRS"):** ningún código lo crea (`grep` en src/prisma vacío) → es **dato legacy**
+  en la BD del tenant, no bug de código. Acción: limpieza de datos (renombrar a enum o desactivar);
+  no se toca la BD de prod desde aquí. **Estado: PENDIENTE (data/ops).**
+- **B06 (subdominios wildcard):** causa real = `TENANT_SLUG` seteado en prod → `getTenantByDomainEdge`
+  resuelve cualquier host al mismo tenant (modo single-tenant). No es bug de código; al haber un 2º tenant
+  hay que **quitar `TENANT_SLUG`** en Vercel para que aplique el aislamiento por dominio. **Estado: PENDIENTE (config).**
+- **B09 (Auditoría/Observatorio en sidebar):** **FALSO POSITIVO.** `admin-sidebar.tsx:529` ya filtra por
+  módulo activo; no aparecen si están inactivos. El redirect por URL directa es comportamiento correcto. **Cerrado.**
+
 ### HALLAZGO — 🟡 Otros (ver informe)
 - Rol legacy "Funcionario PQRS" con nombre fuera del enum; directorio de funcionarios vacío;
   404 recurrente `/api/configuracion?clave=whatsapp`; subdominios wildcard laxos; formato de radicado

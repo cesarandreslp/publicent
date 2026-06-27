@@ -36,10 +36,10 @@
 | B03 | 🐞 Bug | 🟠 Alto | Plataforma (RSC) | Prefetch RSC devuelve 503 en ráfaga (Neon pool/concurrencia) | pooling Prisma/Neon; `prefetch`/cache |
 | B04 | 🐞 Bug | 🟡 Medio | Auth/roles | Rol "Funcionario PQRS" con nombre ≠ enum → `requireRoles` falla (500/403) | seed roles / migración meta |
 | B05 | ⚠️ Datos | 🟡 Medio | Transparencia | Directorio de funcionarios vacío (Res.1519 ítem 1.3) | cargar vía `/admin/contenido/funcionarios` |
-| B06 | 🐞 Bug | 🟡 Medio | Enrutamiento | Subdominios arbitrarios (`buga.`, `personeriabuga.`) resuelven al tenant (wildcard laxo) | `src/lib/tenant-edge.ts` |
+| B06 | ⚙️ Config | 🟡 Medio | Enrutamiento | Subdominios arbitrarios resuelven al mismo tenant **porque `TENANT_SLUG` está seteado en prod (modo single-tenant)**. No es bug de código; quitar `TENANT_SLUG` en Vercel al ser multi-tenant | Vercel env `TENANT_SLUG` |
 | B07 | 🐞 Bug | ⚪ Bajo | Portal (todas) | `GET /api/configuracion?clave=whatsapp` → 404 en cada carga (en prod; local 200) | `src/app/api/configuracion/route.ts:35` (devolver 200 + valor null) |
 | B08 | ⚠️ UX | ⚪ Bajo | Consultar PQRSD | Ejemplo de formato `PQR-12345678` ≠ real `PGB-AAAA-#####` | `/atencion-ciudadano/pqrsd/consulta` |
-| B09 | ⚠️ UX | ⚪ Bajo | Sidebar admin | "Auditoría"/"Observatorio" en menú pero redirigen a `/admin` (ocultar si no activos) | `admin-sidebar.tsx` |
+| ~~B09~~ | ✅ No es bug | — | Sidebar admin | **Falso positivo:** `admin-sidebar.tsx:529` ya filtra ítems por módulo activo; no aparecen si están inactivos. El redirect por URL directa es correcto | — |
 
 ### Cobertura y datos de prueba
 - **Cubierto:** portal público (tenant), PQRSD, login admin, ~22 rutas admin, CRUD FAQ, login superadmin + dashboard + alta tenant (form).
