@@ -590,11 +590,12 @@ export default function PQRSDPage() {
             <section className="bg-white rounded-xl shadow-sm border p-6 flex flex-col items-center">
               <h2 className="sr-only">Verificación de seguridad</h2>
               <div className="mb-2 text-sm text-gray-600">Por favor, verifique que no es un robot:</div>
-              {/* Sitekey real desde env (NEXT_PUBLIC_TURNSTILE_SITE_KEY). El dummy de Cloudflare
-                  solo se usa como fallback en desarrollo; en producción DEBE estar configurada
-                  la llave real en Vercel (junto con TURNSTILE_SECRET_KEY en el backend). */}
+              {/* Sitekey real desde env (NEXT_PUBLIC_TURNSTILE_SITE_KEY). Si no está configurada, cae al
+                  dummy de Cloudflare para NO romper el formulario (fail-safe): el captcha queda permisivo
+                  hasta que se configure la llave real en Vercel + TURNSTILE_SECRET_KEY en el backend.
+                  ⚠️ Configurar la llave real en producción es obligatorio para que el captcha proteja. */}
               <Turnstile
-                siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || (process.env.NODE_ENV !== "production" ? "1x00000000000000000000AA" : "")}
+                siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "1x00000000000000000000AA"}
                 onSuccess={(token) => setTurnstileToken(token)}
                 onError={() => setError("Error al verificar el CAPTCHA. Por favor, recargue la página.")}
                 options={{

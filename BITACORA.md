@@ -9,6 +9,15 @@
 > Formato por entrada: fecha · tipo (`CAMBIO` | `PLAN` | `HALLAZGO` | `DECISIÓN`) · descripción ·
 > archivos/rutas · estado (`PENDIENTE` | `EN CURSO` | `HECHO` | `DESPLEGADO`).
 
+## 🌐 Entorno de producción (es sobre el que trabajamos)
+- **URL producción (plataforma SaaS):** https://ossgovernmentone.lat/ — landing + `/superadmin-login`.
+- **Portal del tenant (Personería de Buga):** https://personeria-buga.ossgovernmentone.lat/
+- **Hosting:** Vercel · **rama de producción:** `main` → cada push/merge a `main` **despliega automáticamente**.
+- **Regla de oro:** todo cambio debe terminar **reflejado en producción**. Flujo:
+  `local (desarrollar+verificar) → commit → push → merge a main → Vercel deploya → verificar en la URL real`.
+- **Bases de datos:** Neon. El `.env` local apunta a una BD de tenant **dev** distinta de la de prod;
+  la **meta-DB SÍ es la de producción**. Config sensible (env vars, llaves) vive en **Vercel**, no en el repo.
+
 ---
 
 ## 2026-06-27
