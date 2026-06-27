@@ -109,9 +109,20 @@
 - **Estado:** DESPLEGADO. Las llaves de Turnstile reales siguen PENDIENTES en Vercel (hasta entonces el
   captcha cae al dummy, sin romper el formulario).
 
+### CAMBIO — Credenciales de Superadmin reseteadas en Vercel + login verificado (prod)
+- **Qué:** `SUPERADMIN_EMAIL` y `SUPERADMIN_PASSWORD` (producción) existían pero su valor se había perdido.
+  Se sobrescribieron vía Vercel CLI con valores nuevos y se hizo redeploy para aplicarlos.
+- **Verificado en producción:** `POST /api/superadmin/auth` → `200 {ok:true, admin.id:"env-superadmin"}`.
+  El panel `/superadmin` ya es usable en `https://ossgovernmentone.lat/superadmin-login`.
+- **Credencial:** entregada al usuario por chat (NO se versiona). Recomendado cambiarla tras el primer ingreso.
+- **Estado:** ✅ DESPLEGADO y VERIFICADO.
+
 ### PLAN — Próximos pasos
-1. Desplegar fix del superadmin a producción (merge `fix/superadmin-login-middleware` → `main`).
-2. Configurar Turnstile real en Vercel (B02).
-3. Mitigar 503 de RSC (B03).
-4. Rotar el PAT de GitHub expuesto.
-5. Cargar contenido faltante (directorio de funcionarios) y depurar rol legacy.
+1. ✅ ~~Desplegar fix del superadmin~~ — HECHO y verificado en prod.
+2. ✅ ~~Credencial de superadmin usable~~ — HECHO (reset en Vercel + verificado).
+3. 🟠 Configurar Turnstile real en Vercel (`NEXT_PUBLIC_TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY`) (B02).
+4. 🟠 Usar connection string POOLED de Neon en el `databaseUrl` del tenant (B03 completo).
+5. 🔴 Rotar el PAT de GitHub expuesto en el remoto.
+6. 🟡 Cargar contenido faltante (directorio de funcionarios) y depurar rol legacy "Funcionario PQRS".
+7. 🟡 Quitar `TENANT_SLUG` en Vercel cuando se opere multi-tenant (B06).
+8. 🧹 Cambiar la contraseña temporal del superadmin tras el primer ingreso.
