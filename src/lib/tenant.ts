@@ -61,7 +61,13 @@ function getOrCreateTenantClient(tenantId: string, databaseUrl: string): PrismaC
 
   const pool = new pg.Pool({
     connectionString: databaseUrl,
-    max: 5, // conexiones máximas por tenant (evitar sobrecarga en Neon free-tier)
+    // En serverless (Vercel) cada instancia abre su propio pool; muchas instancias × max
+    // agotan el límite de conexiones de Neon → 503 en ráfagas de prefetch RSC.
+    // Se baja el máximo en producción y se liberan conexiones inactivas rápido.
+    // Fix completo (recomendado): usar el connection string POOLED de Neon (-pooler) en databaseUrl.
+    max: Number(process.env.TENANT_DB_POOL_MAX ?? (process.env.NODE_ENV === 'production' ? 2 : 5)),
+    idleTimeoutMillis: 10_000,
+    connectionTimeoutMillis: 10_000,
   })
   const adapter = new PrismaPg(pool)
   const client = new PrismaClient({ adapter })

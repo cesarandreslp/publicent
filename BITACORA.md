@@ -32,13 +32,19 @@
   inservible en prod (riesgo de radicación masiva por bots).
 - **Dónde:** `src/app/atencion-ciudadano/pqrsd/page.tsx:595`.
 - **Plan:** usar `NEXT_PUBLIC_TURNSTILE_SITE_KEY` + configurar llaves reales (site+secret) en Vercel.
-- **Estado:** PENDIENTE.
+- **CAMBIO aplicado:** `page.tsx:595` ahora usa `process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY` (el dummy solo
+  como fallback en desarrollo). ⚠️ Antes de desplegar: setear `NEXT_PUBLIC_TURNSTILE_SITE_KEY` y
+  `TURNSTILE_SECRET_KEY` reales en Vercel, o el captcha quedará vacío en prod.
+- **Estado:** CÓDIGO HECHO · PENDIENTE configurar llaves en Vercel (tú).
 
 ### HALLAZGO — 🟠 Ráfagas de 503 en prefetch RSC
 - **Qué:** prefetch RSC (`?_rsc=`) devuelve 503 en ráfaga; navegaciones completas 200. Probable
   agotamiento de conexiones Neon / concurrencia serverless.
 - **Plan:** revisar pooling Prisma/Neon, cache/revalidate de páginas, `prefetch={false}` en links no críticos.
-- **Estado:** PENDIENTE.
+- **CAMBIO aplicado (mitigación):** `src/lib/tenant.ts` — pool por tenant ahora baja `max` en producción
+  (`TENANT_DB_POOL_MAX`, default 2 en prod), con `idleTimeoutMillis`/`connectionTimeoutMillis`.
+- **Estado:** MITIGADO en código · PENDIENTE (recomendado) usar el connection string POOLED de Neon
+  (`-pooler`) en el `databaseUrl` de cada tenant.
 
 ### HALLAZGO — 🟡 Otros (ver informe)
 - Rol legacy "Funcionario PQRS" con nombre fuera del enum; directorio de funcionarios vacío;
@@ -63,6 +69,15 @@
 ### CAMBIO — Skill de prueba funcional
 - **Qué:** se creó `.claude/skills/prueba-funcional/` (auditoría funcional browser-driven con diagramas de flujo).
 - **Estado:** HECHO.
+
+### CAMBIO — Fixes menores de UX/ruido (B07, B08)
+- **B07:** `src/app/api/configuracion/route.ts` — clave inexistente devuelve **200 `{valor:null}`** en vez de 404
+  (elimina el ruido de 404 en cada carga). Verificado: endpoint responde 200.
+- **B08:** `consulta-client.tsx` — el ejemplo de radicado ahora refleja el formato real
+  `TIPO-AAAAMMDD-######` (ej. `PET-20260627-123456`), antes mostraba `PQR-12345678`. Verificado en la página.
+- **Nota:** el regex de `e2e/helpers.ts` `parseRadicado` (`/PGB-\d{4}-\d{5}/`) tampoco coincide con el
+  formato real → corregir en una pasada de tests (PENDIENTE).
+- **Estado:** HECHO (código, verificado local).
 
 ### PLAN — Próximos pasos
 1. Desplegar fix del superadmin a producción (merge `fix/superadmin-login-middleware` → `main`).

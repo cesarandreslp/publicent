@@ -33,10 +33,9 @@ export async function GET(request: NextRequest) {
       });
 
       if (!configuracion) {
-        return NextResponse.json(
-          { error: 'Configuración no encontrada' },
-          { status: 404 }
-        );
+        // Clave inexistente NO es un error: el cliente trata 'no configurado' como null.
+        // Devolver 200 evita ruido de 404 en consola/red en cada carga de página.
+        return NextResponse.json({ clave, valor: null });
       }
 
       // Verificar que sea pública

@@ -50,7 +50,7 @@ function Semaforo({ color }: { color: ColorSemaforo }) {
 
 // Datos de ejemplo para la demostración
 const pqrsdEjemplo = {
-  radicado: 'PQR-12345678',
+  radicado: 'PET-20260627-123456',
   tipo: 'Petición',
   estado: 'en_tramite' as keyof typeof estados,
   fechaRadicacion: '2026-01-10',
@@ -122,7 +122,7 @@ export default function ConsultaContent() {
                 type="text"
                 value={radicado}
                 onChange={(e) => setRadicado(e.target.value)}
-                placeholder="Ej: PQR-12345678"
+                placeholder="Ej: PET-20260627-123456"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gov-blue focus:border-gov-blue"
               />
             </div>
@@ -280,7 +280,7 @@ export default function ConsultaContent() {
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-gov-blue font-bold">2.</span>
-                El número de radicado tiene el formato: PQR-XXXXXXXX
+                El número de radicado tiene el formato: TIPO-AAAAMMDD-###### (ej. PET-20260627-123456)
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-gov-blue font-bold">3.</span>
