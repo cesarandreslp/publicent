@@ -92,22 +92,49 @@ export default function PQRSDPage() {
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
   const [aceptoTerminos, setAceptoTerminos] = useState(false)
 
-  // ALTCHA (captcha proof-of-work open-source). Carga el web component solo en cliente
-  // y captura el payload verificado, reutilizando el estado `turnstileToken`.
+  // ALTCHA (captcha proof-of-work open-source). En lugar de dejar que el widget pida el
+  // desafío en la carga (frágil ante la ráfaga de prefetch), lo obtenemos nosotros con
+  // reintentos y se lo pasamos como dato. El widget solo resuelve el PoW al hacer clic.
   const altchaRef = useRef<HTMLElement | null>(null)
+  const [altchaChallenge, setAltchaChallenge] = useState<Record<string, unknown> | null>(null)
+
   useEffect(() => { import('altcha') }, [])
+
+  // Obtener el desafío con reintentos (tolera 503/HTML transitorios)
+  useEffect(() => {
+    let cancelado = false
+    ;(async () => {
+      for (let intento = 0; intento < 4 && !cancelado; intento++) {
+        try {
+          const res = await fetch('/api/altcha/challenge', { cache: 'no-store' })
+          const ct = res.headers.get('content-type') ?? ''
+          if (res.ok && ct.includes('application/json')) {
+            const data = await res.json()
+            if (!cancelado) setAltchaChallenge(data)
+            return
+          }
+        } catch {
+          /* reintentar */
+        }
+        await new Promise((r) => setTimeout(r, 800 * (intento + 1)))
+      }
+    })()
+    return () => { cancelado = true }
+  }, [])
+
+  // Inyectar el desafío en el widget y escuchar el resultado de la verificación
   useEffect(() => {
     const el = altchaRef.current
-    if (!el) return
+    if (!el || !altchaChallenge) return
+    ;(el as unknown as { challenge: unknown }).challenge = altchaChallenge
     const onState = (ev: Event) => {
       const detail = (ev as CustomEvent).detail as { state?: string; payload?: string }
       if (detail?.state === 'verified' && detail?.payload) setTurnstileToken(detail.payload)
-      else if (detail?.state === 'error') setError('No se pudo completar la verificación de seguridad. Recargue la página.')
       else setTurnstileToken(null)
     }
     el.addEventListener('statechange', onState)
     return () => el.removeEventListener('statechange', onState)
-  }, [])
+  }, [altchaChallenge])
 
   // Descripción
   const [asunto, setAsunto] = useState('')
@@ -613,7 +640,7 @@ export default function PQRSDPage() {
                   payload que el backend verifica con ALTCHA_HMAC_KEY. */}
               {createElement('altcha-widget', {
                 ref: altchaRef,
-                challengeurl: '/api/altcha/challenge',
+                auto: 'off',
                 style: { width: '100%', maxWidth: '360px' },
               } as Record<string, unknown>)}
             </section>
