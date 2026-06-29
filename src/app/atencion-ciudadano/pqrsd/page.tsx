@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, createElement } from 'react'
+import { useState } from 'react'
 import { Metadata } from 'next'
 import Link from 'next/link'
 import { 
@@ -15,8 +15,7 @@ import {
   Info
 } from 'lucide-react'
 import { PageHeader } from '@/components/shared/page-header'
-// Captcha open-source ALTCHA (proof-of-work, self-hosted). El web component se carga
-// dinámicamente en el cliente dentro del componente para no evaluarse en SSR.
+import { AltchaCaptcha } from '@/components/shared/altcha-captcha'
 
 const tiposPQRSD = [
   {
@@ -88,53 +87,9 @@ export default function PQRSDPage() {
   const [municipio, setMunicipio] = useState('')
   const [direccionLocal, setDireccionLocal] = useState('')
 
-  // Turnstile token
+  // Token del captcha ALTCHA (payload base64 verificado por el backend)
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
   const [aceptoTerminos, setAceptoTerminos] = useState(false)
-
-  // ALTCHA (captcha proof-of-work open-source). En lugar de dejar que el widget pida el
-  // desafío en la carga (frágil ante la ráfaga de prefetch), lo obtenemos nosotros con
-  // reintentos y se lo pasamos como dato. El widget solo resuelve el PoW al hacer clic.
-  const altchaRef = useRef<HTMLElement | null>(null)
-  const [altchaChallenge, setAltchaChallenge] = useState<Record<string, unknown> | null>(null)
-
-  useEffect(() => { import('altcha') }, [])
-
-  // Obtener el desafío con reintentos (tolera 503/HTML transitorios)
-  useEffect(() => {
-    let cancelado = false
-    ;(async () => {
-      for (let intento = 0; intento < 4 && !cancelado; intento++) {
-        try {
-          const res = await fetch('/api/altcha/challenge', { cache: 'no-store' })
-          const ct = res.headers.get('content-type') ?? ''
-          if (res.ok && ct.includes('application/json')) {
-            const data = await res.json()
-            if (!cancelado) setAltchaChallenge(data)
-            return
-          }
-        } catch {
-          /* reintentar */
-        }
-        await new Promise((r) => setTimeout(r, 800 * (intento + 1)))
-      }
-    })()
-    return () => { cancelado = true }
-  }, [])
-
-  // Inyectar el desafío en el widget y escuchar el resultado de la verificación
-  useEffect(() => {
-    const el = altchaRef.current
-    if (!el || !altchaChallenge) return
-    ;(el as unknown as { challenge: unknown }).challenge = altchaChallenge
-    const onState = (ev: Event) => {
-      const detail = (ev as CustomEvent).detail as { state?: string; payload?: string }
-      if (detail?.state === 'verified' && detail?.payload) setTurnstileToken(detail.payload)
-      else setTurnstileToken(null)
-    }
-    el.addEventListener('statechange', onState)
-    return () => el.removeEventListener('statechange', onState)
-  }, [altchaChallenge])
 
   // Descripción
   const [asunto, setAsunto] = useState('')
@@ -638,11 +593,7 @@ export default function PQRSDPage() {
               {/* CAPTCHA open-source ALTCHA (proof-of-work, self-hosted, sin cuenta ni llaves de terceros).
                   Obtiene el desafío de /api/altcha/challenge, lo resuelve en el navegador y entrega un
                   payload que el backend verifica con ALTCHA_HMAC_KEY. */}
-              {createElement('altcha-widget', {
-                ref: altchaRef,
-                auto: 'off',
-                style: { width: '100%', maxWidth: '360px' },
-              } as Record<string, unknown>)}
+              <AltchaCaptcha onVerified={setTurnstileToken} />
             </section>
 
             {error && (
