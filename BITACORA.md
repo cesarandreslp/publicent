@@ -59,8 +59,18 @@
   - `ALTCHA_HMAC_KEY` en Vercel (Production) + `.env` local.
 - **Verificado local:** `tsc --noEmit` limpio, round-trip crypto (verify true / claves y number malos → false),
   endpoint 200, página renderiza el widget, `@tiptap/extension-drag-handle` reinstalado.
-- **Estado:** ✅ código HECHO y verificado local. Pendiente: deploy a prod + verificación en la URL real.
-  `@marsidev/react-turnstile` queda huérfano (remover luego).
+- **AJUSTE 1 (middleware):** `/api/altcha/*` se eximió de la resolución de tenant en `src/middleware.ts`
+  (no necesita tenant; evita 503 por consulta a meta-DB bajo carga).
+- **AJUSTE 2 (widget descartado):** el widget `altcha` resultó frágil en Next/Vercel (pedía el desafío en
+  la carga, durante la ráfaga de prefetch → 503/HTML; además bundling del worker). Se **eliminó el widget**
+  y se construyó un componente propio `src/components/shared/altcha-captcha.tsx`: obtiene el desafío con
+  reintentos y resuelve el PoW con `crypto.subtle` en el navegador. Verificación server intacta (`src/lib/altcha.ts`).
+- **VERIFICADO EN PRODUCCIÓN (2026-06-27):** clic en "No soy un robot" → **"Verificación completada ✓"**
+  (resolvió el PoW). Confirmado con clic automatizado → **descarta de raíz** que sea detección de bot:
+  ALTCHA es proof-of-work, no conductual.
+- **Estado:** ✅ **DESPLEGADO y VERIFICADO en prod.** Pendientes menores: configurar llave real de Turnstile
+  ya **no aplica** (se reemplazó); `@marsidev/react-turnstile` y el paquete `altcha` (widget) quedan huérfanos
+  (remover en limpieza). Considerar mover el PoW a un Web Worker si se quiere subir `maxnumber`.
 
 ### HALLAZGO — 🟠 Ráfagas de 503 en prefetch RSC
 - **Qué:** prefetch RSC (`?_rsc=`) devuelve 503 en ráfaga; navegaciones completas 200. Probable
