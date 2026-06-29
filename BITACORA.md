@@ -315,6 +315,20 @@ Reproducir exactamente la 🎯 SOLICITUD PRINCIPAL.
 >   `ALCALDIA/GOBERNACION`→rentas/presupuesto territorial · `AGENCIA/OTRO`→FRISCO (SAE) ×2 ·
 >   `MINISTERIO/ALCALDIA/GOBERNACION`→presupuesto · `MINISTERIO`→SGBE/ESB sectorial · `PERSONERIA`→función disciplinaria.
 
+##### Capa 2 (parte código) — Auditoría de AISLAMIENTO sin navegador (2026-06-27) ✅
+Valida la preocupación central del usuario: que NO se filtren datos de un tenant a otro.
+- ✅ **Datos del tenant NO hardcodeados:** nombre/NIT/dirección/teléfono vienen de la BD (`IdentidadInstitucional`).
+  Búsqueda de datos concretos de Buga ("Carrera 14 # 6-30", "2017004") en código de runtime = **0 coincidencias**.
+- ✅ **`seedTenant` (parametrizado) limpio:** sin literales de Buga (consistente con diseño "sin datos de Buga").
+- ✅ Mock de noticias de Buga **ya eliminado** (commit `5e5123c`, ahora DB + empty-state por tenant).
+- ✅ La mayoría de coincidencias "buga"/"personeriabuga" en `src/` son **comentarios** o el **nombre del repo**
+  (`services/vu/*`), no datos filtrados.
+- ⚠️ **HALLAZGO (corregir):** `src/app/atencion-ciudadano/defensoria/page.tsx` tiene texto FIJO
+  "La Personería Municipal… ejerce funciones de Ministerio Público" → **asume tenant = personería**.
+  Una Alcaldía/Ministerio mostraría contenido incorrecto. Debe ser condicional por `tipoEntidad` o gobernado por CMS.
+  (`plataforma/page.tsx` también menciona personería, pero es la landing del SaaS → legítimo.)
+- **Veredicto:** aislamiento **sólido** a nivel de datos; pendiente la página de defensoría (contenido por arquetipo).
+
 - [ ] **1a.** Login superadmin (`/superadmin-login`) — verificar 200 y acceso al panel.
 - [ ] **1b.** Crear tenant **"Alcaldía de Wakanda"** (tipo ALCALDIA) con datos ficticios: nombre, NIT, logo, contacto, admin inicial.
   - Usar formulario `/superadmin/tenants/nuevo` o `/superadmin/tenants/aprovisionar`.
