@@ -473,7 +473,16 @@ Justificación: la Capa 6 tiene dos correcciones de una línea (contraste del bo
 
 > Todos los cambios se verificaron en el preview local (`npm run dev`, puerto 3000) con
 > inspección de DOM/CSS y screenshots. `tsc --noEmit` limpio y **224/224 tests unitarios** en verde
-> tras cada tanda. **Pendiente:** commit + push + merge a `main` (no ejecutado aún).
+> tras cada tanda.
+>
+> **DESPLIEGUE:** commit `5e5123c` → `git push origin main` OK (`b43f9f3..5e5123c`) → Vercel build
+> de Producción **READY y VIVO** (verificado 2026-06-27): la página `/noticias` ya muestra empty-state
+> ("Aún no hay…") desde DB en vez del mock horneado de Buga → confirma que el commit anti-hardcode está
+> desplegado. Sin builds en curso. Contraste del botón (`text-white` + fix `@layer base` en globals.css)
+> y header dedup (`esNombreRedundante`) confirmados a nivel de código desplegado.
+> ⏳ **Re-chequeo visual con captura** (botón blanco-sobre-azul + header sin nombre duplicado) quedó
+> **pendiente** por desconexión transitoria de la extensión de Chrome — repetir al reconectar.
+> **Paso inmediato siguiente:** Capa 1 (onboarding desde Superadmin: crear tenant "Alcaldía de Wakanda").
 
 ### CAMBIO — 🎨 Contraste del botón "Radicar PQRSD" (Capa 6) ✅ VERIFICADO
 - **Causa raíz:** en `globals.css` la regla `a { color: var(--gov-blue) }` estaba **sin `@layer`**.
