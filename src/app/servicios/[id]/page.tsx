@@ -71,7 +71,7 @@ const servicios = {
       derechos fundamentales cuando estos resulten vulnerados o amenazados por la acción 
       u omisión de cualquier autoridad pública o particular.
 
-      La Personería Municipal brinda acompañamiento integral en todo el proceso de 
+      La entidad brinda acompañamiento integral en todo el proceso de 
       interposición de tutelas, desde la identificación del derecho vulnerado hasta 
       el seguimiento al cumplimiento del fallo judicial.
 
@@ -106,7 +106,7 @@ const servicios = {
     descripcion:
       'Recepción y trámite de quejas contra servidores públicos municipales por faltas disciplinarias en ejercicio de sus funciones.',
     descripcionLarga: `
-      Como parte de sus funciones de control disciplinario, la Personería Municipal recibe 
+      Como parte de sus funciones de control disciplinario, la entidad recibe 
       y tramita las quejas contra servidores públicos del orden municipal que presuntamente 
       hayan incurrido en faltas disciplinarias en el ejercicio de sus funciones.
 
@@ -151,7 +151,7 @@ const servicios = {
       a los ciudadanos organizados ejercer vigilancia sobre la gestión pública, la 
       ejecución de programas, proyectos y contratos estatales.
 
-      La Personería Municipal promueve y apoya la conformación de veedurías ciudadanas, 
+      La entidad promueve y apoya la conformación de veedurías ciudadanas, 
       brindando:
       - Capacitación sobre el marco legal de las veedurías
       - Asesoría para el registro y formalización

@@ -1,4 +1,4 @@
-import { getTenantPrisma } from './tenant'
+import { getTenantPrisma, getTenantInfo } from './tenant'
 
 /**
  * Datos de la identidad institucional para uso en páginas públicas
@@ -34,18 +34,34 @@ const FALLBACK: IdentidadPublica = {
   nit: null,
 }
 
+/**
+ * Nombre del tenant activo tomado del meta-tenant. Sirve como fallback del nombre
+ * legal cuando el registro de identidadInstitucional aún no existe, para que header,
+ * PQRSD y páginas legales muestren SIEMPRE el mismo nombre de la entidad activa
+ * (nunca un genérico ni un valor horneado de otro tenant).
+ */
+async function nombreMetaTenant(): Promise<{ completo: string; corto: string }> {
+  try {
+    const info = await getTenantInfo()
+    return { completo: info.nombre, corto: info.nombreCorto }
+  } catch {
+    return { completo: FALLBACK.nombreCompleto, corto: FALLBACK.nombreCorto }
+  }
+}
+
 export async function getIdentidadPublica(): Promise<IdentidadPublica> {
   try {
     const prisma = await getTenantPrisma()
     const i = await prisma.identidadInstitucional.findFirst({
       where: { singletonKey: 'default' },
     })
-    if (!i) return FALLBACK
+    const meta = await nombreMetaTenant()
+    if (!i) return { ...FALLBACK, nombreCompleto: meta.completo, nombreCorto: meta.corto }
     const ciudadDepto =
       [i.ciudad, i.departamento].filter(Boolean).join(', ') || null
     return {
-      nombreCompleto: i.nombreCompleto,
-      nombreCorto: i.nombreCorto,
+      nombreCompleto: i.nombreCompleto?.trim() || meta.completo,
+      nombreCorto: i.nombreCorto?.trim() || meta.corto,
       direccionPrincipal: i.direccionPrincipal,
       ciudadDepto,
       telefonoConmutador: i.telefonoConmutador,

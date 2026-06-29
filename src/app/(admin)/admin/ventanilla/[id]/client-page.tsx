@@ -438,7 +438,7 @@ export default function VentanillaDetalleClient({ pqrs, funcionarios, userId, us
                             type="text"
                             value={entidadDestino}
                             onChange={e => setEntidadDestino(e.target.value)}
-                            placeholder="Ej: Alcaldía Municipal de Buga"
+                            placeholder="Ej: Alcaldía Municipal"
                             className="w-full text-sm bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-gov-blue"
                             required
                           />

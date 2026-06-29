@@ -81,7 +81,7 @@ export default async function TratamientoDatosPage() {
 
               <h3>Artículo 4. Principios</h3>
               <p>
-                El tratamiento de datos personales por parte de la Personería Municipal se regirá 
+                El tratamiento de datos personales por parte de la {id.nombreCompleto} se regirá
                 por los siguientes principios:
               </p>
               <ul>
@@ -100,8 +100,8 @@ export default async function TratamientoDatosPage() {
               <h3>Artículo 5. Autorización del Titular</h3>
               <p>
                 La recolección, almacenamiento, uso, circulación o supresión de datos personales 
-                requiere del consentimiento libre, previo, expreso e informado del titular. La 
-                Personería Municipal implementará mecanismos para obtener la autorización de los 
+                requiere del consentimiento libre, previo, expreso e informado del titular. La
+                {' '}{id.nombreCompleto} implementará mecanismos para obtener la autorización de los
                 titulares, que pueden ser:
               </p>
               <ul>
@@ -133,10 +133,10 @@ export default async function TratamientoDatosPage() {
                 <li>Acceder en forma gratuita a sus datos personales</li>
               </ul>
 
-              <h2>CAPÍTULO V. DEBERES DE LA PERSONERÍA MUNICIPAL</h2>
+              <h2>CAPÍTULO V. DEBERES DEL RESPONSABLE DEL TRATAMIENTO</h2>
 
               <h3>Artículo 8. Deberes como Responsable del Tratamiento</h3>
-              <p>La Personería Municipal tiene los siguientes deberes:</p>
+              <p>La {id.nombreCompleto} tiene los siguientes deberes:</p>
               <ul>
                 <li>Garantizar el ejercicio del derecho de habeas data</li>
                 <li>Solicitar y conservar copia de la autorización otorgada</li>
@@ -154,8 +154,8 @@ export default async function TratamientoDatosPage() {
 
               <h3>Artículo 9. Procedimiento para Consultas</h3>
               <p>
-                Los titulares podrán consultar la información personal que repose en cualquier base 
-                de datos de la Personería. La consulta será atendida en un término máximo de diez 
+                Los titulares podrán consultar la información personal que repose en cualquier base
+                de datos de la {id.nombreCorto}. La consulta será atendida en un término máximo de diez
                 (10) días hábiles contados a partir de la fecha de recibo de la solicitud.
               </p>
 
@@ -171,8 +171,8 @@ export default async function TratamientoDatosPage() {
 
               <h3>Artículo 11. Medidas de Seguridad</h3>
               <p>
-                La Personería Municipal implementa medidas de seguridad técnicas, humanas y 
-                administrativas que sean necesarias para otorgar seguridad a los registros, 
+                La {id.nombreCompleto} implementa medidas de seguridad técnicas, humanas y
+                administrativas que sean necesarias para otorgar seguridad a los registros,
                 evitando su adulteración, pérdida, consulta, uso o acceso no autorizado o fraudulento.
               </p>
 

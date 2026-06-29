@@ -143,11 +143,580 @@
 - **Estado:** ✅ DESPLEGADO y VERIFICADO.
 
 ### PLAN — Próximos pasos
+
+**⏸️ Dos opciones inmediatas pendientes de elegir/realizar (PENDIENTE):**
+- **A) Commit de limpieza:** remover `@marsidev/react-turnstile` y el paquete `altcha` (widget), ya sin uso.
+- **B) Seguir con el backlog:** rotar el PAT de GitHub · cargar el directorio de funcionarios · usar el
+  connection-string **pooled** de Neon (B03 completo).
+
+**Resto del backlog:**
 1. ✅ ~~Desplegar fix del superadmin~~ — HECHO y verificado en prod.
 2. ✅ ~~Credencial de superadmin usable~~ — HECHO (reset en Vercel + verificado).
-3. 🟠 Configurar Turnstile real en Vercel (`NEXT_PUBLIC_TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY`) (B02).
+3. ✅ ~~Turnstile~~ — RESUELTO: reemplazado por captcha propio ALTCHA (ver B02). Ya no requiere llaves de Cloudflare.
 4. 🟠 Usar connection string POOLED de Neon en el `databaseUrl` del tenant (B03 completo).
 5. 🔴 Rotar el PAT de GitHub expuesto en el remoto.
 6. 🟡 Cargar contenido faltante (directorio de funcionarios) y depurar rol legacy "Funcionario PQRS".
 7. 🟡 Quitar `TENANT_SLUG` en Vercel cuando se opere multi-tenant (B06).
 8. 🧹 Cambiar la contraseña temporal del superadmin tras el primer ingreso.
+9. 🧹 Limpiar datos QA sembrados en la BD dev (usuarios `*.qa@oss.local`, FAQ "QA…").
+
+---
+
+## 2026-06-29
+
+### INVENTARIO — Auditoría funcional completa del repositorio
+
+**Artefactos contados directamente del código:**
+- **208 rutas API** (`src/app/api/**/route.ts`) — backend completo.
+- **110 páginas** (`src/app/**/page.tsx`) — portal público + panel admin + panel superadmin.
+- **29 módulos** en catálogo canónico (`src/lib/modules.ts`) con `MODULO_IDS`.
+- **10 specs E2E** Playwright (`e2e/`) + **12 archivos de test unitario** Vitest (`src/__tests__/`).
+- **9 páginas de Superadmin** (`superadmin-login`, dashboard, tenants, aprovisionar, detalle tenant, nuevo, admins, auditoría, informes).
+- **Estado:** HECHO (inventario estático; verificación funcional browser pendiente — ver PLAN más abajo).
+
+---
+
+#### Arquitectura transversal (sostiene todos los módulos)
+
+| Capa | Archivos clave | Estado |
+|---|---|---|
+| Multi-tenant por dominio | `src/middleware.ts`, `src/lib/tenant-edge.ts` | ✅ PROD |
+| Auth CMS (NextAuth v5) | `auth.config.ts`, `src/lib/authorization.ts` | ✅ PROD |
+| Auth Superadmin (JWT `sa_token`) | `src/lib/superadmin-auth*.ts` | ✅ PROD (fix B01) |
+| Meta-DB (tenants, módulos) | `src/lib/prisma-meta.ts`, `src/generated/meta-client/` | ✅ PROD (es la BD real) |
+| BD por tenant (Neon) | `src/lib/prisma.ts`, pool tuning B03 | ✅ PROD (pooled pendiente) |
+| Provisioning automático | `src/lib/provisioning/` (neon, schema-apply, provision) | ✅ PROD |
+| Storage (S3/R2/GCS/Azure/SFTP) | `src/lib/storage.ts`, `src/app/api/upload/route.ts` | ⚠️ sin bucket configurado en demo |
+| Mail (Resend) | `src/lib/mail.ts` | ✅ |
+| WhatsApp (Meta Cloud API) | `src/lib/notifications/whatsapp.ts` | ✅ |
+| Captcha PoW (ALTCHA propio) | `src/lib/altcha.ts`, `api/altcha/challenge/` | ✅ PROD |
+| IA / LLM (Groq + Shipu fallback) | `src/lib/groq-client.ts` | ✅ |
+| Rate limit (memoria, 20/h) | en `api/portal/chat/` | ✅ |
+| Cron diario | `api/cron/diario/` | ✅ |
+| API pública v1 | `api/v1/public/radicados/` | ✅ |
+| Webhook VU externo | `api/webhooks/ventanilla/` | ✅ |
+| Búsqueda global | `api/search/` | ✅ |
+
+---
+
+#### Inventario por módulo (29 módulos canónicos)
+
+**Módulos con implementación verificada en código (rutas API + UI confirmadas):**
+
+| # | Módulo | Tier | Rutas API | UI Admin | Estado impl. |
+|---|---|---|---|---|---|
+| 1 | `sitio_web` | BASE | noticias, páginas, secciones, slider, menú, ajustes/apariencia, contenido (identidad/sedes/canales/faqs/funcionarios), estadísticas, búsqueda | ✅ completo | ✅ PROD |
+| 2 | `transparencia` | BASE | `/api/admin/transparencia/categorias`, `/items/[id]`, `/items` | ✅ | ✅ PROD |
+| 3 | `pqrsd` | BASE | `/api/pqrsd/`, `/api/admin/pqrs/`, ALTCHA challenge | ✅ + ALTCHA | ✅ PROD |
+| 4 | `ventanilla_unica` | ESTÁNDAR | `/api/admin/ventanilla/` (reasignar, responder), webhook VU, IA clasificador | ✅ | ✅ PROD |
+| 5 | `gestion_documental` | ESTÁNDAR | `/api/admin/gd/` (radicados, expedientes, TRD, firmas QR, transferencias, plan, reportes, vobo, consecutivo, festivos, relacionados, informados, stream, api-keys, storage-test, test-e2e, bi/furag/metricas) | ✅ 20+ rutas | ✅ |
+| 6 | `archivo_fisico` | AVANZADO | `/api/admin/gd/archivo/` (carpetas, préstamos) | ✅ | ✅ |
+| 7 | `mipg` | ESTÁNDAR | `/api/admin/mipg/` (dimensiones, indicadores, evaluación, evidencias, políticas, exportar, validar-furag, alerta-vigencia) | ✅ | ✅ |
+| 8 | `auditoria_avanzada` | AVANZADO | `/api/admin/auditoria/` | ✅ | ✅ |
+| 9 | `contabilidad_publica` | AVANZADO | `/api/admin/cp/` (cuentas, periodos, terceros, comprobantes, balance, **libros diario/mayor/auxiliar**, **cierre-anual**, **sugerir-cuentas IA**) — 3.745 cuentas CGC sembradas | ✅ completo | ✅ |
+| 10 | `presupuesto_ejecucion` | AVANZADO | `/api/admin/psu/` (rubros, apropiaciones, CDP, RP, obligaciones, pagos, ejecución, **sugerir-rubro IA**) — 1.784 rubros CCPET | ✅ | ✅ |
+| 11 | `tesoreria` | AVANZADO | `/api/admin/teso/` (cuentas, movimientos, extractos, saldos, conciliar, **conciliar-multiple**) | ✅ | ✅ |
+| 12 | `contratacion` | AVANZADO | `/api/admin/contratacion/` (procesos, contratos, adiciones, documentos, secop, sincronizar-secop, **alertas-vencimiento**, **sugerir-modalidad IA**) | ✅ | ✅ |
+| 13 | `nomina_publica` | AVANZADO | `/api/admin/nom/` (empleados, periodos, liquidar, liquidaciones, pagar, pagar-pasivo, pasivos-pendientes, PILA, certificado-retenciones) — 24 conceptos sembrados | ✅ completo | ✅ |
+| 14 | `activos_bienes` | AVANZADO | `/api/admin/activos/` (bienes, asignaciones, movimientos, mantenimientos) | ✅ | ✅ |
+| 15 | `almacen` | AVANZADO | `/api/admin/alm/` (artículos, entradas, salidas, stock) | ✅ | ✅ |
+| 16 | `rentas_locales` | VERTICAL | `/api/admin/ren/` (conceptos, contribuyentes, liquidaciones, pagos, cartera) | ✅ | ✅ |
+| 17 | `frisco_bienes` | VERTICAL | `/api/admin/frisco/bienes/`, **alertas-pólizas**, **ia-sugerir** | ✅ | ✅ |
+| 18 | `frisco_interop` | VERTICAL | `/api/admin/frisco/interop/` (snr, fiscalia, igac, **analizar IA**) | ✅ stubs | ✅ (stubs) |
+| 19 | `portal_externo` | AVANZADO | `/api/admin/frisco/depositarios/[id]/portal-acceso`, `/api/portal/frisco/[token]/` (reporte, **upload**) | ✅ | ✅ |
+| 20 | `reportes_control` | INTEGRACIÓN | `/api/admin/rc/` (generar, reportes, xlsx) — CHIP/FUT/Ley617 | ✅ | ✅ |
+| 21 | `integraciones_estado` | INTEGRACIÓN | `/api/admin/contratacion/secop` (Socrata read-only) | ✅ | ✅ |
+| 22 | `chat_ia_ciudadano` | ESTÁNDAR | `/api/portal/chat/`, `/api/admin/chat-ia/indexar`, `/stats` | ✅ | ✅ |
+| 23 | `funcion_disciplinaria` | VERTICAL | `/api/admin/disc/` (procesos, avanzar, actuaciones, documentos, tutelas, visitas, estadísticas) | ✅ completo | ✅ |
+| 24 | `observatorio` | AVANZADO | `/api/admin/obs/` (indicadores, mediciones), `/api/obs/publico/` | ✅ | ✅ |
+
+**Módulos en catálogo SIN rutas API dedicadas confirmadas (posible UI-only, stub o no iniciado):**
+
+| Módulo | Tier | Observación |
+|---|---|---|
+| `presupuesto_formulacion` | AVANZADO | No hay `/api/admin/psu/formulacion/`; puede estar como subconjunto de rubros |
+| `presupuesto_modificaciones` | AVANZADO | No hay ruta API propia — pendiente de implementar |
+| `presupuesto_cierre` | AVANZADO | `/api/admin/cp/cierre-anual/` existe pero es contable, no presupuestal |
+| `dwh_analitica` | AVANZADO | No hay rutas API — pendiente |
+| `alertas_ml` | AVANZADO | No hay rutas API — pendiente |
+| `sgbe_beneficiarios` | VERTICAL | No hay rutas API — pendiente |
+| `esb_sectorial` | VERTICAL | No hay rutas API — pendiente |
+
+**Módulos activados en el tenant demo `personeria-buga` (prod):**
+`sitio_web`, `transparencia`, `pqrsd`, `gestion_documental`, `funcion_disciplinaria`, `contratacion`, `integraciones_estado`.
+
+---
+
+#### Funcionalidades transversales adicionales (fuera del catálogo de 29 módulos)
+
+- **CMS editor rico** (TipTap, bloques, imágenes con `alt` obligatorio) — `src/components/admin/editor/`
+- **Notificaciones WhatsApp** (PQRSD + VU) — `src/lib/notifications/`
+- **Autenticación** (login, recuperar/restablecer contraseña) — `api/auth/`
+- **Roles y usuarios** del tenant (SUPER_ADMIN/ADMIN/EDITOR/USER) — `api/admin/usuarios/`, `api/admin/roles/`
+- **Documentos admin** (gestión de documentos del CMS) — `api/admin/documentos/`
+- **Servicio de archivos** (files proxy) — `api/files/[...path]/`
+- **GD offline status** — `admin/gd/offline-status/` (página)
+- **GD gestor-documental** alternativo — `api/admin/gestor-documental/radicados/` (legado o alias)
+- **Superadmin — informe IA mensual** — `api/superadmin/ai/informe-mensual/` ← **no documentado en CLAUDE.md**
+
+---
+
+#### Activos de prueba existentes
+
+| Tipo | Artefacto | Cobertura |
+|---|---|---|
+| E2E Playwright (10 specs) | `e2e/01` portal ciudadano, `02` auth, `03-04` funcionario bandeja+respuesta, `05` chat, `06` admin MIPG, `07` redirects, `08` portal público, `09` mobile, `10` flujo completo | Cubre pqrsd, auth, chat, MIPG, portal |
+| Unit Vitest (12 archivos) | noticias, pqrsd, ventanilla (API); Button, PageHeader, SearchBar (UI); useAccessibility, encryption, furag-alertas, groq-client, redirects, utils (lib) | Cubre núcleo crítico |
+| Skill browser-driven | `.claude/skills/prueba-funcional/` | QA funcional interactivo |
+| ⚠️ Deuda conocida | `e2e/helpers.ts:parseRadicado` usa regex `PGB-\d{4}-\d{5}` — NO coincide con formato real `TIPO-AAAAMMDD-######` (hallazgo B08) | Corregir antes de confiar en E2E |
+
+- **Estado:** PENDIENTE — ejecutar suites y dejarlas en verde antes del QA funcional completo.
+
+---
+
+### PLAN — Plan integral de pruebas 2026-06-29
+
+> Este plan **no contradice** los hallazgos B01–B09 ni la 🎯 SOLICITUD PRINCIPAL. Incorpora la
+> metodología "desde el Superadmin" ya acordada y los hallazgos visuales registrados el 2026-06-27.
+
+#### Capa 0 — Automatizado / deuda de tests (ANTES de cualquier otra capa)
+
+**Objetivo:** suite existente en verde; no exigir como gate lo que está roto.
+
+- [ ] Corregir `e2e/helpers.ts:parseRadicado` — cambiar regex `PGB-\d{4}-\d{5}` al formato real `TIPO-AAAAMMDD-######`.
+- [ ] Ejecutar `npm run test:run` (Vitest) → dejar en 0 fallos.
+- [ ] Ejecutar `npm run test:e2e` (Playwright) contra el tenant demo → documentar qué specs pasan/fallan.
+- [ ] Corregir specs rotos antes de proceder con capas superiores.
+- **Estado:** PENDIENTE.
+
+---
+
+#### Capa 1 — Onboarding real desde el Superadmin (metodología acordada)
+
+**Objetivo:** validar que el flujo de alta de tenant funciona de punta a punta desde cero.
+Reproducir exactamente la 🎯 SOLICITUD PRINCIPAL.
+
+- [ ] **1a.** Login superadmin (`/superadmin-login`) — verificar 200 y acceso al panel.
+- [ ] **1b.** Crear tenant **"Alcaldía de Wakanda"** (tipo ALCALDIA) con datos ficticios: nombre, NIT, logo, contacto, admin inicial.
+  - Usar formulario `/superadmin/tenants/nuevo` o `/superadmin/tenants/aprovisionar`.
+  - Verificar que el aprovisionamiento completa (Neon → schema → seed → meta-BD).
+- [ ] **1c.** Activar los módulos que **realmente** requiere una alcaldía:
+  `sitio_web`, `transparencia`, `pqrsd`, `gestion_documental`, `ventanilla_unica`, `mipg`,
+  `contabilidad_publica`, `presupuesto_ejecucion`, `tesoreria`, `contratacion`, `nomina_publica`,
+  `rentas_locales`.
+  - **No** activar módulos de personería ni SAE.
+  - Verificar auto-siembra de CGC (3.745 cuentas) y CCPET (1.784 rubros) al activar contabilidad/presupuesto.
+- [ ] **1d.** Repetir para **"Ministerio de Prueba"** (tipo MINISTERIO) → módulos: sitio_web, transparencia, pqrsd, gestion_documental, mipg, sgbe_beneficiarios (si aplica), esb_sectorial.
+- [ ] **1e.** Repetir para **"SAE Prueba"** (tipo AGENCIA) → módulos: frisco_bienes, frisco_interop, portal_externo, gestion_documental, contabilidad_publica, presupuesto_ejecucion.
+- [ ] **1f.** Repetir para **"Personería de Prueba"** (tipo PERSONERIA) → módulos: sitio_web, transparencia, pqrsd, gestion_documental, funcion_disciplinaria.
+- **Estado:** PENDIENTE. ⚠️ Recordar: la meta-DB es la de producción — las altas de tenant crean proyectos Neon reales. Usar entorno aislado si se prefiere no consumir cuota.
+
+---
+
+#### Capa 2 — Aislamiento / integridad de datos
+
+**Objetivo:** ningún dato de un tenant debe aparecer en otro (detecta hardcodes residuales de "Personería de Buga").
+
+- [ ] **2a.** Ingresar al portal del tenant "Alcaldía de Wakanda" → verificar que NO aparece "Personería de Buga", "Guadalajara de Buga", ni ningún dato del tenant demo en ninguna pantalla.
+- [ ] **2b.** Verificar que la URL del tenant Wakanda no resuelve a Buga (requiere quitar `TENANT_SLUG` en Vercel — hallazgo B06 abierto).
+- [ ] **2c.** En el CMS de Wakanda: verificar que las noticias, páginas, funcionarios y transparencia arrancan vacíos (seed base genérico, no datos de Buga).
+- [ ] **2d.** En PQRSD de Wakanda: radicar una solicitud → verificar radicado `TIPO-AAAAMMDD-######` (no referencia a Buga).
+- [ ] **2e.** Verificar que el sidebar de Wakanda solo muestra los módulos activados (sin entradas de funcion_disciplinaria ni frisco si no se activaron).
+- **Estado:** PENDIENTE.
+
+---
+
+#### Capa 3 — Recorrido funcional por módulo (flujo de escritura real)
+
+**Prioridad:** módulos BASE primero; luego financiero (mayor complejidad); luego verticales.
+
+**Portal público / sitio_web:**
+- [ ] Crear noticia → publicar → verificar en portal público (slug correcto, imagen con alt).
+- [ ] Editar página institucional (`mision-vision`, `funciones`) → verificar en /entidad/mision-vision.
+- [ ] Configurar identidad, sedes, canales, FAQs → verificar en portal.
+- [ ] Slider de inicio: crear slide → verificar en homepage.
+
+**PQRSD:**
+- [ ] Radicar PQRSD desde portal ciudadano (formulario + ALTCHA) → obtener radicado.
+- [ ] Consultar radicado desde `/atencion-ciudadano/pqrsd/consulta`.
+- [ ] Desde admin: responder PQRSD → verificar cambio de estado y email al ciudadano.
+- [ ] ⚠️ Botón "Radicar PQRSD" del header: verificar contraste (texto azul sobre fondo azul — hallazgo visual abierto 2026-06-27) → **debe corregirse**.
+
+**Ventanilla Única:**
+- [ ] Clasificar solicitud con IA → verificar sugerencia de tipo/prioridad/dependencia.
+- [ ] Reasignar y responder → verificar notificación WhatsApp (si configurado).
+
+**Gestión Documental:**
+- [ ] Radicar documento oficial → verificar número de radicado con QR.
+- [ ] Crear expediente → asociar radicados → cerrar expediente → verificar índice electrónico.
+- [ ] TRD: crear dependencia → crear tipología documental.
+
+**Contabilidad pública:**
+- [ ] Crear periodo contable ABIERTO → ingresar comprobante (partida doble) → verificar cuadre.
+- [ ] Consultar libros contables (Diario, Mayor, Auxiliar) — **estas rutas existen pero no estaban en CLAUDE.md; verificar que la UI las expone**.
+- [ ] Probar sugerencia de cuentas IA (`/api/admin/cp/sugerir-cuentas`).
+
+**Presupuesto:**
+- [ ] Apropiación → CDP → RP → Obligación → Pago → verificar comprobante contable generado.
+- [ ] Probar sugerencia de rubro IA (`/api/admin/psu/sugerir-rubro`).
+
+**Nómina:**
+- [ ] Crear empleado → crear periodo → liquidar → pagar → verificar comprobante EGRESO.
+- [ ] Descargar archivo PILA (.txt) → verificar formato UGPP.
+- [ ] Descargar certificado de retenciones (HTML imprimible).
+- [ ] Consultar pasivos pendientes → pagar pasivo a EPS/AFP.
+
+**Tesorería:**
+- [ ] Crear cuenta bancaria → registrar movimientos → cargar extracto CSV → conciliar par a par.
+- [ ] Probar conciliación múltiple (`/api/admin/teso/conciliar-multiple`) — ruta nueva no documentada en CLAUDE.md.
+
+**Contratación:**
+- [ ] Crear proceso → adjuntar contrato → verificar badge SECOP (si integraciones_estado activo).
+- [ ] Probar alerta de vencimiento (`/api/admin/contratacion/alertas-vencimiento`).
+- [ ] Probar sugerencia de modalidad IA (`/api/admin/contratacion/procesos/sugerir-modalidad`).
+
+**FRISCO (SAE):**
+- [ ] Registrar bien → asignar depositario → generar acceso portal → ingresar al portal con token → enviar reporte mensual.
+- [ ] Verificar clasificación IA del reporte (urgencia + etiquetas).
+- [ ] Probar interop stubs (SNR, Fiscalía, IGAC) → verificar log.
+- [ ] Verificar alertas de pólizas (`/api/admin/frisco/alertas-polizas`).
+- [ ] Probar upload de foto en portal externo (`/api/portal/frisco/[token]/upload`) — ruta nueva.
+
+**Función Disciplinaria (Personería):**
+- [ ] Crear proceso disciplinario → avanzar etapas (máquina de estados) → verificar semáforo de términos.
+- [ ] Crear tutela → crear visita preventiva.
+
+**MIPG:**
+- [ ] Crear evaluación → subir evidencia → exportar → validar FURAG.
+
+**Observatorio:**
+- [ ] Crear indicador → registrar medición → verificar en portal público (`/api/obs/publico/`).
+
+**Chat IA:**
+- [ ] Indexar contenido → hacer pregunta en portal → verificar respuesta con fuentes.
+
+**Reportes de control:**
+- [ ] Generar CHIP Balance, CHIP Actividad, FUT Ingresos, FUT Gastos, Ley 617 → descargar XLSX.
+
+**Activos y Almacén:**
+- [ ] Registrar bien → asignar → movimiento → mantenimiento.
+- [ ] Almacén: registrar artículo → entrada (vinculada a RP) → salida → verificar stock.
+
+**Rentas municipales:**
+- [ ] Crear concepto de renta → registrar contribuyente → liquidar → registrar pago → verificar cartera.
+
+**Superadmin — informe IA mensual:**
+- [ ] Probar `/api/superadmin/ai/informe-mensual` → no documentado en CLAUDE.md; verificar qué genera.
+
+- **Estado:** PENDIENTE (post Capa 1 y 2).
+
+---
+
+#### Capa 4 — Seguridad y autorización
+
+- [ ] **Matriz roles × rutas críticas:** verificar que USER no puede acceder a rutas SUPER_ADMIN/ADMIN. Rutas a probar: `/api/admin/cp/comprobantes`, `/api/admin/nom/pagar`, `/api/superadmin/*`.
+- [ ] **ALTCHA:** verificar que el formulario PQRSD rechaza submit sin resolver el PoW.
+- [ ] **PAT GitHub expuesto** (hallazgo 2026-06-27 — PENDIENTE): rotar token en GitHub y reconfigurar remoto.
+- [ ] **B06 — `TENANT_SLUG` en Vercel:** quitar esta variable cuando se opere multi-tenant para que el aislamiento por dominio funcione.
+- [ ] **B03 — connection-string pooled Neon:** cambiar `databaseUrl` al endpoint `-pooler` para cada tenant.
+- [ ] **Credencial superadmin temporal:** cambiar contraseña tras el primer ingreso (pendiente del usuario).
+- **Estado:** PENDIENTE.
+
+---
+
+#### Capa 5 — Rendimiento y resiliencia
+
+- [ ] Reproducir ráfaga de 503 en prefetch RSC (`?_rsc=`) — verificar si el pool tuning (B03 mitigado) redujo la frecuencia.
+- [ ] Verificar que `/api/cron/diario` completa (PQRSD por vencer → WhatsApp; recordatorio depositario).
+- [ ] Probar aprovisionamiento de tenant bajo límite de 60s de Vercel Hobby (reportar si necesita Pro o CLI).
+- **Estado:** PENDIENTE.
+
+---
+
+#### Capa 6 — Accesibilidad, visual y responsive
+
+- [ ] **🔴 Botón "Radicar PQRSD" (header):** texto azul sobre fondo azul → **corregir color de texto a blanco**. Archivo a buscar: componente del header del tenant. Verificar WCAG AA (4.5:1).
+- [ ] **🔴 Nombre redundante del tenant:** "Personería Municipal de Guadalajara de Buga" + "Personería de Buga" en el mismo header → **eliminar el campo corto**. Buscar en el componente de header/branding del tenant.
+- [ ] **Barrido sistemático de contraste** en todo el portal público y panel admin (pendiente desde 2026-06-27).
+- [ ] **Responsive mobile:** verificar en viewport 375px (spec `e2e/09-mobile.spec.ts`).
+- [ ] **Accesibilidad CMS:** jerarquía H1/H2, etiquetas de formularios, metadatos en documentos — pendiente desde sesión 2026-06-08.
+- **Estado:** PENDIENTE. Los dos hallazgos con 🔴 son las correcciones más urgentes.
+
+---
+
+#### Capa 7 — Limpieza y cierre
+
+- [ ] **A) Commit de limpieza de dependencias:** remover `@marsidev/react-turnstile` y `altcha` (widget) de `package.json` — ambos huérfanos. Verificar que `npm install` no reinstala peers rotos.
+- [ ] **Datos QA:** limpiar usuarios `*.qa@oss.local` y FAQ "QA…" sembrados en la BD dev.
+- [ ] **Rol legacy "Funcionario PQRS":** renombrar o desactivar en BD del tenant (dato legacy, no bug de código — hallazgo B04).
+- [ ] **Directorio de funcionarios:** poblar con datos de prueba para el tenant demo.
+- [ ] **`ventanilla_unica_personeria_buga/`:** excluir definitivamente del repo o mover a `archive/` (genera ruido de tsc).
+- **Estado:** PENDIENTE.
+
+---
+
+#### Orden de ejecución sugerido
+
+```
+Capa 0 → Capa 6 (correcciones visuales urgentes) → Capa 1 → Capa 2 → Capa 3 → Capa 4 → Capa 5 → Capa 7
+```
+
+Justificación: la Capa 6 tiene dos correcciones de una línea (contraste del botón + redundancia de nombre) que deben corregirse antes de cualquier demostración. La Capa 0 (tests) puede correr en paralelo. La Capa 1 (onboarding desde superadmin) es el pivote — sin ella, las Capas 2 y 3 no tienen tenants de prueba.
+
+> **Regla de registro:** cada hallazgo de las pruebas se documenta en esta bitácora con su tipo (`HALLAZGO`/`CAMBIO`/`DECISIÓN`) y estado antes de continuar con la siguiente capa.
+
+- **Estado del plan:** PENDIENTE de ejecución.
+
+---
+
+## 2026-06-29 — EJECUCIÓN (sesión autónoma, verificada en navegador)
+
+> Todos los cambios se verificaron en el preview local (`npm run dev`, puerto 3000) con
+> inspección de DOM/CSS y screenshots. `tsc --noEmit` limpio y **224/224 tests unitarios** en verde
+> tras cada tanda. **Pendiente:** commit + push + merge a `main` (no ejecutado aún).
+
+### CAMBIO — 🎨 Contraste del botón "Radicar PQRSD" (Capa 6) ✅ VERIFICADO
+- **Causa raíz:** en `globals.css` la regla `a { color: var(--gov-blue) }` estaba **sin `@layer`**.
+  En Tailwind v4 lo no-capado vence a las utilidades (capa `utilities`), así que sobrescribía
+  `text-white` del botón → texto azul sobre fondo azul. Afectaba a **todo** `Button asChild + Link`.
+- **Fix:** se movieron las reglas de enlace a `@layer base` (`src/app/globals.css`).
+- **Verificado:** `preview_inspect` del botón → `color: rgb(255,255,255)` sobre `rgb(51,102,204)`
+  (contraste ~5.9:1, WCAG AA). Los 8 enlaces "Radicar PQRSD" de la home quedaron con contraste correcto.
+
+### CAMBIO — 🎨 Nombre redundante del tenant en el header (Capa 6) ✅ VERIFICADO
+- **Fix:** `header.tsx` ahora oculta el `nombreCorto` cuando es redundante con el nombre oficial,
+  vía helper `esNombreRedundante()` (tokeniza, quita stopwords/acentos y compara).
+- **Verificado:** caso Buga ("Personería Municipal de Guadalajara de Buga" + "Personería de Buga")
+  → `true` (oculta el corto). Nombres distintos (ej. Wakanda) → `false` (los conserva).
+
+### CAMBIO — 🧹 Limpieza de dependencias huérfanas (Capa 7A) ✅ VERIFICADO
+- Removidos `@marsidev/react-turnstile` y `altcha` (widget) de `package.json` + lockfile + node_modules.
+  `npm install` normal (sin `legacy-peer-deps`, según lección previa). Peer `@tiptap/extension-drag-handle` intacto.
+- **Verificado:** PQRSD 200, `/api/altcha/challenge` 200, captcha propio resuelve el PoW
+  ("Verificación completada ✓") por click automatizado. `tsc` limpio.
+
+### CAMBIO — Capa 0: tests
+- `e2e/helpers.ts` `parseRadicado`: regex corregido de `PGB-\d{4}-\d{5}` → `[A-Z]{3}-\d{8}-\d{6}`
+  (formato real `<PREFIJO>-AAAAMMDD-######`, confirmado en `generarRadicado` de `pqrsd/route.ts`).
+- Vitest: **224/224** en verde (12 archivos).
+
+### 🔴 HALLAZGO + CAMBIO — Hardcodes de "Personería de Buga" filtrados a TODOS los tenants (lo que señaló el usuario)
+- **Hallazgo (grave, multi-tenant):** múltiples superficies públicas mostraban el nombre de Buga
+  horneado en vez del **tenant activo**. El usuario lo detectó en el texto de tratamiento de datos del
+  PQRSD ("...autorizo a la Personería Municipal de Guadalajara de Buga...").
+- **Arquitectura nueva:** `src/components/providers/tenant-identity-provider.tsx` (context client
+  `useTenantIdentity()`), alimentado por el layout. Además se **unificó la fuente de identidad**:
+  `getIdentidadPublica()` (`src/lib/identidad-publica.ts`) ahora cae al **nombre del meta-tenant**
+  (no a un genérico) y el layout prioriza `identidadInstitucional.nombreCompleto` para que header,
+  PQRSD y páginas legales muestren SIEMPRE el mismo nombre.
+- **Archivos corregidos (nombre dinámico del tenant activo):**
+  - `atencion-ciudadano/pqrsd/page.tsx` — texto de tratamiento de datos (vía `useTenantIdentity`).
+  - `tratamiento-datos/page.tsx`, `terminos/page.tsx` — 4+ ocurrencias c/u (vía `id.nombreCompleto`).
+  - `api/admin/gd/firmas/route.ts` y `api/admin/gd/expedientes/[id]/cierre/route.ts` —
+    **documentos oficiales** (pie de firma QR e índice de expediente) ahora usan `identidadInstitucional`.
+- **Verificado en navegador:** PQRSD, tratamiento-datos y términos muestran los tres el MISMO nombre
+  del tenant activo ("Entidad Local (Desarrollo)" en dev); barrido de 8 rutas públicas → **0 leaks** de Buga.
+
+### CAMBIO — Defaults y textos genéricos (sin tenant horneado)
+- `admin/configuracion/configuracion-client.tsx`: los **defaults** traían datos de Buga (nombre, NIT,
+  dirección, teléfono) → neutralizados a vacío/genérico (un tenant nuevo ya no ve datos de Buga); placeholders genéricos.
+- Genéricos: `servicios/page.tsx`, `servicios/[id]/page.tsx`, `transparencia/page.tsx`,
+  `transparencia/[categoria]/page.tsx`, `admin/noticias/page.tsx` (metadata), `home/enlaces-rapidos.tsx`,
+  `lib/search.ts` (índice de búsqueda), placeholders en `identidad-client.tsx` y `ventanilla/[id]/client-page.tsx`.
+
+### 🔴 CAMBIO — Noticias públicas eran datos MOCK de Buga → ahora DB por tenant ✅ VERIFICADO
+- **Hallazgo:** `/noticias` y `/noticias/[slug]` renderizaban **noticias de ejemplo hardcodeadas**
+  ("Gran Jornada... en Guadalajara de Buga"). Un tenant Wakanda habría mostrado noticias falsas de Buga.
+- **Fix:** ambas páginas convertidas a **server components que leen de la BD** del tenant
+  (`prisma.noticia` estado `PUBLICADO`, con categoría/etiquetas; contenido Json→HTML como `PaginaContenido`).
+  Empty-state cuando no hay noticias; nunca datos de ejemplo.
+- **Verificado:** `/noticias` en dev muestra "Aún no hay noticias publicadas" (screenshot), 0 rastro de Buga.
+
+### 🟡 HALLAZGO (pendiente, arquitectura de contenido) — páginas específicas de personería
+- `atencion-ciudadano/defensoria/page.tsx` describe funciones de **Ministerio Público** (propias de una
+  personería); `servicios/[id]/page.tsx` tiene un **catálogo de servicios** específico de personería
+  (tutelas, veedurías, control disciplinario). Se quitó el nombre "Personería Municipal" explícito, pero
+  el **contenido** sigue siendo de personería → para alcaldías/ministerios estas páginas deben **gatearse
+  por tipo de entidad** o volverse **CMS-driven**. **Estado: PENDIENTE.**
+
+### Capas restantes del plan (PENDIENTES)
+- Capa 1 (onboarding desde Superadmin: Wakanda/Ministerio/SAE/Personería), Capa 2 (aislamiento end-to-end
+  con tenants reales), Capa 3 (recorrido funcional por módulo), Capa 4 (seguridad: PAT, B06, B03),
+  Capa 5 (perf), Capa 7 (datos QA, contraseña superadmin).
+
+---
+
+## 🎯 SOLICITUD PRINCIPAL — Próxima sesión: rehacer la prueba funcional DESDE EL SaaS (metodología correcta)
+
+> ⚠️ **El usuario corrigió el enfoque.** La prueba NO debe arrancar en un tenant ya existente (Personería de
+> Buga), sino en el **Superadmin del SaaS** y construir todo desde cero. Esto valida el flujo real de
+> onboarding y si el alcance del producto está "aterrizado". **Documentado para no perderlo (sesión al límite).**
+
+**Metodología correcta a seguir (orden del flujo):**
+1. Entrar al **Superadmin** (`/superadmin-login`, ya funcional).
+2. **Crear un tenant nuevo de prueba** ficticio — p.ej. **"Alcaldía de Wakanda"** — desde cero:
+   datos de prueba, **logo**, **usuarios**, configuración del sitio.
+3. **Activar los módulos que REALMENTE requiere ese tipo de entidad** (no todos; los que correspondan).
+4. Repetir creando **varios arquetipos de entidad** para ver si el alcance está aterrizado:
+   - una **Alcaldía** (municipio),
+   - un **Ministerio**,
+   - una **SAE** (verticales FRISCO, etc.),
+   - una **Personería** (función disciplinaria, etc.).
+5. Operar como cada tenant: **crear y RADICAR solicitudes (PQRSD)** y ejercitar sus módulos — comprobar TODO
+   de punta a punta (no solo que carguen las pantallas).
+
+**Prueba clave de AISLAMIENTO / datos hardcodeados:**
+- Verificar que **no hay datos predefinidos/horneados** de un tenant en otro. Ejemplo concreto del usuario:
+  si creamos **"Alcaldía de Wakanda"**, en **ninguna parte** debe aparecer "Personería de Buga" ni sus datos.
+- Esto detecta hardcodes residuales (la bitácora del producto ya menciona limpieza de hardcodes de Buga —
+  validar que realmente no quedan).
+
+## 🎨 HALLAZGOS VISUALES (identificados por el usuario — NO descartar)
+- 🎨 **[contraste] Botón "Radicar PQRSD" (header, arriba a la derecha):** texto azul sobre fondo azul →
+  **sin contraste, no se lee/ no se ve**. Aparece como un rectángulo azul vacío en las capturas. Corregir
+  color de texto (blanco) o de fondo. Afecta accesibilidad (WCAG contraste).
+- 🎨 **[redundancia] Identidad del tenant junto al logo (Personería de Buga):** muestra el nombre oficial
+  "Personería Municipal de Guadalajara de Buga" y **debajo** "Personería de Buga" — información redundante.
+  Revisar el header/branding del tenant (probablemente `nombre` + `nombreCorto` mostrados juntos).
+- 🔁 Pendiente en próxima sesión: **barrido sistemático de fallas visuales/contraste** en todo el portal
+  (el usuario los está detectando a ojo; conviene auditar contraste, branding y consistencia).
+
+---
+
+## 2026-06-29
+
+### INVENTARIO — Recorrido completo del proyecto: funcionalidades existentes
+- **Qué:** se recorrió todo el repositorio (`src/`, `prisma/`, `scripts/`, `docs/`) para inventariar
+  cada funcionalidad existente. Este registro es el mapa funcional de referencia para el plan de pruebas.
+- **Tamaño verificado:** **208 rutas API** (`route.ts`), **64 páginas admin**, **37 páginas públicas**,
+  **9 páginas superadmin**. Fuente de verdad de módulos: `src/lib/modules.ts` (catálogo de **31 módulos**).
+- **Estado:** HECHO (documentación). No modifica código ni datos.
+
+#### Arquitectura transversal (no es un módulo, sostiene a todos)
+- **Multi-tenant por dominio:** `src/middleware.ts` + `src/lib/tenant-edge.ts` resuelven el tenant por host
+  (subdominio gestionado o dominio `.gov.co` propio) e inyectan `x-tenant-id`/`x-tenant-slug`.
+- **Dos planos de datos:** **meta-DB** (catálogo de tenants, módulos, superadmins — Neon, compartida prod)
+  + **BD por tenant** (datos operativos, una por entidad). Clientes Prisma: `src/lib/prisma.ts` (tenant),
+  `src/lib/prisma-meta.ts` (meta), `src/generated/meta-client/`.
+- **Autenticación admin/CMS:** NextAuth v5 (`src/lib/auth.ts`, `auth.config.ts`) con 4 roles
+  `SUPER_ADMIN | ADMIN | EDITOR | USER` (`src/lib/authorization.ts`: `requireRoles`, `checkApiRoles`).
+- **Autenticación superadmin:** JWT propio `sa_token` (`src/lib/superadmin-auth.ts`, `*-edge.ts`),
+  separado del de tenant.
+- **Catálogo de módulos y planes:** `src/lib/modules.ts` (31 módulos, categorías, tiers, `dependeDe`,
+  `entidadesObjetivo`); **3 bundles comerciales** en `src/lib/module-bundles.ts`: `CONTROL` (personería/
+  defensoría/contraloría), `EJECUTORA` (alcaldía/SAE/agencia), `RECTORIA_SECTORIAL` (ministerio).
+- **Provisioning de tenant:** `src/lib/provisioning/` (`neon.ts`, `provision.ts`, `schema-apply.ts`) +
+  `scripts/provision-tenant.ts`. Seeders de onboarding: `src/lib/seeders/` (dependencias GD, TRD base,
+  PUC/CGC, rubros CCPET, conceptos de nómina, terceros del Estado).
+- **Servicios comunes:** Storage S3/R2/MinIO/SFTP (`src/lib/storage.ts`, `upload.ts`), correo
+  (`src/lib/mail.ts` — nodemailer/Resend), WhatsApp (`src/lib/notifications/whatsapp.ts`), cifrado
+  (`src/lib/encryption.ts`), captcha ALTCHA propio (`src/lib/altcha.ts`), rate-limit (`api-rate-limit.ts`),
+  auditoría (`auditoria.ts`), días hábiles/festivos (`dias-habiles.ts`), búsqueda (`search.ts`),
+  redirects legacy (`redirects.ts`). IA: cliente LLM `groq-client.ts` y helpers por dominio
+  (`contabilidad-ia`, `contratacion-ia`, `presupuesto-ia`, `frisco-*-ia`, `chat-ia`, `superadmin-ai`).
+- **Endpoints especiales:** API pública `v1/public/radicados`, webhook `webhooks/ventanilla`,
+  cron `cron/diario` (alertas/vencimientos), `files/[...path]` (descarga firmada), `altcha/challenge`,
+  portal externo FRISCO `portal/frisco/[token]`.
+
+#### Funcionalidades por módulo (catálogo de `modules.ts`)
+- **BASE (siempre activo):** `sitio_web` (Portal Gov.co + CMS: páginas, noticias, slider, menú, sedes,
+  canales, FAQs, funcionarios, identidad), `transparencia` (Ley 1712 / Res.1519, taxonomía + items),
+  `pqrsd` (radicación pública PQRSD, radicado, semáforo de términos, consulta ciudadana, chat por radicado).
+- **Atención ciudadana:** `ventanilla_unica` (clasificación IA de PQRSD, asignación, bandeja, reasignar/
+  responder, demografía FURAG, delegación a VU externa), `chat_ia_ciudadano` (widget RAG sobre contenido
+  del tenant).
+- **Documental:** `gestion_documental` (radicación oficial AGN, TRD, expedientes electrónicos, consecutivo,
+  firma con QR + verificación pública, índice electrónico, transferencias, VoBo, BI/FURAG, API keys),
+  `archivo_fisico` (inventario jerárquico, préstamos, transferencias).
+- **Cumplimiento:** `mipg` (MIPG/PAAC, dimensiones, políticas, indicadores, evidencias, evaluación,
+  validación y alertas FURAG, exportación), `auditoria_avanzada` (log inmutable, reportes de control).
+- **Financiero/presupuestal:** `contabilidad_publica` (doble partida CGN/NICSP, comprobantes, libros
+  diario/mayor/auxiliar, balance, cierre anual, terceros, sugerencia IA de cuentas),
+  `presupuesto_formulacion`/`_ejecucion` (CDP→RP→Obligación→Pago, rubros, apropiaciones, saldos)/
+  `_modificaciones`/`_cierre`, `tesoreria` (PAC, cuentas, extractos, conciliación, saldos, movimientos),
+  `contratacion` (procesos Ley 80/1150, contratos, adiciones, alertas de vencimiento, sugerir modalidad,
+  integración SECOP), `nomina_publica` (liquidación, periodos, empleados, PILA, certificado de retenciones,
+  pago de pasivos).
+- **Operativo:** `activos_bienes` (inventario, depreciación NICSP, asignaciones, movimientos,
+  mantenimientos), `almacen` (artículos, entradas/salidas vinculadas a RP, kardex/stock).
+- **Verticales:** `rentas_locales` (predial/ICA, conceptos, contribuyentes, liquidaciones, pagos, cartera),
+  `frisco_bienes` (ficha de bien en extinción, depositarios, contratos, destinaciones, reportes, IA),
+  `frisco_interop` (cruces SNR/Fiscalía/IGAC), `sgbe_beneficiarios` y `esb_sectorial` (registro de
+  beneficiarios y bus sectorial — catálogo/infra), `funcion_disciplinaria` (personerías: procesos
+  disciplinarios Ley 1952 con máquina de estados y control de términos, tutelas, visitas, conceptos,
+  interop Procuraduría).
+- **Analítica:** `dwh_analitica`, `observatorio` (open data público `obs/publico`), `alertas_ml`.
+- **Integración:** `reportes_control` (CHIP, FUT, Ley 617, SIRECI — `src/lib/reportes-control/`),
+  `integraciones_estado` (SIIF/SECOP/SISBEN/SIGEP), `portal_externo` (portales para actores externos).
+
+#### Activos de prueba ya existentes (no recrear, mantener)
+- **Unitarias (Vitest):** `src/__tests__/` — api (`noticias`, `pqrsd`, `ventanilla`), componentes
+  (`Button`, `PageHeader`, `SearchBar`), hooks (`useAccessibility`), lib (`encryption`, `furag-alertas`,
+  `groq-client`, `redirects`, `utils`). Scripts: `npm run test:run`, `test:coverage`.
+- **E2E (Playwright):** `e2e/` — 10 specs (portal ciudadano, auth, bandeja funcionario, responder,
+  chat, MIPG, redirects, portal público, móvil, flujo completo) + `helpers.ts`. Scripts: `npm run test:e2e`.
+  ⚠️ **Nota heredada (B08):** el regex `parseRadicado` de `e2e/helpers.ts` (`/PGB-\d{4}-\d{5}/`) NO coincide
+  con el formato real `TIPO-AAAAMMDD-######` → corregir al tocar tests (ya anotado, sigue PENDIENTE).
+- **Skill QA:** `.claude/skills/prueba-funcional/` (auditoría funcional browser-driven con diagramas).
+
+### PLAN — Plan integral de pruebas (coherente con la metodología ya fijada arriba)
+> Este plan **no reemplaza ni contradice** lo ya establecido: respeta la 🎯 SOLICITUD PRINCIPAL
+> (probar **desde el Superadmin del SaaS**, crear tenants desde cero, arquetipos y **prueba de
+> aislamiento**), los 🎨 HALLAZGOS VISUALES y los hallazgos abiertos (B03–B08). Lo organiza en capas
+> ejecutables. **Regla de seguridad vigente:** la **meta-DB del `.env` es la de producción** → toda
+> prueba destructiva o de alta de tenants se hace en entorno **dev/aislado**, nunca escribiendo en la
+> meta de prod (salvo decisión explícita del usuario).
+
+**Capa 0 — Pruebas automatizadas (base de regresión, local/CI).**
+- Correr y dejar en verde `npm run test:run` (Vitest) y `npm run test:e2e` (Playwright) antes de cada
+  merge. Arreglar el regex `parseRadicado` (B08) y ampliar specs a los radicados con formato real.
+- Meta: que la suite existente sea *gate* de despliegue (hoy hay deuda: specs desalineadas con formato).
+
+**Capa 1 — Onboarding desde el SaaS (flujo real, metodología ya acordada).**
+1. Login Superadmin (`/superadmin-login`, ya funcional) → alta de tenant **desde cero** (slug, NIT,
+   DIVIPOLA, dominios, plan, branding, contacto, SMTP, API keys) → verificar **provisioning** de su BD
+   y seeders de onboarding.
+2. Crear **un arquetipo por bundle**: Personería (`CONTROL`), Alcaldía/SAE (`EJECUTORA`), Ministerio
+   (`RECTORIA_SECTORIAL`) → activar **sólo** los módulos que corresponden al tipo de entidad
+   (`entidadesObjetivo`/`dependeDe`) y comprobar que las dependencias se respetan.
+
+**Capa 2 — Aislamiento multi-tenant (prueba clave ya señalada).**
+- Verificar que **ningún dato de un tenant aparece en otro** (ej.: creado "Alcaldía de Wakanda", en ningún
+  lugar debe verse "Personería de Buga"). Detecta hardcodes residuales de Buga.
+- Confirmar el cierre de **B06**: al operar multi-tenant, **quitar `TENANT_SLUG`** en Vercel para que
+  `getTenantByDomainEdge` aísle por dominio (hoy resuelve cualquier host al mismo tenant).
+
+**Capa 3 — Recorrido funcional por módulo (de punta a punta, no sólo que cargue).**
+- Para cada módulo activo del arquetipo: ejercer su **flujo de escritura** principal, no sólo el render.
+  Mínimos por área: PQRSD (radicar real + consultar + responder en VU/bandeja), Gestión Documental
+  (radicar oficial → expediente → firma QR → verificación pública), MIPG (evidencia + evaluación + alerta
+  FURAG), Contabilidad (comprobante → libros → balance), Presupuesto (CDP→RP→Obligación→Pago con saldos),
+  Tesorería (extracto → conciliación), Contratación (proceso → contrato → SECOP), Nómina (periodo →
+  liquidar → PILA), Activos/Almacén (entrada→kardex), Rentas (liquidación→pago→cartera), FRISCO (ficha→
+  depositario→interop), Función Disciplinaria (proceso Ley 1952 con avance de estados y términos),
+  Reportes de Control (generar CHIP/FUT/Ley617 + export xlsx).
+
+**Capa 4 — Seguridad y autorización.**
+- Matriz de roles `SUPER_ADMIN/ADMIN/EDITOR/USER` × rutas API: confirmar 401/403 esperados
+  (`requireRoles`/`checkApiRoles`). Depurar el rol legacy **"Funcionario PQRS"** fuera del enum (B04).
+- Captcha ALTCHA del PQRSD (ya verificado en prod) y **rate-limit** del formulario; verificación de firma
+  en `webhooks/ventanilla`; aislamiento de la API pública `v1/public/radicados`.
+- Cerrar pendiente de seguridad heredado: **rotar el PAT de GitHub** expuesto en el remoto.
+
+**Capa 5 — Rendimiento y resiliencia (hallazgo abierto B03).**
+- Reproducir las **ráfagas de 503 en prefetch RSC** bajo concurrencia; validar la mitigación de pool por
+  tenant y completar **B03** usando el connection-string **pooled** (`-pooler`) de Neon en `databaseUrl`.
+
+**Capa 6 — Accesibilidad, visual y responsive (HALLAZGOS VISUALES ya listados).**
+- Barrido sistemático de **contraste/branding/consistencia** (WCAG AA): corregir el botón "Radicar PQRSD"
+  (azul sobre azul) y la **redundancia** nombre oficial + nombre corto en el header del tenant.
+- Verificar responsive móvil (apoyado en `e2e/09-mobile.spec.ts`) y la página `/accesibilidad`.
+
+**Capa 7 — Limpieza y cierre.**
+- Limpiar datos QA dev (`*.qa@oss.local`, FAQ "QA…"); remover paquetes huérfanos
+  (`@marsidev/react-turnstile`, widget `altcha`); cambiar la contraseña temporal del superadmin.
+
+**Orden de ejecución sugerido:** Capa 0 → 1 → 2 → 3 (por arquetipo) → 4 → 5 → 6 → 7, registrando cada
+hallazgo en esta bitácora con su `tipo` y `estado`, y reflejando los fixes en producción según la
+**Regla de oro** del entorno.
+- **Estado:** PLAN establecido (PENDIENTE de ejecución por capas).

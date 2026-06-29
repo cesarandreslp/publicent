@@ -3,7 +3,7 @@ import { NoticiasClient } from "./noticias-client"
 
 export const metadata: Metadata = {
   title: "Gestión de Noticias | Panel de Administración",
-  description: "Administrar noticias y publicaciones de la Personería de Guadalajara de Buga",
+  description: "Administrar noticias y publicaciones de la entidad",
 }
 
 export default function NoticiasPage() {

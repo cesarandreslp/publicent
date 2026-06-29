@@ -38,7 +38,15 @@ export async function POST(
 
   // 2. Construir la data del Índice Electrónico y el HTML a estampar
   const currentDate = new Date()
-  
+
+  // Nombre de la ENTIDAD ACTIVA (no horneado) para el encabezado del índice oficial
+  const identidadCierre = await prisma.identidadInstitucional.findFirst({
+    where: { singletonKey: "default" },
+    select: { nombreCompleto: true, nombreCorto: true },
+  })
+  const nombreEntidadCierre =
+    identidadCierre?.nombreCompleto ?? identidadCierre?.nombreCorto ?? "Entidad Pública"
+
   let foliosCount = 0
   let indiceHtml = `
   <!DOCTYPE html>
@@ -54,7 +62,7 @@ export async function POST(
     </style>
   </head>
   <body>
-    <h2>Personería Mpal. de Guadalajara de Buga</h2>
+    <h2>${nombreEntidadCierre}</h2>
     <h3>Índice Electrónico del Expediente Múltiple</h3>
     <p><strong>Código:</strong> ${exp.codigo}</p>
     <p><strong>Nombre:</strong> ${exp.nombre}</p>

@@ -6,6 +6,7 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { ClientWidgets } from "@/components/layout/client-widgets";
 import AuthProvider from "@/components/auth/auth-provider";
+import { TenantIdentityProvider } from "@/components/providers/tenant-identity-provider";
 import { headers } from "next/headers";
 import { getTenantInfo, getTenantPrisma, isTenantModuleActive, MODULO_IDS } from "@/lib/tenant";
 
@@ -123,10 +124,14 @@ export default async function RootLayout({
       const prisma = await getTenantPrisma()
       const id = await prisma.identidadInstitucional.findFirst({
         where: { singletonKey: 'default' },
-        select: { telefonoConmutador: true, emailContacto: true },
+        select: { telefonoConmutador: true, emailContacto: true, nombreCompleto: true, nombreCorto: true },
       })
       tenantTelefono = id?.telefonoConmutador ?? null
       tenantEmail = id?.emailContacto ?? null
+      // El nombre legal vive en identidadInstitucional; tiene prioridad sobre el
+      // nombre del meta-tenant para que header, PQRSD y páginas legales coincidan.
+      if (id?.nombreCompleto) tenantNombre = id.nombreCompleto
+      if (id?.nombreCorto) tenantNombreCorto = id.nombreCorto
     } catch {}
     try {
       chatIaActivo = await isTenantModuleActive(MODULO_IDS.CHAT_IA_CIUDADANO)
@@ -159,6 +164,7 @@ export default async function RootLayout({
       <body className={`${nunitoSans.variable} font-sans antialiased`}>
         {tenantCssVars ? <style dangerouslySetInnerHTML={{ __html: tenantCssVars }} /> : null}
         <AuthProvider>
+         <TenantIdentityProvider nombre={tenantNombre} nombreCorto={tenantNombreCorto}>
           {isPublicSite && (
             <>
               {/* Skip links - PRIMERO para accesibilidad WCAG 2.1 */}
@@ -211,6 +217,7 @@ export default async function RootLayout({
               <ClientWidgets chatIaActivo={chatIaActivo} nombreEntidad={tenantNombre} />
             </>
           )}
+         </TenantIdentityProvider>
         </AuthProvider>
       </body>
     </html>

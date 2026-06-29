@@ -83,7 +83,7 @@ export default async function TerminosPage() {
 
               <h2>5. Responsabilidad sobre la Información</h2>
               <p>
-                La Personería Municipal se esfuerza por mantener la información del sitio web 
+                La {id.nombreCompleto} se esfuerza por mantener la información del sitio web
                 actualizada y precisa. Sin embargo:
               </p>
               <ul>
@@ -95,8 +95,8 @@ export default async function TerminosPage() {
               <h2>6. Enlaces a Terceros</h2>
               <p>
                 Este sitio puede contener enlaces a sitios web de terceros. Estos enlaces se 
-                proporcionan únicamente para conveniencia del usuario. La Personería Municipal 
-                no tiene control sobre el contenido de dichos sitios y no asume responsabilidad 
+                proporcionan únicamente para conveniencia del usuario. La {id.nombreCompleto}
+                no tiene control sobre el contenido de dichos sitios y no asume responsabilidad
                 por ellos.
               </p>
 
@@ -115,7 +115,7 @@ export default async function TerminosPage() {
 
               <h2>8. Disponibilidad del Servicio</h2>
               <p>
-                La Personería Municipal no garantiza la disponibilidad continua e ininterrumpida 
+                La {id.nombreCompleto} no garantiza la disponibilidad continua e ininterrumpida
                 del sitio web. El servicio puede verse interrumpido por:
               </p>
               <ul>
@@ -142,7 +142,7 @@ export default async function TerminosPage() {
 
               <h2>11. Modificaciones</h2>
               <p>
-                La Personería Municipal se reserva el derecho de modificar estos Términos y 
+                La {id.nombreCompleto} se reserva el derecho de modificar estos Términos y
                 Condiciones en cualquier momento. Los cambios entrarán en vigor inmediatamente 
                 después de su publicación en el sitio web. El uso continuado del sitio después 
                 de dichas modificaciones constituye su aceptación de los nuevos términos.

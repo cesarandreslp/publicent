@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { PageHeader } from '@/components/shared/page-header'
 import { AltchaCaptcha } from '@/components/shared/altcha-captcha'
+import { useTenantIdentity } from '@/components/providers/tenant-identity-provider'
 
 const tiposPQRSD = [
   {
@@ -69,6 +70,7 @@ const tiposDocumento = [
 ]
 
 export default function PQRSDPage() {
+  const { nombre: nombreEntidad } = useTenantIdentity()
   const [tipoPQRSD, setTipoPQRSD] = useState('')
   const [esAnonimo, setEsAnonimo] = useState(false)
   const [enviado, setEnviado] = useState(false)
@@ -400,7 +402,7 @@ export default function PQRSDPage() {
                       value={municipio}
                       onChange={(e) => setMunicipio(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gov-blue focus:border-gov-blue"
-                      placeholder="Ej. Guadalajara de Buga"
+                      placeholder="Ej. su municipio"
                     />
                   </div>
                   <div className="md:col-span-2">
@@ -580,7 +582,7 @@ export default function PQRSDPage() {
                   <Link href="/tratamiento-datos" className="text-gov-blue hover:underline">
                     política de tratamiento de datos personales
                   </Link>{' '}
-                  y autorizo a la Personería Municipal de Guadalajara de Buga para el procesamiento 
+                  y autorizo a {nombreEntidad} para el procesamiento
                   de mi información conforme a la Ley 1581 de 2012.
                 </span>
               </label>

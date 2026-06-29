@@ -122,7 +122,7 @@ const categoriasTransparencia = [
     descripcion: "Información tributaria (solo para entidades territoriales)",
     href: "/transparencia/informacion-tributaria",
     subcategorias: [
-      "10.1 No aplica para la Personería Municipal",
+      "10.1 No aplica para entidades no territoriales",
     ]
   },
 ]

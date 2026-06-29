@@ -91,6 +91,14 @@ export async function POST(req: Request) {
   const QRCode = (await import("qrcode")).default
   const qrDataURL = await QRCode.toDataURL(urlVerificacion, { margin: 1, width: 200, color: { dark: '#1e3a8a', light: '#ffffff' } })
 
+  // Nombre de la ENTIDAD ACTIVA (no horneado) para el pie de firma del documento oficial
+  const identidadFirma = await prisma.identidadInstitucional.findFirst({
+    where: { singletonKey: "default" },
+    select: { nombreCompleto: true, nombreCorto: true },
+  })
+  const nombreEntidadFirma =
+    identidadFirma?.nombreCompleto ?? identidadFirma?.nombreCorto ?? "Entidad Pública"
+
   const documentoFinalHtml = `
 <!DOCTYPE html>
 <html lang="es">
@@ -117,7 +125,7 @@ export async function POST(req: Request) {
     </div>
     <div class="firma-info">
       <p style="font-size:14px; color:#1e3a8a"><strong>FIRMADO ELECTRÓNICAMENTE</strong></p>
-      <p>Entidad: <strong>Personería Mpal. de Guadalajara de Buga</strong></p>
+      <p>Entidad: <strong>${nombreEntidadFirma}</strong></p>
       <p>Radicado Oficial N°: <strong>${numeroRadicado}</strong></p>
       <p>Certificación de Integridad SHA-256:</p>
       <div class="hash">${hashObj}</div>

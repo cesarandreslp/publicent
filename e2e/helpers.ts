@@ -40,9 +40,14 @@ export function randomEmail(): string {
   return `test_${Date.now()}@correo.test`
 }
 
-/** Genera un nombre de radicado simulado */
+/**
+ * Extrae un número de radicado del texto.
+ * Formato real generado por la app: `<PREFIJO>-AAAAMMDD-######`
+ * (prefijo de 3 letras: PET/QUE/REC/SUG/DEN/FEL/CON/PQR — ver
+ * `generarRadicado` en src/app/api/pqrsd/route.ts).
+ */
 export function parseRadicado(text: string): string | null {
-  const match = text.match(/PGB-\d{4}-\d{5}/)
+  const match = text.match(/[A-Z]{3}-\d{8}-\d{6}/)
   return match ? match[0] : null
 }
 

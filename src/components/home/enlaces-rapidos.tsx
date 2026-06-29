@@ -126,7 +126,7 @@ export function EnlacesRapidos({
             ¿Qué necesita hoy?
           </h2>
           <p className="text-gray-500 mt-3 max-w-xl mx-auto">
-            Encuentre rápidamente los servicios más solicitados de la Personería Municipal.
+            Encuentre rápidamente los servicios más solicitados de la entidad.
           </p>
         </div>
 

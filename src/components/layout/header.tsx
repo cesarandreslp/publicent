@@ -97,6 +97,35 @@ interface HeaderProps {
   email?: string | null
 }
 
+/** Palabras vacías y genéricas que no aportan a la comparación de nombres. */
+const STOPWORDS_NOMBRE = new Set([
+  'de', 'del', 'la', 'el', 'los', 'las', 'y', 'e',
+  'municipal', 'departamental', 'distrital', 'nacional', 'guadalajara',
+])
+
+function tokenizarNombre(valor: string): string[] {
+  return valor
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '') // quita acentos (marcas diacríticas combinantes)
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter((t) => t.length > 2 && !STOPWORDS_NOMBRE.has(t))
+}
+
+/**
+ * Devuelve true si el nombre corto no aporta información nueva frente al nombre
+ * oficial: cuando todos sus tokens significativos ya están en el nombre completo.
+ * Ej.: "Personería de Buga" es redundante con "Personería Municipal de
+ * Guadalajara de Buga".
+ */
+function esNombreRedundante(nombre: string, nombreCorto: string): boolean {
+  const tokensCompleto = new Set(tokenizarNombre(nombre))
+  const tokensCorto = tokenizarNombre(nombreCorto)
+  if (tokensCorto.length === 0) return true
+  return tokensCorto.every((t) => tokensCompleto.has(t))
+}
+
 export function Header({ logoUrl, nombre, nombreCorto, telefono, email }: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -163,7 +192,10 @@ export function Header({ logoUrl, nombre, nombreCorto, telefono, email }: Header
                 <h1 className="text-lg font-bold text-gov-blue leading-tight">
                   {nombre}
                 </h1>
-                {nombreCorto && (
+                {/* El nombre corto sólo se muestra si aporta información distinta del
+                    nombre oficial (evita la redundancia "Personería Municipal de
+                    Guadalajara de Buga" + "Personería de Buga" junto al logo). */}
+                {nombreCorto && !esNombreRedundante(nombre, nombreCorto) && (
                   <p className="text-sm text-gray-600">{nombreCorto}</p>
                 )}
               </div>

@@ -144,7 +144,7 @@ const categorias: Record<string, {
     descripcion: 'Información tributaria en entidades territoriales',
     icono: Receipt,
     subcategorias: [
-      { codigo: '10.1', nombre: 'No aplica', descripcion: 'Esta categoría no aplica para la Personería Municipal' },
+      { codigo: '10.1', nombre: 'No aplica', descripcion: 'Esta categoría no aplica para entidades no territoriales' },
     ],
   },
 }

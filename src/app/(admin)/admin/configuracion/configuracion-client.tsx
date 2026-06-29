@@ -53,22 +53,23 @@ interface ConfiguracionGeneral {
   googleMapsEmbed: string;
 }
 
-// Valores por defecto
+// Valores por defecto — NEUTROS (sin datos de un tenant específico). La config real
+// se carga desde la BD del tenant; estos sólo aplican antes de la carga / si está vacía.
 const defaultWhatsApp: ConfiguracionWhatsApp = {
-  activo: true,
-  numero: '573000000000',
-  mensaje: 'Hola, necesito información sobre los servicios de la Personería',
-  nombreAgente: 'Personería de Buga',
+  activo: false,
+  numero: '',
+  mensaje: 'Hola, necesito información sobre los servicios de la entidad',
+  nombreAgente: '',
   mensajeBienvenida: '¡Hola! 👋 ¿En qué podemos ayudarte hoy?'
 };
 
 const defaultContacto: ConfiguracionContacto = {
-  direccion: 'Carrera 14 # 6-22, Centro, Guadalajara de Buga, Valle del Cauca',
-  telefono: '(602) 2280000',
+  direccion: '',
+  telefono: '',
   telefonoSecundario: '',
-  email: 'contacto@personeriabuga.gov.co',
+  email: '',
   emailSecundario: '',
-  horarioAtencion: 'Lunes a Viernes: 8:00 AM - 12:00 PM y 2:00 PM - 6:00 PM'
+  horarioAtencion: ''
 };
 
 const defaultRedesSociales: ConfiguracionRedesSociales = {
@@ -80,10 +81,10 @@ const defaultRedesSociales: ConfiguracionRedesSociales = {
 };
 
 const defaultGeneral: ConfiguracionGeneral = {
-  nombreEntidad: 'Personería Municipal de Guadalajara de Buga',
-  nombreCorto: 'Personería de Buga',
-  slogan: 'Defensores del pueblo, guardianes de tus derechos',
-  nit: '891.900.000-0',
+  nombreEntidad: '',
+  nombreCorto: '',
+  slogan: '',
+  nit: '',
   googleAnalyticsId: '',
   googleMapsEmbed: ''
 };
@@ -267,7 +268,7 @@ export default function ConfiguracionClient() {
                 type="text"
                 value={whatsapp.nombreAgente}
                 onChange={(e) => setWhatsapp({ ...whatsapp, nombreAgente: e.target.value })}
-                placeholder="Personería de Buga"
+                placeholder="Nombre de la entidad"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
               />
             </div>
@@ -564,7 +565,7 @@ export default function ConfiguracionClient() {
                 type="text"
                 value={general.nombreEntidad}
                 onChange={(e) => setGeneral({ ...general, nombreEntidad: e.target.value })}
-                placeholder="Personería Municipal de Guadalajara de Buga"
+                placeholder="Nombre oficial completo de la entidad"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500"
               />
             </div>
@@ -578,7 +579,7 @@ export default function ConfiguracionClient() {
                 type="text"
                 value={general.nombreCorto}
                 onChange={(e) => setGeneral({ ...general, nombreCorto: e.target.value })}
-                placeholder="Personería de Buga"
+                placeholder="Nombre corto de la entidad"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500"
               />
             </div>

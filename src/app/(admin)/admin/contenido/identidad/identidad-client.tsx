@@ -372,7 +372,7 @@ export function IdentidadClient({ initialData }: { initialData: Identidad | null
             <Input
               value={data.seoKeywords ?? ''}
               onChange={(e) => update('seoKeywords', e.target.value || null)}
-              placeholder="Personería, Buga, ..."
+              placeholder="palabra clave 1, palabra clave 2, ..."
             />
           </Field>
           <Field label="OG image URL">

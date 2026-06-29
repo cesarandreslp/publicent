@@ -108,7 +108,7 @@ export default function ServiciosPage() {
     <>
       <PageHeader
         title="Catálogo de Servicios"
-        description="Conozca los servicios que la Personería Municipal ofrece a la ciudadanía"
+        description="Conozca los servicios que la entidad ofrece a la ciudadanía"
         breadcrumbItems={[{ label: 'Servicios' }]}
       />
 
