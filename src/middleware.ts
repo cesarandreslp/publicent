@@ -60,6 +60,15 @@ export default auth(async function middleware(req: NextRequest & { auth: { user?
     return NextResponse.next({ request: { headers: reqHeaders } })
   }
 
+  // ──────────────────────────────────────────────────────────────────────────
+  // 0.4. Endpoints tenant-agnósticos: el captcha ALTCHA usa un secreto global
+  // (ALTCHA_HMAC_KEY), no requiere resolver tenant. Saltar la consulta a la meta-DB
+  // evita 503 intermitentes (congestión Neon) en la obtención del desafío.
+  // ──────────────────────────────────────────────────────────────────────────
+  if (pathname.startsWith("/api/altcha/")) {
+    return NextResponse.next()
+  }
+
   const host = (req.headers.get("host") ?? "").toLowerCase().split(":")[0]
 
   // ──────────────────────────────────────────────────────────────────────────
