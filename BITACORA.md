@@ -762,3 +762,39 @@ Justificación: la Capa 6 tiene dos correcciones de una línea (contraste del bo
 hallazgo en esta bitácora con su `tipo` y `estado`, y reflejando los fixes en producción según la
 **Regla de oro** del entorno.
 - **Estado:** PLAN establecido (PENDIENTE de ejecución por capas).
+
+---
+
+## 2026-06-29
+
+### HALLAZGO — 🟠 Onboarding desde Superadmin INCOMPLETO (la UI no aprovisiona)
+- **Qué:** el formulario `/superadmin/tenants/nuevo` (`POST /api/superadmin/tenants`) **solo crea el registro
+  meta** (`prismaMeta.tenant.create`) y **exige `databaseUrl` + `databaseName` ya existentes**. NO crea ni
+  aprovisiona la BD del tenant (Neon/esquema/seed). → **No se puede crear un tenant funcional "desde cero" de
+  forma 100% visual** en el panel: el aprovisionamiento real es solo por CLI (`provision-tenant`), sin botón en la UI.
+- **Impacto:** responde directamente a la pregunta "¿el alcance está aterrizado?": el flujo de alta visual está
+  incompleto. Para Capa 1 (Wakanda) hace falta CLI o crear la BD Neon a mano y pegar su `databaseUrl` en la UI.
+- **Acción sugerida:** agregar al Superadmin un botón "Aprovisionar" que llame a `provisionTenant` (endpoint con
+  `maxDuration`), como ya estaba anotado como pendiente en la sección de plataforma.
+- **Estado:** PENDIENTE (hallazgo de producto).
+
+### BLOQUEO — Navegador (extensión Claude in Chrome) no alcanzable por el MCP
+- **Qué:** tras varios reinicios y reautorizaciones, `list_connected_browsers`/`switch_browser`/`select_browser`
+  no detectan ninguna instancia (el backend ve 0 extensiones conectadas). Conectó al inicio de la sesión y luego
+  cayó sin recuperarse. **Sin navegador no es posible la validación VISUAL** (Capa 1+ exige ver el flujo, no llenar BD).
+- **Estado:** BLOQUEADO (depende de reconexión de la extensión / backend). Capa 1 visual queda EN ESPERA.
+
+### NOTA — Aprovisionamiento CLI de "Alcaldía de Wakanda" intentado (no completó)
+- Config ALCALDIA + 11 módulos (en scratchpad, no versionado). El CLI falló por **tooling** (`esbuild/tsx: write
+  EPIPE`), **antes de crear infra** → **sin proyecto Neon huérfano** (verificado vía API Neon). Estado limpio.
+- `NEON_API_KEY` usada solo en memoria para esa corrida; no versionada ni persistida en `.env`.
+- **Estado:** NO EJECUTADO (reintentar en entorno con tsx/esbuild estable, o vía endpoint de superadmin futuro).
+
+### DECISIÓN — Capa 1 es VISUAL desde el Superadmin (reafirmado por el usuario y el skill)
+- El usuario reafirmó: **el objetivo es ver el flujo funcionando**, no llenar la BD por CLI. Alineado con
+  `skills/auditar-proyecto-y-plan-pruebas` (metodología "desde el Superadmin", validación visual).
+- **Camino cuando reconecte el navegador:** login superadmin → intentar alta de Wakanda por UI (documentar el
+  hallazgo de que no aprovisiona) → si se decide, aprovisionar por CLI y luego **validar VISUALMENTE** (admin de
+  Wakanda, su portal, aislamiento sin "Buga", radicar PQRSD). Alternativa sin MCP: recorrido **guiado** (el usuario
+  hace clic y comparte capturas; Claude dirige paso a paso).
+- **Estado:** PENDIENTE (en espera de navegador).
