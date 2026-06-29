@@ -8,7 +8,7 @@
  */
 
 import { NextResponse } from "next/server"
-import { createChallenge } from "altcha-lib/v1"
+import { createChallenge } from "@/lib/altcha"
 
 // Siempre dinámico: cada desafío debe ser único y no cacheable.
 export const dynamic = "force-dynamic"
@@ -23,10 +23,9 @@ export async function GET() {
     )
   }
 
-  const challenge = await createChallenge({
-    hmacKey,
+  const challenge = createChallenge(hmacKey, {
     maxnumber: 50_000, // dificultad del proof-of-work (resoluble en el navegador en ~1s)
-    expires: new Date(Date.now() + 5 * 60_000), // el desafío caduca a los 5 minutos
+    expiresInSec: 5 * 60, // el desafío caduca a los 5 minutos
   })
 
   return NextResponse.json(challenge, {

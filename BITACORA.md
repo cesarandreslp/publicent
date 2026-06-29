@@ -44,16 +44,23 @@
 - **DECISIÓN (2026-06-27):** el usuario no tiene cuenta Cloudflare. Se **reemplaza Turnstile por ALTCHA**
   (captcha proof-of-work open-source, self-hosted, **sin cuenta ni llaves de terceros**; solo un secreto
   HMAC propio `ALTCHA_HMAC_KEY`).
-- **CAMBIO aplicado:**
-  - `npm i altcha altcha-lib` (+ `.npmrc legacy-peer-deps=true` para que Vercel instale sin conflicto de peers).
-  - Nuevo endpoint `src/app/api/altcha/challenge/route.ts` (`createChallenge` v1, expira 5 min).
-  - `pqrsd/page.tsx`: widget `<altcha-widget challengeurl="/api/altcha/challenge">` (carga dinámica en cliente);
-    captura el payload en el estado existente.
-  - `api/pqrsd/route.ts`: verificación con `verifySolution(payload, ALTCHA_HMAC_KEY)` (reemplaza el siteverify de Cloudflare).
-  - `ALTCHA_HMAC_KEY` generada y configurada en Vercel (Production) y en `.env` local.
-- **Verificado local:** endpoint 200, round-trip challenge→solve→verify = true, página renderiza el widget, sin Turnstile.
-- **Estado:** ✅ HECHO (código + env). Pendiente: verificar en producción tras deploy. `@marsidev/react-turnstile`
-  queda como dependencia huérfana (se puede remover luego).
+- **INCIDENTE (build roto, corregido):** el primer intento usó `altcha-lib` + `.npmrc legacy-peer-deps=true`.
+  Eso hizo que npm dejara de instalar **peer-dependencies** y **eliminara 17 paquetes** (entre ellos
+  `@tiptap/extension-drag-handle`, peer de `@tiptap/extension-drag-handle-react`) → el build de Vercel falló
+  (`Module not found`). Producción NO se afectó (Vercel descarta builds en error). Lección: **no** usar
+  `legacy-peer-deps` global en este repo.
+- **SOLUCIÓN final (sin dependencias problemáticas):**
+  - Se quitó `.npmrc` y `altcha-lib`; lockfile regenerado con `npm install` normal (peers recuperados).
+  - Solo se mantiene el widget cliente `altcha` (sin conflictos de peer).
+  - Verificación server propia en `src/lib/altcha.ts` con `node:crypto` (createChallenge + verifySolution,
+    protocolo ALTCHA SHA-256, sin deps externas).
+  - Endpoint `src/app/api/altcha/challenge/route.ts` y `api/pqrsd/route.ts` usan `@/lib/altcha`.
+  - `pqrsd/page.tsx`: widget `<altcha-widget challengeurl="/api/altcha/challenge">` (carga dinámica en cliente).
+  - `ALTCHA_HMAC_KEY` en Vercel (Production) + `.env` local.
+- **Verificado local:** `tsc --noEmit` limpio, round-trip crypto (verify true / claves y number malos → false),
+  endpoint 200, página renderiza el widget, `@tiptap/extension-drag-handle` reinstalado.
+- **Estado:** ✅ código HECHO y verificado local. Pendiente: deploy a prod + verificación en la URL real.
+  `@marsidev/react-turnstile` queda huérfano (remover luego).
 
 ### HALLAZGO — 🟠 Ráfagas de 503 en prefetch RSC
 - **Qué:** prefetch RSC (`?_rsc=`) devuelve 503 en ráfaga; navegaciones completas 200. Probable

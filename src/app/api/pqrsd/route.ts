@@ -12,7 +12,7 @@
 
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
-import { verifySolution } from "altcha-lib/v1"
+import { verifySolution } from "@/lib/altcha"
 import { getTenantPrisma, getTenantModulos, MODULO_IDS } from "@/lib/tenant"
 import { isModuleActive, getVentanillaConfig, getPqrsdConfig } from "@/lib/modules"
 import { TipoPQRS, VuColorSemaforo, VuGenero, VuZona, VuCondicionVulnerabilidad, Prisma } from "@prisma/client"
@@ -422,7 +422,7 @@ export async function POST(req: NextRequest) {
         { status: 500 }
       )
     }
-    const captchaOk = await verifySolution(payload.turnstileToken, hmacKey)
+    const captchaOk = verifySolution(payload.turnstileToken, hmacKey)
     if (!captchaOk) {
       return NextResponse.json(
         { error: "Verificación de CAPTCHA fallida. Intente recargar la página." },
