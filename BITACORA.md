@@ -296,6 +296,25 @@
 **Objetivo:** validar que el flujo de alta de tenant funciona de punta a punta desde cero.
 Reproducir exactamente la 🎯 SOLICITUD PRINCIPAL.
 
+> **🔎 PREP CONFIRMADO (revisión de código 2026-06-27, sin navegador) — leer antes de ejecutar 1b:**
+> - **El formulario `/superadmin/tenants/nuevo` NO aprovisiona:** `POST /api/superadmin/tenants` solo hace
+>   `prismaMeta.tenant.create` y **exige `databaseUrl` + `databaseName` ya existentes**. No crea la BD del tenant.
+> - **Aprovisionamiento real = CLI** `npm run provision-tenant scripts/<config>.json` (`src/lib/provisioning/`):
+>   Neon → esquema → seed → registro meta. **Requiere `NEON_API_KEY`**, que **NO está en `.env` local**
+>   (sí en Vercel prod). → Para 1b: o se agrega `NEON_API_KEY` al `.env` local (pedirla/pull de Vercel, con
+>   cuidado: es secreto), o se crea la BD Neon manualmente y se registra vía UI con ese `databaseUrl`.
+> - **Config del CLI** (campos): `entidad{slug,codigo,nombre,nombreCorto,tipoEntidad,nit,municipio,departamento,
+>   codigoDivipola,slogan}`, `dominioPrincipal`, `plan`, `contacto`, `admin`, `redes`, `modulos[]`. Ref: `scripts/tenant.example.json`.
+> - **🟠 HALLAZGO DE ALCANCE (lo que el usuario pidió validar):** el enum `TipoEntidad` (meta-schema) tiene
+>   **7 tipos: PERSONERIA, CONTRALORIA, ALCALDIA, CONCEJO, GOBERNACION, ASAMBLEA, OTRO.** **No existe `MINISTERIO`
+>   ni `AGENCIA`**, aunque el catálogo de módulos los apunta (`entidadesObjetivo: ['MINISTERIO'|'AGENCIA']`).
+>   → "Alcaldía de Wakanda" = `ALCALDIA` ✓, pero **"Ministerio" y "SAE" no son clasificables** (caen en OTRO).
+>   El alcance **no está del todo aterrizado**: se ofrecen verticales para Ministerios/Agencias pero el modelo
+>   de tenant no los tipifica. **Acción sugerida:** agregar `MINISTERIO` y `AGENCIA` al enum `TipoEntidad`.
+> - **Mapa arquetipo→módulos** (solo estos 6 son específicos; el resto es núcleo común a todos):
+>   `ALCALDIA/GOBERNACION`→rentas/presupuesto territorial · `AGENCIA/OTRO`→FRISCO (SAE) ×2 ·
+>   `MINISTERIO/ALCALDIA/GOBERNACION`→presupuesto · `MINISTERIO`→SGBE/ESB sectorial · `PERSONERIA`→función disciplinaria.
+
 - [ ] **1a.** Login superadmin (`/superadmin-login`) — verificar 200 y acceso al panel.
 - [ ] **1b.** Crear tenant **"Alcaldía de Wakanda"** (tipo ALCALDIA) con datos ficticios: nombre, NIT, logo, contacto, admin inicial.
   - Usar formulario `/superadmin/tenants/nuevo` o `/superadmin/tenants/aprovisionar`.
