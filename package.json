@@ -73,6 +73,8 @@
     "@tiptap/react": "^3.20.5",
     "@tiptap/starter-kit": "^3.20.5",
     "@tiptap/suggestion": "^3.20.5",
+    "altcha": "^3.1.0",
+    "altcha-lib": "^2.2.0",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

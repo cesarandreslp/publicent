@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect, createElement } from 'react'
 import { Metadata } from 'next'
 import Link from 'next/link'
 import { 
@@ -15,7 +15,8 @@ import {
   Info
 } from 'lucide-react'
 import { PageHeader } from '@/components/shared/page-header'
-import { Turnstile } from '@marsidev/react-turnstile'
+// Captcha open-source ALTCHA (proof-of-work, self-hosted). El web component se carga
+// dinámicamente en el cliente dentro del componente para no evaluarse en SSR.
 
 const tiposPQRSD = [
   {
@@ -90,6 +91,23 @@ export default function PQRSDPage() {
   // Turnstile token
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
   const [aceptoTerminos, setAceptoTerminos] = useState(false)
+
+  // ALTCHA (captcha proof-of-work open-source). Carga el web component solo en cliente
+  // y captura el payload verificado, reutilizando el estado `turnstileToken`.
+  const altchaRef = useRef<HTMLElement | null>(null)
+  useEffect(() => { import('altcha') }, [])
+  useEffect(() => {
+    const el = altchaRef.current
+    if (!el) return
+    const onState = (ev: Event) => {
+      const detail = (ev as CustomEvent).detail as { state?: string; payload?: string }
+      if (detail?.state === 'verified' && detail?.payload) setTurnstileToken(detail.payload)
+      else if (detail?.state === 'error') setError('No se pudo completar la verificación de seguridad. Recargue la página.')
+      else setTurnstileToken(null)
+    }
+    el.addEventListener('statechange', onState)
+    return () => el.removeEventListener('statechange', onState)
+  }, [])
 
   // Descripción
   const [asunto, setAsunto] = useState('')
@@ -590,18 +608,14 @@ export default function PQRSDPage() {
             <section className="bg-white rounded-xl shadow-sm border p-6 flex flex-col items-center">
               <h2 className="sr-only">Verificación de seguridad</h2>
               <div className="mb-2 text-sm text-gray-600">Por favor, verifique que no es un robot:</div>
-              {/* Sitekey real desde env (NEXT_PUBLIC_TURNSTILE_SITE_KEY). Si no está configurada, cae al
-                  dummy de Cloudflare para NO romper el formulario (fail-safe): el captcha queda permisivo
-                  hasta que se configure la llave real en Vercel + TURNSTILE_SECRET_KEY en el backend.
-                  ⚠️ Configurar la llave real en producción es obligatorio para que el captcha proteja. */}
-              <Turnstile
-                siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "1x00000000000000000000AA"}
-                onSuccess={(token) => setTurnstileToken(token)}
-                onError={() => setError("Error al verificar el CAPTCHA. Por favor, recargue la página.")}
-                options={{
-                  theme: 'light',
-                }}
-              />
+              {/* CAPTCHA open-source ALTCHA (proof-of-work, self-hosted, sin cuenta ni llaves de terceros).
+                  Obtiene el desafío de /api/altcha/challenge, lo resuelve en el navegador y entrega un
+                  payload que el backend verifica con ALTCHA_HMAC_KEY. */}
+              {createElement('altcha-widget', {
+                ref: altchaRef,
+                challengeurl: '/api/altcha/challenge',
+                style: { width: '100%', maxWidth: '360px' },
+              } as Record<string, unknown>)}
             </section>
 
             {error && (

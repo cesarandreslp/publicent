@@ -41,11 +41,19 @@
 - **Qué:** sitekey de Cloudflare Turnstile dummy `1x00000000000000000000AA` hardcodeada → captcha anti-bot
   inservible en prod (riesgo de radicación masiva por bots).
 - **Dónde:** `src/app/atencion-ciudadano/pqrsd/page.tsx:595`.
-- **Plan:** usar `NEXT_PUBLIC_TURNSTILE_SITE_KEY` + configurar llaves reales (site+secret) en Vercel.
-- **CAMBIO aplicado:** `page.tsx:595` ahora usa `process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY` (el dummy solo
-  como fallback en desarrollo). ⚠️ Antes de desplegar: setear `NEXT_PUBLIC_TURNSTILE_SITE_KEY` y
-  `TURNSTILE_SECRET_KEY` reales en Vercel, o el captcha quedará vacío en prod.
-- **Estado:** CÓDIGO HECHO · PENDIENTE configurar llaves en Vercel (tú).
+- **DECISIÓN (2026-06-27):** el usuario no tiene cuenta Cloudflare. Se **reemplaza Turnstile por ALTCHA**
+  (captcha proof-of-work open-source, self-hosted, **sin cuenta ni llaves de terceros**; solo un secreto
+  HMAC propio `ALTCHA_HMAC_KEY`).
+- **CAMBIO aplicado:**
+  - `npm i altcha altcha-lib` (+ `.npmrc legacy-peer-deps=true` para que Vercel instale sin conflicto de peers).
+  - Nuevo endpoint `src/app/api/altcha/challenge/route.ts` (`createChallenge` v1, expira 5 min).
+  - `pqrsd/page.tsx`: widget `<altcha-widget challengeurl="/api/altcha/challenge">` (carga dinámica en cliente);
+    captura el payload en el estado existente.
+  - `api/pqrsd/route.ts`: verificación con `verifySolution(payload, ALTCHA_HMAC_KEY)` (reemplaza el siteverify de Cloudflare).
+  - `ALTCHA_HMAC_KEY` generada y configurada en Vercel (Production) y en `.env` local.
+- **Verificado local:** endpoint 200, round-trip challenge→solve→verify = true, página renderiza el widget, sin Turnstile.
+- **Estado:** ✅ HECHO (código + env). Pendiente: verificar en producción tras deploy. `@marsidev/react-turnstile`
+  queda como dependencia huérfana (se puede remover luego).
 
 ### HALLAZGO — 🟠 Ráfagas de 503 en prefetch RSC
 - **Qué:** prefetch RSC (`?_rsc=`) devuelve 503 en ráfaga; navegaciones completas 200. Probable

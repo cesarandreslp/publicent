@@ -12,6 +12,7 @@
 
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
+import { verifySolution } from "altcha-lib/v1"
 import { getTenantPrisma, getTenantModulos, MODULO_IDS } from "@/lib/tenant"
 import { isModuleActive, getVentanillaConfig, getPqrsdConfig } from "@/lib/modules"
 import { TipoPQRS, VuColorSemaforo, VuGenero, VuZona, VuCondicionVulnerabilidad, Prisma } from "@prisma/client"
@@ -405,40 +406,31 @@ export async function POST(req: NextRequest) {
 
   if (!payload.turnstileToken) {
     return NextResponse.json(
-      { error: "Faltan validar el CAPTCHA" },
+      { error: "Falta validar el CAPTCHA" },
       { status: 400 }
     )
   }
 
-  // Validar el token de Turnstile con Cloudflare
+  // Validar el desafío ALTCHA (proof-of-work open-source, sin servicio externo).
+  // El campo `turnstileToken` transporta el payload base64 que produce el widget ALTCHA.
   try {
-    const turnstileSecret = process.env.TURNSTILE_SECRET_KEY
-    if (!turnstileSecret) {
-      console.error("[PQRS] TURNSTILE_SECRET_KEY no configurada")
+    const hmacKey = process.env.ALTCHA_HMAC_KEY
+    if (!hmacKey) {
+      console.error("[PQRS] ALTCHA_HMAC_KEY no configurada")
       return NextResponse.json(
         { error: "Configuración de CAPTCHA incompleta en el servidor" },
         { status: 500 }
       )
     }
-    const formData = new URLSearchParams()
-    formData.append('secret', turnstileSecret)
-    formData.append('response', payload.turnstileToken)
-
-    const turnstileRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-      method: 'POST',
-      body: formData,
-    })
-    
-    const turnstileResult = await turnstileRes.json()
-
-    if (!turnstileResult.success) {
+    const captchaOk = await verifySolution(payload.turnstileToken, hmacKey)
+    if (!captchaOk) {
       return NextResponse.json(
         { error: "Verificación de CAPTCHA fallida. Intente recargar la página." },
         { status: 400 }
       )
     }
   } catch (error) {
-    console.error("Error al verificar Turnstile:", error instanceof Error ? error.message : String(error))
+    console.error("Error al verificar ALTCHA:", error instanceof Error ? error.message : String(error))
     return NextResponse.json(
       { error: "Error de servidor al validar CAPTCHA" },
       { status: 500 }
