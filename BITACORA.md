@@ -825,3 +825,21 @@ hallazgo en esta bitácora con su `tipo` y `estado`, y reflejando los fixes en p
 - **Rollback si algo falla:** re-agregar `TENANT_SLUG=personeria-buga` + redeploy.
 - **Verificación tras redeploy:** `alcaldia-wakanda...` → Wakanda; `personeria-buga.`/`buga.` → Buga.
 - **Estado:** EN CURSO (esperando redeploy del usuario).
+
+### ✅ RESULTADO — Multi-tenant REAL verificado en producción (2026-06-29)
+El usuario disparó el redeploy. Verificado VISUALMENTE en vivo:
+- ✅ `alcaldia-wakanda.ossgovernmentone.lat` → **portal de Wakanda** (nombre, contacto "Avenida del Vibranium 1 ·
+  (000) 000 0000 · contacto@wakanda.gov.test", stats en 0). **AISLAMIENTO OK: cero datos de Buga.**
+- ✅ `personeria-buga.ossgovernmentone.lat` → **portal de Buga** (Carrera 14 # 6-30 · (602) 2017004 ·
+  contacto@personeriabuga.gov.co). **Intacto** (la alineación de dominio funcionó).
+- ✅ **Dos tenants conviviendo en producción.** El multi-tenant por dominio quedó **operativo**
+  (antes `TENANT_SLUG` lo bloqueaba). **Prueba de aislamiento del usuario: APROBADA.**
+- **Estado:** ✅ HECHO y DESPLEGADO. `TENANT_SLUG` ya no se usa (modo multi-tenant). Documentar en CLAUDE.md
+  del producto que el routing es por dominio (no más single-tenant slug).
+
+### HALLAZGOS — 🟡 Contenido específico de personería servido a TODOS los arquetipos
+Detectados en el portal de Wakanda (Alcaldía), refuerzan el hallazgo de `defensoria/page.tsx`:
+- Badge del hero **"Defensores del Ciudadano"** (término de personería) aparece en una Alcaldía. (hardcode en home/hero)
+- **"Denuncias disciplinarias · Trámite inmediato"** en Tiempos de Respuesta (término de personería).
+- **Acción:** condicionar este contenido por `tipoEntidad` o gobernarlo por CMS (no horneado). Mismo patrón que defensoría.
+- **Estado:** PENDIENTE (mejora de contenido por arquetipo — Capa 2/3).
