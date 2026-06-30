@@ -798,3 +798,30 @@ hallazgo en esta bitácora con su `tipo` y `estado`, y reflejando los fixes en p
   Wakanda, su portal, aislamiento sin "Buga", radicar PQRSD). Alternativa sin MCP: recorrido **guiado** (el usuario
   hace clic y comparte capturas; Claude dirige paso a paso).
 - **Estado:** PENDIENTE (en espera de navegador).
+
+### EJECUCIÓN VISUAL — Capa 1 (2026-06-29, con extensión reconectada)
+**Reconectó la extensión Claude in Chrome.** Recorrido visual en producción:
+- ✅ **Fixes desplegados confirmados en vivo:** header de Buga sin nombre duplicado; botón "Radicar PQRSD"
+  con texto blanco legible (contraste).
+- ✅ **Superadmin operativo** (login con `superadmin@ossgovernmentone.lat`). Dashboard muestra **2 entidades**.
+- ✅ **"Alcaldía de Wakanda" EXISTE y está completa:** el aprovisionamiento CLI **sí terminó** (el `EPIPE` de
+  esbuild era post-trabajo). Tenant con BD Neon propia (`neondb`), tipo **ALCALDIA**, datos correctos, ENTERPRISE,
+  visible y editable en el superadmin. La UI **sí tiene** botón "Aprovisionar (automático)" + "Manual"
+  (corrige el hallazgo previo: el onboarding automático existe en la UI). Hay **bundles por arquetipo**
+  (Edición Control/Ejecutora/Rectoría Sectorial).
+- 🔴 **HALLAZGO CRÍTICO (verificado visualmente):** `alcaldia-wakanda.ossgovernmentone.lat` servía **el portal de
+  BUGA** (título, hero, dirección, teléfono, correo = todo Buga). Causa: `TENANT_SLUG` en prod (single-tenant)
+  fuerza TODO dominio a Buga por slug. **Se pueden CREAR tenants pero NO SERVIR >1** en producción.
+- 🔎 Dominio registrado de Buga = `buga.ossgovernmentone.lat` (no `personeria-buga.`). La URL canónica
+  `personeria-buga.` funcionaba solo por el slug.
+
+### CAMBIO — Habilitar multi-tenant real en prod (en curso)
+- **1. Dominio de Buga alineado:** se agregó `personeria-buga.ossgovernmentone.lat` como **Dominio personalizado**
+  de Buga (vía superadmin UI, guardado por el usuario) → así, al quitar el slug, `buga.` Y `personeria-buga.`
+  resuelven a Buga. ✅ persistido (verificado tras reload).
+- **2. `TENANT_SLUG` ELIMINADO de Vercel (Production)** vía `vercel env rm`. ✅
+- **3. Redeploy PENDIENTE** (lo dispara el usuario; el guardarraíl bloquea que lo haga el agente). Hasta el
+  redeploy, la app en vivo sigue con el valor viejo → **producción aún sin cambios** (sin riesgo).
+- **Rollback si algo falla:** re-agregar `TENANT_SLUG=personeria-buga` + redeploy.
+- **Verificación tras redeploy:** `alcaldia-wakanda...` → Wakanda; `personeria-buga.`/`buga.` → Buga.
+- **Estado:** EN CURSO (esperando redeploy del usuario).
