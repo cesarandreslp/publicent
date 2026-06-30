@@ -843,3 +843,19 @@ Detectados en el portal de Wakanda (Alcaldía), refuerzan el hallazgo de `defens
 - **"Denuncias disciplinarias · Trámite inmediato"** en Tiempos de Respuesta (término de personería).
 - **Acción:** condicionar este contenido por `tipoEntidad` o gobernarlo por CMS (no horneado). Mismo patrón que defensoría.
 - **Estado:** PENDIENTE (mejora de contenido por arquetipo — Capa 2/3).
+
+### ✅ CAPA 1 + 2 COMPLETAS — flujo ciudadano end-to-end en Wakanda (2026-06-29, visual)
+- ✅ **Admin de Wakanda aislado:** branding Wakanda, usuario propio (Administrador Wakanda/SUPER_ADMIN),
+  0 noticias/docs/PQRSD, 11 módulos de alcaldía activos (Ventanilla Única, Gestión Documental, Contabilidad,
+  Presupuesto, Nómina, Tesorería, Contratación, Chat IA, +núcleo). (Nota: "Rentas locales" sin badge "Activo" — revisar.)
+- ✅ **Radicación PQRSD end-to-end en el portal de Wakanda:** formulario lleno → captcha **ALTCHA "Verificación
+  completada ✓"** → submit → **radicado `PET-20260630-936641`** (formato correcto TIPO-AAAAMMDD-######, fix B08).
+  El consentimiento legal menciona "Alcaldía Municipal de Wakanda" (aislamiento hasta en el texto).
+- ✅ **Aislamiento de datos confirmado:** el radicado aparece en el **admin de Wakanda** (Total PQRS: 1) y
+  **SOLO ahí** — no se mezcla con Buga.
+- **VEREDICTO:** el modelo **multi-tenant funciona de punta a punta** (onboarding → portal → admin → radicación →
+  aislamiento). El alcance está **aterrizado** para el arquetipo Alcaldía. Pendientes documentados: enum
+  TipoEntidad sin MINISTERIO/AGENCIA, contenido de personería hardcodeado para todos los arquetipos.
+- **Datos de prueba creados (limpiar si se desea):** tenant `alcaldia-wakanda` (BD Neon propia) + su admin
+  `admin@wakanda.gov.test` + radicado `PET-20260630-936641`.
+- **Estado:** ✅ HECHO y VERIFICADO en producción.
