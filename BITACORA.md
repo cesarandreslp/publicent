@@ -874,4 +874,10 @@ Detectados en el portal de Wakanda (Alcaldía), refuerzan el hallazgo de `defens
 - **Nota:** enfoque pragmático (genéricos en defaults, sin prop-drilling) salvo defensoría (condicionada bien).
   Mejora futura: condicionar acento/labels por `tipoEntidad` para conservar taglines de personería.
 - **Verificación:** `tsc --noEmit` limpio. Deploy vía push a `main`. Pendiente verificar visual en Wakanda.
-- **Estado:** CÓDIGO HECHO + enum en prod · deploy en curso.
+- **Estado:** ✅ HECHO, DESPLEGADO y VERIFICADO en prod (`vercel --prod`; el git push NO auto-desplegó — ver nota).
+- **VERIFICADO visual/HTTP:** Wakanda → defensoría "Defensa y promoción de los Derechos Humanos", acento
+  "Al servicio de la ciudadanía", sin "Denuncias disciplinarias". Buga → conserva "Personería Municipal como
+  Ministerio Público" (condicional por tipoEntidad correcto).
+- **⚠️ NOTA DE INFRA:** la **integración Git de Vercel no está auto-desplegando** los push a `main` (el commit
+  quedó en GitHub pero no generó deployment). Hay que desplegar con `vercel --prod` (CLI). Revisar la conexión
+  Git↔Vercel del proyecto. (Hallazgo operativo.)
