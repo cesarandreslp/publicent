@@ -916,3 +916,40 @@ ciudadano y el árbol de dependencias de una alcaldía. Resultados:
 - 📌 **Recordatorio de arquitectura:** la IA **sugiere**, el humano **decide** (se guarda en `vuAsignacionIA`,
   advisory). Por eso en Wakanda salió "Sin asignar": faltaba (a) API key de IA en el tenant y (b) árbol de
   dependencias cargado. Con ambos, la sugerencia aparece. La key del usuario se usó solo para esta prueba (temporal, no persistida).
+
+### 🗑️ PASO #3 — Limpieza total de tenants (2026-07-01, autorizado explícitamente)
+Decisión del usuario: eliminar **TODOS** los tenants del producto (incluida Personería de Buga) para partir de
+cero. Precondición cumplida: el aprovisionamiento automático ya quedó validado (Wakanda + SAE), que era la
+condición de `CLAUDE.md` para poder borrar el DEMO de Buga.
+- ⚠️ **Hallazgo de seguridad (evitó un desastre):** la cuenta Neon tenía **16 proyectos**, pero solo **3 eran
+  tenants de este producto**. Los otros 13 (electoss, cima, oss360, pacifik_trail, ano-viejo, bateria, ventanilla,
+  Organizacionapp, etc.) + los 2 `publicent-meta` (plano de control) son ajenos. Se enumeró la **meta-DB como
+  fuente autoritativa** (3 tenants) y se verificó el mapeo endpoint→proyecto antes de borrar.
+- **Borrado ejecutado (irreversible):**
+  | slug | registro meta | proyecto Neon | resultado |
+  |---|---|---|---|
+  | personeria-buga | ✅ borrado (+3 eventos cascade) | `polished-hall-20820326` | HTTP 200 |
+  | alcaldia-wakanda | ✅ borrado (+1 evento cascade) | `weathered-voice-44906408` | HTTP 200 |
+  | sae-colombia | ✅ borrado | `wild-dew-89955265` | HTTP 200 |
+- **Estado final verificado:** meta-DB con **0 tenants**; Neon con **13 proyectos** (ninguno de los 3 borrados,
+  ambos `publicent-meta` intactos, los 13 ajenos intactos). Producción sin tenants (esperado, se recreará).
+- **Gotcha:** el cliente Prisma meta local estaba desactualizado (no conocía el enum `AGENCIA` ya migrado en la
+  BD) → `prisma generate --schema prisma/meta/schema.prisma` para poder operar. Scripts QA temporales borrados.
+
+### ✅ PASO #4 — Cierre de la prueba funcional (2026-07-01)
+Se cumplió la orden original de la sesión ("crear/usar un skill de prueba funcional completa, visual, desde el
+superadmin, validando aislamiento multi-tenant y arquetipos") + los 4 pasos "en el orden":
+1. **#1 Arquetipos:** enum `MINISTERIO`/`AGENCIA` + contenido condicionado por `tipoEntidad` (defensoría,
+   taglines) sin hardcodes de personería. Desplegado.
+2. **#2 Otro arquetipo:** SAE (AGENCIA) aprovisionada por la UI automática con vertical FRISCO; aislamiento de
+   3 tenants validado visualmente en producción.
+3. **Extra:** validada la **asignación IA de PQRS** con la función real (línea de paramento → Ordenamiento Físico).
+4. **#3 Limpieza:** borrado total controlado (arriba).
+- **Entregables:** esta `BITACORA.md` + skill `.claude/skills/prueba-funcional/` + informe `docs/qa/`.
+- **Backlog abierto:** B10 (ruteo IA de quejas de conducta → control disciplinario); rotar PAT de GitHub;
+  auto-deploy Git↔Vercel; almacenamiento en nube para uploads del CMS (decisión pendiente R2/S3).
+
+### 🎯 SIGUIENTE — Recrear tenant ejecutor (Alcaldía/Gobernación) desde cero, visual, y probar TODO
+Plan acordado: crear un tenant **ejecutor** (Alcaldía o Gobernación) vía Superadmin **de forma visual**, con los
+módulos que le corresponden por tipo de entidad, y recorrer **todas** las funcionalidades una por una en el navegador.
+- **Estado:** PENDIENTE (arranca en la próxima interacción).
