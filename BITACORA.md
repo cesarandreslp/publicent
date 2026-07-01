@@ -896,3 +896,23 @@ Detectados en el portal de Wakanda (Alcaldía), refuerzan el hallazgo de `defens
   (contabilidad/presupuesto) pueden exceder el tiempo del aprovisionamiento por UI → para esos, usar el CLI.
 - **Datos de prueba creados (para limpiar en paso #3):** tenant `sae-colombia` + su proyecto Neon `wild-dew-89955265`.
 - **Estado:** ✅ HECHO y VERIFICADO.
+
+### ✅ Validación de la ASIGNACIÓN IA de PQRS (2026-07-01) — responde la pregunta clave del usuario
+Pregunta: "¿cómo sé que realmente se asigna una PQRS automáticamente, si el ciudadano no tiene idea de que
+'Ordenamiento Físico' existe?". Prueba ejecutada contra la **función real del producto** (`classifyPQRSD`,
+Groq `llama-3.3-70b-versatile`, path `dev-tenant` con GROQ_API_KEY del usuario), con 3 solicitudes en lenguaje
+ciudadano y el árbol de dependencias de una alcaldía. Resultados:
+| Solicitud (lenguaje ciudadano) | Tipo IA | Prioridad | Dependencia sugerida | Confianza |
+|---|---|---|---|---|
+| "pasos para la **línea de paramento** de mi lote" | CONSULTA | NORMAL | **Planeación · Ordenamiento Físico y Licencias** ✅ | 80% |
+| "se dañó el **poste de luz**, quedamos a oscuras, roban" | PETICIÓN | **URGENTE** | **Infraestructura y Obras Públicas** ✅ | 90% |
+| "el de la ventanilla me **gritó** y trató mal" | QUEJA | ALTA | Oficina de Atención al Ciudadano ⚠️ | 90% |
+- ✅ **Confirmado:** la IA traduce lenguaje ciudadano → dependencia correcta SIN que el ciudadano conozca la
+  estructura (el caso "línea de paramento" enrutó exacto a Ordenamiento Físico, como predijo el usuario), y
+  detecta prioridad/urgencia por contexto (poste + robos → URGENTE).
+- ⚠️ **Hallazgo de afinamiento (B10):** una queja por conducta de un funcionario se enrutó a "Atención al
+  Ciudadano" en vez de "Control Interno Disciplinario". El TIPO (QUEJA) es correcto; el ruteo es conservador.
+  Mejora: enriquecer el prompt/definiciones para que quejas de conducta de servidores → control disciplinario.
+- 📌 **Recordatorio de arquitectura:** la IA **sugiere**, el humano **decide** (se guarda en `vuAsignacionIA`,
+  advisory). Por eso en Wakanda salió "Sin asignar": faltaba (a) API key de IA en el tenant y (b) árbol de
+  dependencias cargado. Con ambos, la sugerencia aparece. La key del usuario se usó solo para esta prueba (temporal, no persistida).
