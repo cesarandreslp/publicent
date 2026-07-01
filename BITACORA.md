@@ -881,3 +881,18 @@ Detectados en el portal de Wakanda (Alcaldía), refuerzan el hallazgo de `defens
 - **⚠️ NOTA DE INFRA:** la **integración Git de Vercel no está auto-desplegando** los push a `main` (el commit
   quedó en GitHub pero no generó deployment). Hay que desplegar con `vercel --prod` (CLI). Revisar la conexión
   Git↔Vercel del proyecto. (Hallazgo operativo.)
+
+### ✅ PASO #2 — SAE (AGENCIA) aprovisionada por la UI automática (2026-06-29, visual)
+- ✅ Dropdown de tipo ahora incluye **MINISTERIO/AGENCIA** (1a desplegado a la UI).
+- ✅ **"Aprovisionar tenant automáticamente"** crea un tenant funcional COMPLETO en un clic: **"Sociedad de
+  Activos Especiales"** (AGENCIA) → proyecto Neon `wild-dew-89955265`, BD `neondb`, admin `admin@sae.gov.test`
+  (pass `FcS5qBfv_xmGA1*`, mostrada una sola vez), módulos: transparencia, pqrsd, ventanilla_unica,
+  gestion_documental, **frisco_bienes** (vertical SAE). Corrige el hallazgo previo: la UI **sí** aprovisiona
+  (por este flujo; el "Registrar entidad" manual es el que solo hace registro meta).
+- ✅ **Catálogo de módulos por arquetipo confirmado visualmente:** FRISCO (Bienes en extinción / Interop SNR-Fiscalía-IGAC),
+  Registro soberano de beneficiarios, Bus de integración sectorial (Ministerio), Función disciplinaria (personerías), etc.
+- ✅ **Aislamiento del 3er tenant:** `sae.ossgovernmentone.lat` sirve SAE (contacto propio), sin datos de Buga/Wakanda.
+- 🔎 **Nota operativa (la muestra la propia UI):** en Vercel Hobby (límite 60s) los módulos fiscales pesados
+  (contabilidad/presupuesto) pueden exceder el tiempo del aprovisionamiento por UI → para esos, usar el CLI.
+- **Datos de prueba creados (para limpiar en paso #3):** tenant `sae-colombia` + su proyecto Neon `wild-dew-89955265`.
+- **Estado:** ✅ HECHO y VERIFICADO.
