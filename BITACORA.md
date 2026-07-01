@@ -949,7 +949,28 @@ superadmin, validando aislamiento multi-tenant y arquetipos") + los 4 pasos "en 
 - **Backlog abierto:** B10 (ruteo IA de quejas de conducta → control disciplinario); rotar PAT de GitHub;
   auto-deploy Git↔Vercel; almacenamiento en nube para uploads del CMS (decisión pendiente R2/S3).
 
-### 🎯 SIGUIENTE — Recrear tenant ejecutor (Alcaldía/Gobernación) desde cero, visual, y probar TODO
-Plan acordado: crear un tenant **ejecutor** (Alcaldía o Gobernación) vía Superadmin **de forma visual**, con los
-módulos que le corresponden por tipo de entidad, y recorrer **todas** las funcionalidades una por una en el navegador.
-- **Estado:** PENDIENTE (arranca en la próxima interacción).
+### 🏛️ NUEVA FASE — Alcaldía de Armenia desde cero (visual) + prueba de TODAS las funcionalidades
+Plan acordado: crear un tenant **ejecutor** (Alcaldía) vía Superadmin **de forma visual**, con árbol organizacional
+real (**3 secretarías × 3 dependencias c/u**), y recorrer **todas** las funcionalidades por tipo de entidad.
+
+**Acceso Superadmin recreado (2026-07-01):** había 0 superadmins en meta → se sembró uno.
+- `admin@ossgovernmentone.lat` / `OssSuper#2026-Admin!` (bcryptjs, en meta-DB prod). Login: `/superadmin-login`.
+
+**✅ Alcaldía aprovisionada por la UI automática (2026-07-01, visual):**
+- Entidad **Alcaldía Municipal de Armenia** (ALCALDIA), DIVIPOLA 63001-001, NIT 890.000.464-3, Armenia/Quindío.
+- Dominio `alcaldia-armenia.ossgovernmentone.lat` · BD `neondb` · **proyecto Neon `wandering-waterfall-11701212`**.
+- Admin `admin@armenia.gov.test` / **`_hB2yDpe2rsNA1*`** (mostrada 1 vez; cambiar al primer ingreso).
+- **24 módulos** (Alcaldía ejecutora): transparencia, pqrsd, ventanilla_unica, gestion_documental, archivo_fisico,
+  mipg, auditoria_avanzada, contabilidad_publica, presupuesto_formulacion/ejecucion/modificaciones/cierre, tesoreria,
+  contratacion, nomina_publica, activos_bienes, almacen, rentas_locales, dwh_analitica, observatorio, alertas_ml,
+  reportes_control, integraciones_estado, chat_ia_ciudadano. **Excluidos** (no aplican a Alcaldía): FRISCO×2,
+  Registro soberano de beneficiarios, Bus de integración sectorial, Portal actores externos, Función disciplinaria.
+- El aprovisionamiento por UI tardó ~28s con los módulos fiscales pesados (no excedió el límite).
+- ✅ **Portal verificado (HTTP 200 + navegador):** sirve "Alcaldía Municipal de Armenia", contacto propio
+  ((606) 741 7100 · contacto@armenia.gov.co), nav gov.co completa, tagline "Al servicio de la ciudadanía",
+  **widget Chat IA ciudadano activo**. Aislamiento total (0 datos de otros tenants — de hecho ya no hay otros).
+- ⚠️ **Hallazgo menor (B11):** el subtítulo del hero por defecto ("...garantizamos el acceso a la justicia") tiene
+  sabor de personería; para Alcaldía conviene copy propio. Contenido editable desde el CMS.
+- ⚠️ **Hallazgo (B12):** `https://ossgovernmentone.lat/` (apex) devolvió **404** tras borrar todos los tenants —
+  revisar si el landing de plataforma depende de algún tenant o del apex sin match. (El superadmin sí funciona.)
+- **Estado:** EN CURSO → siguiente: login admin del tenant, crear árbol 3×3, recorrer módulos.
