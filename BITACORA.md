@@ -859,3 +859,19 @@ Detectados en el portal de Wakanda (Alcaldía), refuerzan el hallazgo de `defens
 - **Datos de prueba creados (limpiar si se desea):** tenant `alcaldia-wakanda` (BD Neon propia) + su admin
   `admin@wakanda.gov.test` + radicado `PET-20260630-936641`.
 - **Estado:** ✅ HECHO y VERIFICADO en producción.
+
+### CAMBIO — Correcciones de arquetipo (paso #1 del cierre, 2026-06-29)
+**1a) Enum `TipoEntidad` + `MINISTERIO`/`AGENCIA`:**
+- `prisma/meta/schema.prisma` (enum) + `tenant-form.tsx` + `aprovisionar-client.tsx` (dropdowns).
+- **Migración aplicada en meta-DB de prod:** `ALTER TYPE "TipoEntidad" ADD VALUE IF NOT EXISTS 'MINISTERIO'/'AGENCIA'`
+  (el usuario autorizó; irreversible pero aditivo). Verificado: enum ahora incluye los 9 valores.
+- Ahora se pueden crear tenants tipo **Ministerio** y **Agencia (SAE)**.
+**1b) Contenido de personería condicionado/genérico (no horneado para todos):**
+- `defensoria/page.tsx`: intro **condicional por `tipoEntidad`** (solo PERSONERIA ve "Personería Municipal
+  como Ministerio Público"; los demás ven "Defensa y promoción de los Derechos Humanos" con el nombre del tenant).
+- `hero-slider.tsx`: acento por defecto **genérico** "Al servicio de la ciudadanía" (era "Defensores del Ciudadano").
+- `pqrs-home.tsx`: "Denuncias disciplinarias" → "Denuncias".
+- **Nota:** enfoque pragmático (genéricos en defaults, sin prop-drilling) salvo defensoría (condicionada bien).
+  Mejora futura: condicionar acento/labels por `tipoEntidad` para conservar taglines de personería.
+- **Verificación:** `tsc --noEmit` limpio. Deploy vía push a `main`. Pendiente verificar visual en Wakanda.
+- **Estado:** CÓDIGO HECHO + enum en prod · deploy en curso.
