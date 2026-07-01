@@ -32,7 +32,7 @@ const tiempos = [
   { tipo: "Peticiones", tiempo: "15 días hábiles" },
   { tipo: "Quejas y Reclamos", tiempo: "15 días hábiles" },
   { tipo: "Consultas", tiempo: "30 días hábiles" },
-  { tipo: "Denuncias disciplinarias", tiempo: "Trámite inmediato" },
+  { tipo: "Denuncias", tiempo: "Trámite inmediato" },
 ]
 
 interface PQRSHomeProps {

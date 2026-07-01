@@ -126,6 +126,8 @@ enum TipoEntidad {
   GOBERNACION
   ASAMBLEA
   OTRO
+  MINISTERIO
+  AGENCIA
 }
 
 enum PlanTenant {

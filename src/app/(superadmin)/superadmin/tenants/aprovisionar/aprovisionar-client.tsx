@@ -15,7 +15,7 @@ type Resultado = {
   modulosActivos: string[]
 }
 
-const TIPOS = ["PERSONERIA", "CONTRALORIA", "ALCALDIA", "CONCEJO", "GOBERNACION", "ASAMBLEA", "OTRO"]
+const TIPOS = ["PERSONERIA", "CONTRALORIA", "ALCALDIA", "CONCEJO", "GOBERNACION", "ASAMBLEA", "MINISTERIO", "AGENCIA", "OTRO"]
 
 function Campo({ label, value, onChange, placeholder, type = "text", required = false }: {
   label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string; required?: boolean

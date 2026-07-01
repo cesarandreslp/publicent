@@ -13,7 +13,7 @@ import {
   CheckCircle,
 } from 'lucide-react'
 import { PageHeader } from '@/components/shared/page-header'
-import { getTenantPrisma } from '@/lib/tenant'
+import { getTenantPrisma, getTenantInfo } from '@/lib/tenant'
 
 export const metadata: Metadata = {
   title: 'Defensoría del Pueblo',
@@ -98,6 +98,10 @@ export default async function DefensoriaPage() {
     })
   } catch {}
 
+  // Contenido específico de personería (Ministerio Público) solo para tenants PERSONERIA.
+  const { tipoEntidad, nombre: nombreEntidad } = await getTenantInfo()
+  const esPersoneria = tipoEntidad === 'PERSONERIA'
+
   return (
     <>
       <PageHeader
@@ -118,16 +122,31 @@ export default async function DefensoriaPage() {
                 <Shield className="w-8 h-8" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold mb-3">
-                  La Personería Municipal como Ministerio Público
-                </h2>
-                <p className="text-white/90 leading-relaxed">
-                  La Personería Municipal ejerce funciones de Ministerio Público a nivel local, 
-                  actuando como agente del Ministerio Público ante las autoridades judiciales 
-                  y administrativas. En coordinación con la Defensoría del Pueblo, brinda 
-                  servicios de orientación y defensa de los derechos humanos a todos los 
-                  ciudadanos, con especial énfasis en la población más vulnerable.
-                </p>
+                {esPersoneria ? (
+                  <>
+                    <h2 className="text-2xl font-bold mb-3">
+                      La Personería Municipal como Ministerio Público
+                    </h2>
+                    <p className="text-white/90 leading-relaxed">
+                      La Personería Municipal ejerce funciones de Ministerio Público a nivel local,
+                      actuando como agente del Ministerio Público ante las autoridades judiciales
+                      y administrativas. En coordinación con la Defensoría del Pueblo, brinda
+                      servicios de orientación y defensa de los derechos humanos a todos los
+                      ciudadanos, con especial énfasis en la población más vulnerable.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <h2 className="text-2xl font-bold mb-3">
+                      Defensa y promoción de los Derechos Humanos
+                    </h2>
+                    <p className="text-white/90 leading-relaxed">
+                      {nombreEntidad} promueve y protege los derechos humanos de la ciudadanía,
+                      en coordinación con la Defensoría del Pueblo, brindando orientación y
+                      canalización de casos con especial énfasis en la población más vulnerable.
+                    </p>
+                  </>
+                )}
               </div>
             </div>
           </div>

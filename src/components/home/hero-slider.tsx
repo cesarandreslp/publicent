@@ -20,7 +20,7 @@ function buildDefaultSlides(nombreEntidad: string): Slide[] {
   return [
   {
     id: "1",
-    acento: "Defensores del Ciudadano",
+    acento: "Al servicio de la ciudadanía",
     titulo: nombreEntidad,
     subtitulo: "Protegemos sus derechos, promovemos la transparencia y garantizamos el acceso a la justicia para todos los ciudadanos.",
     gradiente: "from-[#1a237e] via-[#283593] to-[#1565C0]",
